@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "betterwright": {
+      "command": "npx",
+      "args": ["betterwright", "mcp"]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "mcp": {
+    "servers": {
+      "betterwright": {
+        "type": "local",
+        "command": ["npx", "betterwright", "mcp"],
+      },
+    },
+  },
+}
