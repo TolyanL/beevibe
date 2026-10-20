@@ -1,0 +1,52 @@
+# Binaries and build artifacts
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace / coverage
+go.work
+go.work.sum
+coverage.out
+coverage.html
+*.coverprofile
+
+# Dependency cache
+vendor/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Vite
+.vite/
+*.tsbuildinfo
+
+# Dev folders
+_templates/
