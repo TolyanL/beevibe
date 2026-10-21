@@ -4,17 +4,21 @@ package integration
 
 import (
 	"bufio"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -128,6 +132,64 @@ func fakeAnswer(system string) string {
 	}
 }
 
+// testDSN — отдельная БД тестов: dev-сервер с той же БД забрал бы тестовые игры.
+func testDSN(t *testing.T) string {
+	t.Helper()
+
+	dsn := os.Getenv("POSTGRES_TEST_DSN")
+	if dsn == "" {
+		dsn = "postgres://bee:12345@localhost:5432/bee_test?sslmode=disable"
+	}
+
+	if err := ensureDatabase(dsn); err != nil {
+		t.Fatalf("ensureDatabase: %v", err)
+	}
+
+	return dsn
+}
+
+func ensureDatabase(dsn string) error {
+	parsed, err := url.Parse(dsn)
+	if err != nil {
+		return fmt.Errorf("url.Parse: %w", err)
+	}
+
+	name := strings.TrimPrefix(parsed.Path, "/")
+	if name == "" {
+		return fmt.Errorf("database name is empty in dsn %q", dsn)
+	}
+
+	admin := *parsed
+	admin.Path = "/postgres"
+
+	db, err := sql.Open("pgx", admin.String())
+	if err != nil {
+		return fmt.Errorf("sql.Open: %w", err)
+	}
+
+	defer db.Close()
+
+	var exists bool
+
+	if err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)", name).Scan(&exists); err != nil {
+		return fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	if exists {
+		return nil
+	}
+
+	if _, err := db.Exec("CREATE DATABASE " + pqQuoteIdent(name)); err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func pqQuoteIdent(name string) string {
+	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
 type APISuite struct {
 	suite.Suite
 
@@ -140,12 +202,9 @@ func TestAPISuite(t *testing.T) {
 }
 
 func (s *APISuite) SetupSuite() {
-	dsn := os.Getenv("POSTGRES_DSN")
-	if dsn == "" {
-		dsn = "postgres://bee:12345@localhost:5432/bee?sslmode=disable"
-	}
-
 	ctx := s.T().Context()
+
+	dsn := testDSN(s.T())
 
 	if err := migration.Up(ctx, dsn); err != nil {
 		s.T().Fatalf("migration.Up: %v", err)

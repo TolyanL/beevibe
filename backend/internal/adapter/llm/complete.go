@@ -59,7 +59,7 @@ func (c *Client) Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMRespo
 	if err != nil {
 		span.SetError(err)
 
-		return response, fmt.Errorf("llm.Complete: %w", err)
+		return response, fmt.Errorf("chatBody: %w", err)
 	}
 
 	var lastErr error
@@ -69,7 +69,7 @@ func (c *Client) Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMRespo
 			if err := c.wait(ctx, attempt); err != nil {
 				span.SetError(err)
 
-				return response, fmt.Errorf("llm.Complete: %w", unavailable(err))
+				return response, fmt.Errorf("wait: %w", unavailable(err))
 			}
 		}
 
@@ -79,7 +79,7 @@ func (c *Client) Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMRespo
 			if err != nil {
 				span.SetError(err)
 
-				return response, fmt.Errorf("llm.Complete: %w", unavailable(err))
+				return response, fmt.Errorf("decode: %w", unavailable(err))
 			}
 
 			return decoded, nil
@@ -94,7 +94,7 @@ func (c *Client) Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMRespo
 
 	span.SetError(lastErr)
 
-	return response, fmt.Errorf("llm.Complete: %w", unavailable(lastErr))
+	return response, fmt.Errorf("send: %w", unavailable(lastErr))
 }
 
 func (c *Client) chatBody(req dto.LLMRequest) ([]byte, error) {
