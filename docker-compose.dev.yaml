@@ -1,0 +1,15 @@
+services:
+  beevibe_db:
+    image: postgres:18-alpine
+    container_name: beevibe_db
+    environment:
+      POSTGRES_USER: bee
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: bee
+    ports:
+      - ${DB_PORT:-5432}:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:

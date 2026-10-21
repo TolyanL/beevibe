@@ -1,0 +1,913 @@
+openapi: 3.1.0
+info:
+  title: GameGen API
+  version: 0.1.0
+  description: >
+    API генератора браузерных игр. Авторизация — сессионная cookie `session`
+    (HttpOnly, SameSite=Lax). Ошибки — единый формат `{ "error": { "code", "message" } }`.
+servers:
+  - url: /api
+
+tags:
+  - name: auth
+  - name: profile
+  - name: games
+  - name: catalog
+  - name: public
+
+paths:
+  /health:
+    get:
+      tags: [catalog]
+      summary: Проверка живости сервиса
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Регистрация
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Пользователь создан, установлена сессионная cookie
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email уже занят
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Вход
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Вход выполнен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Неверные креды
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Выход
+      responses:
+        "204":
+          description: Сессия завершена
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me:
+    get:
+      tags: [profile]
+      summary: Текущий пользователь
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /profile:
+    get:
+      tags: [profile]
+      summary: Профиль: баланс, мои игры, история операций, цены
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Профиль
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /profile/topup:
+    post:
+      tags: [profile]
+      summary: Пополнить баланс (демо-грант)
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Новый баланс
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: integer
+                    format: int64
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /games:
+    post:
+      tags: [games]
+      summary: Запустить генерацию игры
+      description: >
+        Списывает TOKENS_PRICE_GENERATE токенов и ставит игру в очередь конвейера.
+        Заголовок `Idempotency-Key` (опционально): повторный запрос с тем же ключом
+        возвращает ту же игру и не списывает токены второй раз.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGameRequest"
+      responses:
+        "201":
+          description: Игра поставлена в очередь
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateGameResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Не хватает токенов или запрос уже выполняется
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    get:
+      tags: [games]
+      summary: Полный профиль игры: статус, этапы, spec, конфиг, версии, цена
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Профиль игры
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{id}/stream:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    get:
+      tags: [games]
+      summary: SSE-поток событий генерации
+      description: >
+        События: `stage` (этап конвейера), `artifact` (spec/config),
+        `done` (финальная версия и цена), `error`. Поддерживается реконнект:
+        клиент шлёт `Last-Event-ID`, сервер доигрывает пропущенные события.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: event-stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /games/{id}/patch:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Правка игры текстом (через LLM)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  maxLength: 4000
+      responses:
+        "200":
+          description: Новая версия
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versionId:
+                    type: string
+                    format: uuid
+                  tokensSpent:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Нет токенов или игра генерируется
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}/config:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    patch:
+      tags: [games]
+      summary: Параметрическая правка CONFIG (без LLM, бесплатно)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConfigRequest"
+      responses:
+        "200":
+          description: Новая версия
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /games/{id}/rollback:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Откат к версии
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version:
+                  type: integer
+                  minimum: 1
+      responses:
+        "200":
+          description: Новая версия с содержимым отката
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{id}/fix:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Починить упавшую игру (repair-агент)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  description: Текст ошибки из оверлея превью
+      responses:
+        "200":
+          description: Новая версия
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Игра генерируется или исчерпан лимит починок
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}/rate:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Оценка игры (одна на пользователя, изменяемая)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+                  enum: [cool, bad]
+      responses:
+        "200":
+          description: Оценка и агрегат
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rating:
+                    type: string
+                  aggregate:
+                    $ref: "#/components/schemas/RatingAggregate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /games/{id}/playtime:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Зафиксировать наигранное время
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seconds]
+              properties:
+                seconds:
+                  type: integer
+                  minimum: 0
+                  maximum: 300
+      responses:
+        "200":
+          description: Суммарное время игры
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalSeconds:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /catalog:
+    get:
+      tags: [catalog]
+      summary: Каталог игр со статистикой
+      parameters:
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [cool, hours, fresh]
+            default: fresh
+        - name: genre
+          in: query
+          schema:
+            type: string
+            enum: [arcade, snake, clicker, platformer, puzzle, custom]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Карточки каталога
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CatalogCard"
+
+  /g/{id}:
+    servers:
+      - url: /
+    get:
+      tags: [public]
+      summary: Игра как готовый self-contained HTML (без логина)
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: HTML игры
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /g/{id}/download:
+    servers:
+      - url: /
+    get:
+      tags: [public]
+      summary: Скачать игру файлом game.html
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: Вложение game.html
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+
+  parameters:
+    GameId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Некорректный запрос
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Требуется вход
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Не владелец игры
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Не найдено
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: not_enough_tokens
+            message:
+              type: string
+
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        version:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        balance:
+          type: integer
+          format: int64
+
+    UserEnvelope:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    ProfileGame:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        genre:
+          type: string
+        status:
+          type: string
+        tokens_cost:
+          type: integer
+        model_calls:
+          type: integer
+        fixes:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    ProfileTokenOp:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+          nullable: true
+        delta:
+          type: integer
+          format: int64
+        reason:
+          type: string
+          enum: [signup_grant, generate, patch, topup, refund]
+        created_at:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      properties:
+        balance:
+          type: integer
+          format: int64
+        games:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileGame"
+        token_ops:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileTokenOp"
+        prices:
+          type: object
+          properties:
+            generate:
+              type: integer
+              format: int64
+            patch:
+              type: integer
+              format: int64
+
+    CreateGameRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 3
+          maxLength: 2000
+        genre:
+          type: string
+          enum: [arcade, snake, clicker, platformer, puzzle, custom]
+        tempo:
+          type: integer
+          minimum: 1
+          maximum: 10
+        mapSize:
+          type: string
+          enum: [small, medium, large]
+        style:
+          type: string
+          enum: [pixel, cartoon, neon, minimal]
+
+    CreateGameResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: queued
+
+    GameSpec:
+      type: object
+      properties:
+        genre:
+          type: string
+        mechanic:
+          type: string
+        controls:
+          type: string
+        win_condition:
+          type: string
+        lose_condition:
+          type: string
+        palette:
+          type: array
+          items:
+            type: string
+        map_size:
+          type: string
+        style:
+          type: string
+        audience:
+          type: string
+        assets:
+          type: array
+          items:
+            type: string
+
+    GameConfig:
+      type: object
+      properties:
+        tempo:
+          type: integer
+        palette:
+          type: array
+          items:
+            type: string
+        map_size:
+          type: string
+        difficulty:
+          type: string
+        controls:
+          type: string
+        style:
+          type: string
+
+    Stage:
+      type: object
+      properties:
+        stage:
+          type: string
+          example: coding
+        status:
+          type: string
+          enum: [running, done]
+        durationMs:
+          type: integer
+          format: int64
+        issues:
+          type: integer
+
+    Version:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: integer
+        source:
+          type: string
+          enum: [generate, review, patch, config, repair, rollback]
+        note:
+          type: string
+        tokens_cost:
+          type: integer
+        model_calls:
+          type: integer
+        prompt_version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    VersionResponse:
+      type: object
+      properties:
+        versionId:
+          type: string
+          format: uuid
+
+    Game:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [queued, analyzing, planning, coding, assets, reviewing, assembling, checking, ready, failed]
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stage"
+        spec:
+          $ref: "#/components/schemas/GameSpec"
+        config:
+          $ref: "#/components/schemas/GameConfig"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Version"
+        cost:
+          type: object
+          properties:
+            tokens:
+              type: integer
+            calls:
+              type: integer
+            fixes:
+              type: integer
+
+    RatingAggregate:
+      type: object
+      properties:
+        cool:
+          type: integer
+        bad:
+          type: integer
+        total:
+          type: integer
+        cool_percent:
+          type: number
+
+    PlaytimeAggregate:
+      type: object
+      properties:
+        sessions:
+          type: integer
+        seconds:
+          type: integer
+        hours:
+          type: number
+
+    CatalogCard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        genre:
+          type: string
+        map_size:
+          type: string
+        style:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        rating:
+          $ref: "#/components/schemas/RatingAggregate"
+        playtime:
+          $ref: "#/components/schemas/PlaytimeAggregate"
+        tokens_cost:
+          type: integer
+        model_calls:
+          type: integer
+
+    UpdateConfigRequest:
+      type: object
+      properties:
+        tempo:
+          type: integer
+          minimum: 1
+          maximum: 10
+        palette:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+        mapSize:
+          type: string
+          enum: [small, medium, large]
+        difficulty:
+          type: string
+          maxLength: 32

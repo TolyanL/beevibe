@@ -1,0 +1,18 @@
+all: false
+dir: 'internal/usecase/mocks'
+filename: '{{.InterfaceName}}.go'
+force-file-write: true
+formatter: goimports
+include-auto-generated: false
+log-level: warn
+structname: '{{.Mock}}{{.InterfaceName}}'
+pkgname: mocks
+recursive: false
+template: testify
+packages:
+  github.com/TolyanL/beevibe/internal/usecase:
+    interfaces:
+      Store:
+      LLM:
+      Validator:
+      Auth:
