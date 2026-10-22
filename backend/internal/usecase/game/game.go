@@ -86,7 +86,7 @@ type Worker struct {
 
 type UseCase struct {
 	store     Store
-	outbox    Outbox // TODO: писать lifecycle-события (domain.Event) в outbox — порт подключён, вызовов нет.
+	outbox    Outbox
 	llm       llm.LLM
 	validator Validator
 	tokens    Tokens
