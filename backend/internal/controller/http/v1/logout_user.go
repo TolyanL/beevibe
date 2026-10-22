@@ -14,7 +14,7 @@ func (h *Handlers) LogoutUser(w http.ResponseWriter, r *http.Request) {
 		input.SessionToken = cookie.Value
 	}
 
-	if _, err := h.usecase.LogoutUser(r.Context(), input); err != nil {
+	if _, err := h.usecase.User.LogoutUser(r.Context(), input); err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 
 		writeError(w, err)

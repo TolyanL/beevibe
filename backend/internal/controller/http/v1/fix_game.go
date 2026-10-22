@@ -36,7 +36,7 @@ func (h *Handlers) FixGame(w http.ResponseWriter, r *http.Request) {
 	body.UserID = userID
 	body.GameID = gameID
 
-	output, err := h.usecase.FixGame(r.Context(), body)
+	output, err := h.usecase.Game.Fix(r.Context(), body)
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

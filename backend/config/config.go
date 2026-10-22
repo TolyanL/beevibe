@@ -7,6 +7,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/TolyanL/beevibe/internal/adapter/auth"
+	"github.com/TolyanL/beevibe/internal/adapter/kafka"
 	"github.com/TolyanL/beevibe/internal/adapter/validator"
 	"github.com/TolyanL/beevibe/pkg/httpserver"
 	"github.com/TolyanL/beevibe/pkg/llm"
@@ -47,6 +48,7 @@ type Worker struct {
 type Config struct {
 	App       App
 	Auth      auth.Config
+	Kafka     kafka.Config
 	HTTP      httpserver.Config
 	Logger    logger.Config
 	Postgres  postgres.Config

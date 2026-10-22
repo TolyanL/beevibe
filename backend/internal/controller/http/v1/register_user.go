@@ -16,7 +16,7 @@ func (h *Handlers) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.RegisterUser(r.Context(), body)
+	output, err := h.usecase.User.RegisterUser(r.Context(), body)
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

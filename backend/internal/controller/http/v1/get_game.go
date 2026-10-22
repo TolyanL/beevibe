@@ -25,7 +25,7 @@ func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.GetGame(r.Context(), dto.GetGameInput{UserID: userID, GameID: gameID})
+	output, err := h.usecase.Game.Get(r.Context(), dto.GetGameInput{UserID: userID, GameID: gameID})
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

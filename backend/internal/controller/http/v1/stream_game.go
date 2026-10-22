@@ -64,7 +64,7 @@ func (h *Handlers) StreamGame(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, ": ping\n\n")
 			flusher.Flush()
 		case <-poll.C:
-			output, err := h.usecase.ListGenEvents(r.Context(), dto.ListGenEventsInput{
+			output, err := h.usecase.Game.ListGenEvents(r.Context(), dto.ListGenEventsInput{
 				UserID:   userID,
 				GameID:   gameID,
 				AfterSeq: afterSeq,

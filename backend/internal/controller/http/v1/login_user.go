@@ -16,7 +16,7 @@ func (h *Handlers) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.LoginUser(r.Context(), body)
+	output, err := h.usecase.User.LoginUser(r.Context(), body)
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

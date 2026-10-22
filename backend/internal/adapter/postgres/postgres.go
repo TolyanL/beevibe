@@ -6,15 +6,41 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/TolyanL/beevibe/internal/adapter/postgres/catalog"
+	"github.com/TolyanL/beevibe/internal/adapter/postgres/game"
+	"github.com/TolyanL/beevibe/internal/adapter/postgres/outbox"
+	"github.com/TolyanL/beevibe/internal/adapter/postgres/user"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
+// NOTE: алиасы дают встроенным полям уникальные имена: типы доменов называются
+// одинаково (Postgres), а встроить их под одним именем нельзя.
+type (
+	UserPostgres    = user.Postgres
+	GamePostgres    = game.Postgres
+	CatalogPostgres = catalog.Postgres
+	OutboxPostgres  = outbox.Postgres
+)
+
+// NOTE: Postgres — агрегат доменных адаптеров: под-адаптеры встроены, поэтому их
+// операции промотируются в методный набор агрегата; имена операций уникальны.
 type Postgres struct {
 	pool *pgxpool.Pool
+
+	*UserPostgres
+	*GamePostgres
+	*CatalogPostgres
+	*OutboxPostgres
 }
 
 func New(pool *pgxpool.Pool) *Postgres {
-	return &Postgres{pool: pool}
+	return &Postgres{
+		pool:            pool,
+		UserPostgres:    user.New(pool),
+		GamePostgres:    game.New(pool),
+		CatalogPostgres: catalog.New(pool),
+		OutboxPostgres:  outbox.New(pool),
+	}
 }
 
 func (p *Postgres) Ping(ctx context.Context) error {

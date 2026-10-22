@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/TolyanL/beevibe/internal/domain"
-	"github.com/TolyanL/beevibe/internal/usecase"
+	"github.com/TolyanL/beevibe/internal/usecase/user"
 )
 
 const (
 	sessionCookieName = "session"
-	sessionCookieTTL  = int(usecase.SessionTTL / time.Second)
+	sessionCookieTTL  = int(user.SessionTTL / time.Second)
 )
 
 type userIDKey struct{}
@@ -34,7 +34,7 @@ func (h *Handlers) RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := h.usecase.GetSessionUserID(r.Context(), cookie.Value)
+		userID, err := h.usecase.User.GetSessionUserID(r.Context(), cookie.Value)
 		if err != nil {
 			writeError(w, domain.ErrUnauthorized)
 
@@ -56,7 +56,7 @@ func (h *Handlers) OptionalAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := h.usecase.GetSessionUserID(r.Context(), cookie.Value)
+		userID, err := h.usecase.User.GetSessionUserID(r.Context(), cookie.Value)
 		if err != nil {
 			next.ServeHTTP(w, r)
 

@@ -15,7 +15,7 @@ func (h *Handlers) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.GetProfile(r.Context(), dto.GetProfileInput{UserID: userID})
+	output, err := h.usecase.User.GetProfile(r.Context(), dto.GetProfileInput{UserID: userID})
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

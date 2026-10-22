@@ -4,10 +4,12 @@ package integration
 
 import (
 	"bufio"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -19,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/pressly/goose/v3"
@@ -28,16 +31,21 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/TolyanL/beevibe/internal/adapter/auth"
+	"github.com/TolyanL/beevibe/internal/adapter/kafka"
 	"github.com/TolyanL/beevibe/internal/adapter/postgres"
 	"github.com/TolyanL/beevibe/internal/adapter/validator"
 	"github.com/TolyanL/beevibe/internal/app"
 	"github.com/TolyanL/beevibe/internal/controller/http/public"
 	"github.com/TolyanL/beevibe/internal/controller/http/v1"
+	"github.com/TolyanL/beevibe/internal/controller/kafka_consumer"
+	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/usecase"
 	"github.com/TolyanL/beevibe/pkg/llm"
 	pgpool "github.com/TolyanL/beevibe/pkg/postgres"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
+
+const kafkaBroker = "localhost:9094"
 
 const gameHTML = `<!DOCTYPE html>
 <html lang="ru">
@@ -215,6 +223,7 @@ type APISuite struct {
 
 	server *httptest.Server
 	llm    *fakeOpenRouter
+	pool   *pgxpool.Pool
 }
 
 func TestAPISuite(t *testing.T) {
@@ -237,6 +246,7 @@ func (s *APISuite) SetupSuite() {
 
 	transaction.Init(pool)
 
+	s.pool = pool
 	s.llm = newFakeOpenRouter(s.T())
 
 	store := postgres.New(pool)
@@ -249,7 +259,15 @@ func (s *APISuite) SetupSuite() {
 		RetryBackoff: 10 * time.Millisecond,
 	})
 
-	uc := usecase.New(store, llmClient, validator.New(validator.Config{}), auth.New(auth.Config{BcryptCost: 4}), usecase.Config{
+	kafkaCfg := kafka.Config{
+		Brokers: []string{kafkaBroker},
+		Topic:   "game.events",
+		GroupID: "gamegen-integration",
+	}
+
+	producer := kafka.New(kafkaCfg)
+
+	uc := usecase.New(store, llmClient, validator.New(validator.Config{}), auth.New(auth.Config{BcryptCost: 4}), producer, usecase.Config{
 		Tokens: usecase.Tokens{
 			GrantSignup:   1_000_000,
 			GrantTopup:    500_000,
@@ -277,6 +295,18 @@ func (s *APISuite) SetupSuite() {
 	worker := app.NewWorker(uc, 2)
 	worker.Start(ctx)
 	s.T().Cleanup(worker.Close)
+
+	outboxWorker := app.NewOutboxWorker(uc, 200*time.Millisecond)
+	outboxWorker.Start(ctx)
+	s.T().Cleanup(outboxWorker.Close)
+
+	consumer := kafka_consumer.New(kafkaCfg, uc.Event)
+	consumer.Start(ctx)
+	s.T().Cleanup(func() {
+		if err := consumer.Close(); err != nil {
+			s.T().Logf("consumer close: %v", err)
+		}
+	})
 
 	root := chi.NewRouter()
 	root.Mount("/api", v1.NewRouter(v1.New(uc)))
@@ -506,6 +536,81 @@ func (s *APISuite) TestPatchAndRateAndCatalog() {
 	}
 
 	s.Require().True(found, "game is missing in catalog")
+}
+
+func (s *APISuite) TestOutboxStoresGameEvents() {
+	client := s.register(fmt.Sprintf("outbox-%s@example.com", uuid.NewString()))
+
+	created := s.createGame(client, `{"prompt":"калькулятор","genre":"custom"}`, "")
+	s.waitForReady(client, created.ID)
+
+	events := s.outboxEvents(created.ID)
+	s.Require().NotEmpty(events, "outbox has no events for the game")
+	s.Require().Equal(domain.GameEventsTopic, events[0].Topic)
+}
+
+func (s *APISuite) TestGameEventsReachKafkaProjection() {
+	if !s.kafkaAvailable() {
+		s.T().Skip("kafka is not available")
+	}
+
+	client := s.register(fmt.Sprintf("kafka-%s@example.com", uuid.NewString()))
+
+	created := s.createGame(client, `{"prompt":"змейка","genre":"snake"}`, "")
+	s.waitForReady(client, created.ID)
+
+	deadline := time.Now().Add(30 * time.Second)
+
+	for time.Now().Before(deadline) {
+		if s.projectedEvents(created.ID) > 0 {
+			return
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	s.T().Fatal("game events did not reach game_event_log")
+}
+
+func (s *APISuite) outboxEvents(gameID uuid.UUID) []domain.Event {
+	rows, err := s.pool.Query(context.Background(),
+		`SELECT id, topic, key, payload FROM outbox WHERE key = $1 ORDER BY created_at`, gameID.String())
+	s.Require().NoError(err)
+
+	defer rows.Close()
+
+	events := make([]domain.Event, 0)
+
+	for rows.Next() {
+		var event domain.Event
+
+		s.Require().NoError(rows.Scan(&event.ID, &event.Topic, &event.Key, &event.Payload))
+
+		events = append(events, event)
+	}
+
+	return events
+}
+
+func (s *APISuite) projectedEvents(gameID uuid.UUID) int {
+	var count int
+
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM game_event_log WHERE key = $1`, gameID.String()).Scan(&count)
+	s.Require().NoError(err)
+
+	return count
+}
+
+func (s *APISuite) kafkaAvailable() bool {
+	conn, err := net.DialTimeout("tcp", kafkaBroker, 2*time.Second)
+	if err != nil {
+		return false
+	}
+
+	_ = conn.Close()
+
+	return true
 }
 
 func (s *APISuite) TestForeignGameIsForbidden() {

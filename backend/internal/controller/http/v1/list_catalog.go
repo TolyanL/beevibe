@@ -17,7 +17,7 @@ func (h *Handlers) ListCatalog(w http.ResponseWriter, r *http.Request) {
 		Offset: atoiDefault(query.Get("offset"), 0),
 	}
 
-	output, err := h.usecase.ListCatalog(r.Context(), input)
+	output, err := h.usecase.Catalog.List(r.Context(), input)
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

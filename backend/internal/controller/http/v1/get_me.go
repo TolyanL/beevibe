@@ -15,7 +15,7 @@ func (h *Handlers) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.GetMe(r.Context(), dto.GetMeInput{UserID: userID})
+	output, err := h.usecase.User.GetMe(r.Context(), dto.GetMeInput{UserID: userID})
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

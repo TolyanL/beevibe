@@ -1,101 +1,22 @@
 package usecase
 
 import (
-	"context"
-	"time"
-
-	"github.com/google/uuid"
-
-	"github.com/TolyanL/beevibe/internal/domain"
-	"github.com/TolyanL/beevibe/internal/dto"
+	"github.com/TolyanL/beevibe/internal/usecase/catalog"
+	"github.com/TolyanL/beevibe/internal/usecase/event"
+	"github.com/TolyanL/beevibe/internal/usecase/game"
+	"github.com/TolyanL/beevibe/internal/usecase/outbox"
+	"github.com/TolyanL/beevibe/internal/usecase/user"
 	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
-// Store — порт доступа к данным. Реализация: internal/adapter/postgres.
-type Store interface {
-	CreateUser(ctx context.Context, user domain.User) error
-	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
-	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
-	GetUserByIDForUpdate(ctx context.Context, userID uuid.UUID) (domain.User, error)
-	UpdateUser(ctx context.Context, user domain.User) error
-
-	CreateSession(ctx context.Context, token string, userID uuid.UUID, expiresAt time.Time) error
-	GetSessionUserID(ctx context.Context, token string) (uuid.UUID, error)
-	DeleteSession(ctx context.Context, token string) error
-
-	CreateGame(ctx context.Context, game domain.Game) error
-	GetGame(ctx context.Context, gameID uuid.UUID) (domain.Game, error)
-	UpdateGame(ctx context.Context, game domain.Game) error
-	UpdateGameStatus(ctx context.Context, gameID uuid.UUID, status domain.Status, failReason string) error
-	ListUserGamesWithCost(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.ProfileGame, error)
-	ClaimQueuedGame(ctx context.Context) (domain.Game, error)
-
-	CreateVersion(ctx context.Context, version domain.Version) error
-	GetVersion(ctx context.Context, gameID uuid.UUID, number int) (domain.Version, error)
-	GetLatestVersion(ctx context.Context, gameID uuid.UUID) (domain.Version, error)
-	ListVersions(ctx context.Context, gameID uuid.UUID) ([]domain.Version, error)
-
-	InsertTokenOp(ctx context.Context, op domain.TokenOp) error
-	ListTokenOps(ctx context.Context, userID uuid.UUID, limit int) ([]domain.TokenOp, error)
-
-	UpsertRating(ctx context.Context, rating domain.Rating) error
-	GetRating(ctx context.Context, gameID, userID uuid.UUID) (domain.Rating, error)
-	GetRatingAggregate(ctx context.Context, gameID uuid.UUID) (dto.RatingAggregate, error)
-
-	InsertPlaySession(ctx context.Context, session domain.PlaySession) error
-	GetPlaytimeAggregate(ctx context.Context, gameID uuid.UUID) (dto.PlaytimeAggregate, error)
-
-	InsertGenEvent(ctx context.Context, event domain.GenEvent) error
-	ListGenEvents(ctx context.Context, gameID uuid.UUID, afterSeq int64) ([]domain.GenEvent, error)
-
-	ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error)
-
-	InsertIdempotencyKey(ctx context.Context, key, operation string, userID uuid.UUID) (bool, error)
-	GetIdempotencyResult(ctx context.Context, key, operation string) (string, bool, error)
-	CompleteIdempotencyKey(ctx context.Context, key, operation, resultID string) error
-	DeleteIdempotencyKey(ctx context.Context, key, operation string) error
-}
-
-// Validator — порт проверки готовой игры. Реализация: internal/adapter/validator.
-type Validator interface {
-	Check(ctx context.Context, html string) ([]domain.Issue, error)
-	ExtractConfig(ctx context.Context, html string) (domain.GameConfig, error)
-	ApplyConfig(ctx context.Context, html string, cfg domain.GameConfig) (string, error)
-}
-
-// Auth — порт кредов и сессий. Реализация: internal/adapter/auth.
-type Auth interface {
-	HashPassword(password string) (string, error)
-	CheckPassword(hash, password string) error
-	GenerateToken() (string, error)
-}
-
 // Tokens — цены и гранты в токенах.
-type Tokens struct {
-	GrantSignup   int64
-	GrantTopup    int64
-	PriceGenerate int64
-	PricePatch    int64
-}
+type Tokens = user.Tokens
 
 // LLMLimits — лимиты токенов по агентам конвейера.
-type LLMLimits struct {
-	MaxTokensAnalyze  int
-	MaxTokensPlan     int
-	MaxTokensCode     int
-	MaxTokensAssets   int
-	MaxTokensReview   int
-	MaxTokensAssemble int
-	MaxTokensPatch    int
-	MaxTokensRepair   int
-}
+type LLMLimits = game.Limits
 
 // Worker — настройки конвейера генерации.
-type Worker struct {
-	Timeout         time.Duration
-	MaxCallsPerGame int
-	MaxFixAttempts  int
-}
+type Worker = game.Worker
 
 // App — метаданные сервиса.
 type App struct {
@@ -111,26 +32,42 @@ type Config struct {
 	App    App
 }
 
-type UseCase struct {
-	store     Store
-	llm       llm.LLM
-	validator Validator
-	auth      Auth
-	tokens    Tokens
-	limits    LLMLimits
-	worker    Worker
-	app       App
+// Store — порт доступа к данным. Реализация: internal/adapter/postgres.
+type Store interface {
+	user.Store
+	game.Store
+	catalog.Store
+	outbox.Store
 }
 
-func New(store Store, llmClient llm.LLM, validator Validator, auth Auth, cfg Config) *UseCase {
+type UseCase struct {
+	User    *user.UseCase
+	Game    *game.UseCase
+	Catalog *catalog.UseCase
+	Outbox  *outbox.UseCase
+	Event   *event.UseCase
+
+	app App
+}
+
+func New(store Store, llmClient llm.LLM, validator game.Validator, auth user.Auth, kafka outbox.Kafka, cfg Config) *UseCase {
 	return &UseCase{
-		store:     store,
-		llm:       llmClient,
-		validator: validator,
-		auth:      auth,
-		tokens:    cfg.Tokens,
-		limits:    cfg.Limits,
-		worker:    cfg.Worker,
-		app:       cfg.App,
+		User: user.New(store, auth, cfg.Tokens),
+		Game: game.New(
+			store,
+			store,
+			llmClient,
+			validator,
+			game.Tokens{
+				PriceGenerate: cfg.Tokens.PriceGenerate,
+				PricePatch:    cfg.Tokens.PricePatch,
+			},
+			cfg.Limits,
+			cfg.Worker,
+		),
+		Catalog: catalog.New(store),
+		Outbox:  outbox.New(store, kafka),
+		Event:   event.New(store),
+		app:     cfg.App,
 	}
 }

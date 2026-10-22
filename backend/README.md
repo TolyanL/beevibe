@@ -12,11 +12,14 @@ Go 1.27, chi v5, pgx v5 (Postgres), goose (миграции), zerolog, OpenRoute
 ## Запуск
 
 ```bash
-docker compose -f ../docker-compose.dev.yaml up -d   # Postgres на localhost:5432
+make up                              # Postgres + Kafka + Kafka UI (docker-compose.dev.yaml)
 cp .env.example .env                 # заполнить OPENROUTER_API_KEY, APP_NAME, APP_VERSION
-make migrate-up                      # применить миграции
+make migrate-up                      # применить миграции (goose CLI)
 make run                             # поднять сервис на :8080
 ```
+
+Миграции — goose CLI по каталогу `migrations/`: `make migrate-up`, `make migrate-down`,
+`make migrate-status`, `make migrate-create name=<имя>`.
 
 Конфиг читается из переменных окружения (envconfig). Каждый параметр либо обязателен, либо имеет значение
 по умолчанию; полный список — `.env.example`.
@@ -42,15 +45,32 @@ config             — агрегат конфигов слоёв
 internal/app       — composition root, воркер генерации, порядок остановки
 internal/domain    — сущности, инварианты, статусная машина игры
 internal/dto       — контракты операций (request/response)
-internal/usecase   — порты (usecase.go) и операции (файл = операция)
-internal/adapter   — postgres (store), llm (OpenRouter), validator (контракт игры), auth (bcrypt)
-internal/controller/http — HTTP-роуты: /api/* (v1) и публичные /g/:id (public)
-pkg/               — transaction, postgres, render, httpserver, logger, tracer
-migration/         — SQL-миграции goose (+ embed)
-assets/prompts/    — системные промпты агентов (embed)
+internal/usecase   — агрегат UseCase (usecase.go) + домены:
+    user/ game/ catalog/ outbox/ event/
+internal/adapter   — postgres (агрегат + user/ game/ catalog/ outbox/), kafka,
+                     validator (контракт игры), auth (bcrypt)
+internal/controller — http (router, v1, public), kafka_consumer
+pkg/               — llm (клиент, порт, промпты), postgres, transaction, render,
+                     httpserver, logger, tracer
+migrations/        — SQL-миграции goose (каталог, goose CLI)
 api/http/          — OpenAPI-контракт
 test/integration/  — интеграционные тесты (//go:build integration)
 ```
+
+Пакеты по доменам — как в референсном проекте `vpn-proxy`: агрегат в корне пакета
+собирает под-пакеты доменов, каждый домен объявляет свои узкие порты.
+
+## События и Kafka (outbox)
+
+События жизненного цикла игры (`game.created`, `game.ready`, `game.failed`, `game.patched`)
+пишутся в таблицу `outbox` **в одной транзакции** с доменной правкой. Фоновый воркер
+(`internal/app/outbox_worker.go`) читает неотправленные события и публикует их в топик
+`game.events` (продюсер — `internal/adapter/kafka`). Консьюмер
+(`internal/controller/kafka_consumer`) складывает события в проекцию `game_event_log`
+идемпотентно по `event_id` — повторная доставка не создаёт дубль.
+
+Адрес брокера — `KAFKA_BROKERS` (по умолчанию `localhost:9094`, внешний listener из compose);
+топик создаётся автоматически (`KAFKA_AUTO_CREATE_TOPICS_ENABLE=true`).
 
 ## Конвейер генерации
 

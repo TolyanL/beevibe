@@ -18,6 +18,7 @@ var (
 	ErrFixLimitReached       = errors.New("fix limit reached")
 	ErrUnknownConfigKey      = errors.New("unknown config key")
 	ErrLLMBudgetExceeded     = errors.New("llm call budget exceeded")
+	ErrAlreadyExists         = errors.New("already exists")
 )
 
 type Issue struct {

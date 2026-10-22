@@ -15,7 +15,7 @@ func (h *Handlers) TopupTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.TopupTokens(r.Context(), dto.TopupTokensInput{UserID: userID})
+	output, err := h.usecase.User.TopupTokens(r.Context(), dto.TopupTokensInput{UserID: userID})
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

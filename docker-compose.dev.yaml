@@ -34,6 +34,7 @@ services:
     command: |
       bash -c "
       kafka-topics --create --bootstrap-server kafka:9092 --topic awesome-topic --partitions 8 --if-not-exists
+      kafka-topics --create --bootstrap-server kafka:9092 --topic game.events --partitions 3 --if-not-exists
       "
     restart: on-failure
     depends_on:

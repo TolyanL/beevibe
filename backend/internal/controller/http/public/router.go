@@ -30,7 +30,7 @@ func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.GetGamePublic(r.Context(), dto.GetGamePublicInput{GameID: gameID})
+	output, err := h.usecase.Game.GetPublic(r.Context(), dto.GetGamePublicInput{GameID: gameID})
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "game not found")
 
@@ -52,7 +52,7 @@ func (h *Handlers) DownloadGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.GetGamePublic(r.Context(), dto.GetGamePublicInput{GameID: gameID})
+	output, err := h.usecase.Game.GetPublic(r.Context(), dto.GetGamePublicInput{GameID: gameID})
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "game not found")
 

@@ -26,7 +26,7 @@ func (h *Handlers) CreateGame(w http.ResponseWriter, r *http.Request) {
 	body.UserID = userID
 	body.IdempotencyKey = r.Header.Get("Idempotency-Key")
 
-	output, err := h.usecase.CreateGame(r.Context(), body)
+	output, err := h.usecase.Game.Create(r.Context(), body)
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

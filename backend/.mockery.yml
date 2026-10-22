@@ -1,5 +1,5 @@
 all: false
-dir: 'internal/usecase/mocks'
+dir: 'internal/usecase/mocks/{{.SrcPackageName}}'
 filename: '{{.InterfaceName}}.go'
 force-file-write: true
 formatter: goimports
@@ -10,11 +10,22 @@ pkgname: mocks
 recursive: false
 template: testify
 packages:
-  github.com/TolyanL/beevibe/internal/usecase:
+  github.com/TolyanL/beevibe/internal/usecase/user:
+    interfaces:
+      Store:
+      Auth:
+  github.com/TolyanL/beevibe/internal/usecase/game:
     interfaces:
       Store:
       Validator:
-      Auth:
+      Outbox:
+  github.com/TolyanL/beevibe/internal/usecase/catalog:
+    interfaces:
+      Store:
+  github.com/TolyanL/beevibe/internal/usecase/outbox:
+    interfaces:
+      Store:
+      Kafka:
   github.com/TolyanL/beevibe/pkg/llm:
     interfaces:
       LLM:
