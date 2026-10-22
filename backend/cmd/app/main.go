@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 
 	"github.com/TolyanL/beevibe/config"
@@ -13,6 +14,10 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Debug().Err(err).Msg(".env not loaded")
+	}
+
 	c, err := config.New()
 	if err != nil {
 		log.Fatal().Err(err).Msg("config.New")

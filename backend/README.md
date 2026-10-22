@@ -39,7 +39,7 @@ make run                             # поднять сервис на :8080
 ## Структура
 
 ```
-cmd/gamegen        — точка входа сервиса
+cmd/app            — точка входа сервиса
 cmd/migrate        — CLI миграций
 config             — агрегат конфигов слоёв
 internal/app       — composition root, воркер генерации, порядок остановки

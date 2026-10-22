@@ -1,4 +1,4 @@
-BINARY := gamegen
+BINARY := app
 PKG := ./...
 COMPOSE ?= docker compose -f ../docker-compose.dev.yaml
 
