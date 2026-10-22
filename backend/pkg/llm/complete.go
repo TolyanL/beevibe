@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/TolyanL/beevibe/internal/domain"
-	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
@@ -49,11 +48,11 @@ type chatResponse struct {
 }
 
 // Complete — чат-комплишен с ретраями по 429/5xx и сетевым ошибкам.
-func (c *Client) Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMResponse, error) {
+func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 	ctx, span := tracer.Start(ctx, "adapter llm Complete")
 	defer span.End()
 
-	var response dto.LLMResponse
+	var response Response
 
 	body, err := c.chatBody(req)
 	if err != nil {
@@ -97,7 +96,7 @@ func (c *Client) Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMRespo
 	return response, fmt.Errorf("send: %w", unavailable(lastErr))
 }
 
-func (c *Client) chatBody(req dto.LLMRequest) ([]byte, error) {
+func (c *Client) chatBody(req Request) ([]byte, error) {
 	maxTokens := req.MaxTokens
 	if maxTokens <= 0 {
 		maxTokens = defaultMaxTokens
@@ -150,8 +149,8 @@ func (c *Client) send(ctx context.Context, body []byte) ([]byte, bool, error) {
 	return raw, false, nil
 }
 
-func (c *Client) decode(raw []byte) (dto.LLMResponse, error) {
-	var response dto.LLMResponse
+func (c *Client) decode(raw []byte) (Response, error) {
+	var response Response
 
 	var parsed chatResponse
 	if err := json.Unmarshal(raw, &parsed); err != nil {
@@ -162,9 +161,9 @@ func (c *Client) decode(raw []byte) (dto.LLMResponse, error) {
 		return response, fmt.Errorf("response contains no choices")
 	}
 
-	return dto.LLMResponse{
+	return Response{
 		Text: parsed.Choices[0].Message.Content,
-		Usage: dto.LLMUsage{
+		Usage: Usage{
 			PromptTokens:     parsed.Usage.PromptTokens,
 			CompletionTokens: parsed.Usage.CompletionTokens,
 		},

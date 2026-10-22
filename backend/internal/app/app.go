@@ -8,13 +8,13 @@ import (
 
 	"github.com/TolyanL/beevibe/config"
 	"github.com/TolyanL/beevibe/internal/adapter/auth"
-	"github.com/TolyanL/beevibe/internal/adapter/llm"
 	"github.com/TolyanL/beevibe/internal/adapter/postgres"
 	"github.com/TolyanL/beevibe/internal/adapter/validator"
 	"github.com/TolyanL/beevibe/internal/controller/http/public"
-	"github.com/TolyanL/beevibe/internal/controller/http/v1"
+	v1 "github.com/TolyanL/beevibe/internal/controller/http/v1"
 	"github.com/TolyanL/beevibe/internal/usecase"
 	"github.com/TolyanL/beevibe/pkg/httpserver"
+	"github.com/TolyanL/beevibe/pkg/llm"
 	pgpool "github.com/TolyanL/beevibe/pkg/postgres"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )

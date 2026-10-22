@@ -7,9 +7,9 @@ import (
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/TolyanL/beevibe/internal/adapter/auth"
-	"github.com/TolyanL/beevibe/internal/adapter/llm"
 	"github.com/TolyanL/beevibe/internal/adapter/validator"
 	"github.com/TolyanL/beevibe/pkg/httpserver"
+	"github.com/TolyanL/beevibe/pkg/llm"
 	"github.com/TolyanL/beevibe/pkg/logger"
 	"github.com/TolyanL/beevibe/pkg/postgres"
 )

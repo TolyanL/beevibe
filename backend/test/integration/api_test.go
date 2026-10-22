@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -20,19 +21,20 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/pressly/goose/v3"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/TolyanL/beevibe/internal/adapter/auth"
-	"github.com/TolyanL/beevibe/internal/adapter/llm"
 	"github.com/TolyanL/beevibe/internal/adapter/postgres"
 	"github.com/TolyanL/beevibe/internal/adapter/validator"
 	"github.com/TolyanL/beevibe/internal/app"
 	"github.com/TolyanL/beevibe/internal/controller/http/public"
 	"github.com/TolyanL/beevibe/internal/controller/http/v1"
 	"github.com/TolyanL/beevibe/internal/usecase"
-	"github.com/TolyanL/beevibe/migration"
+	"github.com/TolyanL/beevibe/pkg/llm"
 	pgpool "github.com/TolyanL/beevibe/pkg/postgres"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
@@ -132,6 +134,24 @@ func fakeAnswer(system string) string {
 	}
 }
 
+// applyMigrations — прогон миграций из каталога migrations (как в make migrate-up).
+func applyMigrations(dsn string) error {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return fmt.Errorf("sql.Open: %w", err)
+	}
+
+	defer db.Close()
+
+	goose.SetDialect("postgres")
+
+	if err := goose.Up(db, filepath.Join("..", "..", "migrations")); err != nil {
+		return fmt.Errorf("goose.Up: %w", err)
+	}
+
+	return nil
+}
+
 // testDSN — отдельная БД тестов: dev-сервер с той же БД забрал бы тестовые игры.
 func testDSN(t *testing.T) string {
 	t.Helper()
@@ -206,8 +226,8 @@ func (s *APISuite) SetupSuite() {
 
 	dsn := testDSN(s.T())
 
-	if err := migration.Up(ctx, dsn); err != nil {
-		s.T().Fatalf("migration.Up: %v", err)
+	if err := applyMigrations(dsn); err != nil {
+		s.T().Fatalf("applyMigrations: %v", err)
 	}
 
 	pool, err := pgpool.New(ctx, pgpool.Config{DSN: dsn})

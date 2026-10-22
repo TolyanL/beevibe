@@ -12,7 +12,7 @@ You receive:
 - **MAP SIZE** — "small", "medium" or "large". It defines how much space the playfield occupies.
 - **STYLE** — visual style (pixel, cartoon, neon, minimal, etc.).
 
-Treat the user request as the source of truth for *what* the game is. GENRE, TEMPO, MAP SIZE and STYLE are constraints that refine it, never contradict it. If the request and a parameter conflict, follow the request and reconcile the parameter inside the spec.
+Treat the user request as the source of truth for _what_ the game is. GENRE, TEMPO, MAP SIZE and STYLE are constraints that refine it, never contradict it. If the request and a parameter conflict, follow the request and reconcile the parameter inside the spec.
 
 ## Output format
 

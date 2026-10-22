@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/TolyanL/beevibe/internal/domain"
-	"github.com/TolyanL/beevibe/internal/dto"
+	"github.com/TolyanL/beevibe/pkg/llm"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
@@ -409,7 +409,7 @@ func (u *UseCase) complete(ctx context.Context, p *pipeline, system, prompt stri
 		return "", domain.ErrLLMBudgetExceeded
 	}
 
-	resp, err := u.llm.Complete(ctx, dto.LLMRequest{
+	resp, err := u.llm.Complete(ctx, llm.Request{
 		System:      system,
 		Prompt:      prompt,
 		Temperature: temperature,

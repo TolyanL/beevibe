@@ -1,7 +1,15 @@
 BINARY := gamegen
 PKG := ./...
+COMPOSE ?= docker compose -f ../docker-compose.dev.yaml
 
-.PHONY: build run lint test integration-test migrate-up migrate-down migrate-status mocks generate tidy clean
+DB_USER        ?= bee
+DB_PASSWORD    ?= 12345
+DB_NAME        ?= bee
+DB_PORT        ?= 5432
+DB_DSN         ?= postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
+MIGRATION_DIR  ?= migrations
+
+.PHONY: build run lint test integration-test up down migrate-up migrate-down migrate-status migrate-create mocks generate tidy clean
 
 build:
 	go build -o bin/$(BINARY) ./cmd/$(BINARY)
@@ -18,14 +26,24 @@ test:
 integration-test:
 	go test -count=1 -v -tags=integration ./test/integration
 
+up:
+	$(COMPOSE) up -d
+
+down:
+	$(COMPOSE) down
+
 migrate-up:
-	go run ./cmd/migrate -command up
+	goose -dir $(MIGRATION_DIR) postgres "$(DB_DSN)" up
 
 migrate-down:
-	go run ./cmd/migrate -command down
+	goose -dir $(MIGRATION_DIR) postgres "$(DB_DSN)" down
 
 migrate-status:
-	go run ./cmd/migrate -command status
+	goose -dir $(MIGRATION_DIR) postgres "$(DB_DSN)" status
+
+migrate-create:
+	@test -n "$(name)" || (echo "usage: make migrate-create name=<name>"; exit 1)
+	goose -dir $(MIGRATION_DIR) create $(name) sql
 
 mocks:
 	go generate ./internal/usecase/...

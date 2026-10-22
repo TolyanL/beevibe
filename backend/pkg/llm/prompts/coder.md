@@ -22,31 +22,34 @@ The complete HTML skeleton, ending with an empty `<script>` element that already
 ```html
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Название игры</title>
-<style>
-/* minimal styles only */
-</style>
-</head>
-<body>
-<div id="app">
-  <canvas id="game"></canvas>
-  <div id="ui"></div>
-</div>
-<script>
-const CONFIG = {
-  tempo: 5,
-  palette: ["#101820", "#f2a541", "#f4f1de", "#3d5a80"],
-  mapSize: "medium",
-  difficulty: "normal",
-  controls: "keyboard+touch",
-  style: "neon"
-};
-/* game code goes here */
-</script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Название игры</title>
+    <style>
+      /* minimal styles only */
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+      <div id="ui"></div>
+    </div>
+    <script>
+      const CONFIG = {
+        tempo: 5,
+        palette: ["#101820", "#f2a541", "#f4f1de", "#3d5a80"],
+        mapSize: "medium",
+        difficulty: "normal",
+        controls: "keyboard+touch",
+        style: "neon",
+      };
+      /* game code goes here */
+    </script>
+  </body>
 </html>
 ```
 

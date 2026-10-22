@@ -16,7 +16,7 @@ Answer with STRICT JSON only: one object, no markdown fences, no prose before or
 ```json
 {
   "issues": [
-    {"code": "CONFIG_MISSING", "message": "string", "severity": "critical"}
+    { "code": "CONFIG_MISSING", "message": "string", "severity": "critical" }
   ],
   "approved": true
 }

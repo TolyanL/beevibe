@@ -2,10 +2,10 @@ package app
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"sync"
 
 	"github.com/TolyanL/beevibe/internal/usecase"
 )

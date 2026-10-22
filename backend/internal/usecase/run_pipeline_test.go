@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/TolyanL/beevibe/internal/domain"
-	"github.com/TolyanL/beevibe/internal/dto"
+	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
 const analyzerJSON = `{"genre":"snake","mechanic":"classic snake","controls":"arrows and swipe",` +
@@ -23,7 +23,7 @@ const gameHTML = `<!DOCTYPE html><html><body><canvas id="c"></canvas><script>con
 func TestRunPipelineReachesReady(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llm, validator, _ := newTestUseCase(t)
+	uc, store, llmMock, validator, _ := newTestUseCase(t)
 
 	game := domain.Game{
 		ID:      uuid.New(),
@@ -32,18 +32,18 @@ func TestRunPipelineReachesReady(t *testing.T) {
 		Status:  domain.StatusAnalyzing,
 	}
 
-	llm.EXPECT().Prompt(mock.Anything).Return("system prompt", nil)
-	llm.EXPECT().PromptVersion().Return("v1")
+	llmMock.EXPECT().Prompt(mock.Anything).Return("system prompt", nil)
+	llmMock.EXPECT().PromptVersion().Return("v1")
 
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{
 		Text:  analyzerJSON,
-		Usage: dto.LLMUsage{PromptTokens: 10, CompletionTokens: 20},
+		Usage: llm.Usage{PromptTokens: 10, CompletionTokens: 20},
 	}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: "plan"}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: "code"}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: "assets"}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: reviewerJSON}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: gameHTML}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "plan"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "code"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "assets"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: reviewerJSON}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Once()
 
 	validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil)
 	validator.EXPECT().ExtractConfig(mock.Anything, gameHTML).Return(domain.GameConfig{
@@ -67,7 +67,7 @@ func TestRunPipelineReachesReady(t *testing.T) {
 func TestRunPipelineFailsAndRefundsWhenValidationFails(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llm, validator, _ := newTestUseCase(t)
+	uc, store, llmMock, validator, _ := newTestUseCase(t)
 
 	game := domain.Game{
 		ID:      uuid.New(),
@@ -78,16 +78,16 @@ func TestRunPipelineFailsAndRefundsWhenValidationFails(t *testing.T) {
 
 	user := domain.User{ID: game.OwnerID, TokenBalance: 0}
 
-	llm.EXPECT().Prompt(mock.Anything).Return("system prompt", nil).Maybe()
-	llm.EXPECT().PromptVersion().Return("v1").Maybe()
+	llmMock.EXPECT().Prompt(mock.Anything).Return("system prompt", nil).Maybe()
+	llmMock.EXPECT().PromptVersion().Return("v1").Maybe()
 
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: analyzerJSON}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: "plan"}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: "code"}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: "assets"}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: reviewerJSON}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: gameHTML}, nil).Once()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: gameHTML}, nil).Maybe()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: analyzerJSON}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "plan"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "code"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "assets"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: reviewerJSON}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Maybe()
 
 	validator.EXPECT().Check(mock.Anything, mock.Anything).Return([]domain.Issue{
 		{Code: "external_url", Message: "external url found"},
@@ -113,7 +113,7 @@ func TestRunPipelineFailsAndRefundsWhenValidationFails(t *testing.T) {
 func TestRunPipelineStopsAtCallBudget(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llm, _, _ := newTestUseCase(t)
+	uc, store, llmMock, _, _ := newTestUseCase(t)
 	uc.worker.MaxCallsPerGame = 1
 
 	game := domain.Game{
@@ -125,9 +125,9 @@ func TestRunPipelineStopsAtCallBudget(t *testing.T) {
 
 	user := domain.User{ID: game.OwnerID, TokenBalance: 0}
 
-	llm.EXPECT().Prompt(mock.Anything).Return("system prompt", nil).Maybe()
-	llm.EXPECT().PromptVersion().Return("v1").Maybe()
-	llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(dto.LLMResponse{Text: analyzerJSON}, nil).Once()
+	llmMock.EXPECT().Prompt(mock.Anything).Return("system prompt", nil).Maybe()
+	llmMock.EXPECT().PromptVersion().Return("v1").Maybe()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: analyzerJSON}, nil).Once()
 
 	store.EXPECT().UpdateGame(mock.Anything, mock.Anything).Return(nil).Maybe()
 	store.EXPECT().UpdateGameStatus(mock.Anything, game.ID, mock.Anything, mock.Anything).Return(nil).Maybe()

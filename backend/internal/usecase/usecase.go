@@ -8,6 +8,7 @@ import (
 
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
+	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
 // Store — порт доступа к данным. Реализация: internal/adapter/postgres.
@@ -53,13 +54,6 @@ type Store interface {
 	GetIdempotencyResult(ctx context.Context, key, operation string) (string, bool, error)
 	CompleteIdempotencyKey(ctx context.Context, key, operation, resultID string) error
 	DeleteIdempotencyKey(ctx context.Context, key, operation string) error
-}
-
-// LLM — порт чат-комплишена. Реализация: internal/adapter/llm.
-type LLM interface {
-	Complete(ctx context.Context, req dto.LLMRequest) (dto.LLMResponse, error)
-	Prompt(name string) (string, error)
-	PromptVersion() string
 }
 
 // Validator — порт проверки готовой игры. Реализация: internal/adapter/validator.
@@ -119,7 +113,7 @@ type Config struct {
 
 type UseCase struct {
 	store     Store
-	llm       LLM
+	llm       llm.LLM
 	validator Validator
 	auth      Auth
 	tokens    Tokens
@@ -128,10 +122,10 @@ type UseCase struct {
 	app       App
 }
 
-func New(store Store, llm LLM, validator Validator, auth Auth, cfg Config) *UseCase {
+func New(store Store, llmClient llm.LLM, validator Validator, auth Auth, cfg Config) *UseCase {
 	return &UseCase{
 		store:     store,
-		llm:       llm,
+		llm:       llmClient,
 		validator: validator,
 		auth:      auth,
 		tokens:    cfg.Tokens,

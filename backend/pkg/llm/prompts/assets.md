@@ -22,7 +22,7 @@ One fenced `html` block holding an inline `<svg>` element that contains every sp
 <!-- sprite: player ship -->
 <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
   <symbol id="sprite-player" viewBox="0 0 32 32">
-    <polygon points="16,2 30,30 16,22 2,30" fill="<colour from palette>"/>
+    <polygon points="16,2 30,30 16,22 2,30" fill="<colour from palette>" />
   </symbol>
 </svg>
 ```
@@ -41,7 +41,9 @@ One fenced `js` block with one function per sprite or background element, in the
 
 ```js
 // drawPlayer(ctx, x, y, size) — triangle ship, palette accent
-function drawPlayer(ctx, x, y, size) { /* ... */ }
+function drawPlayer(ctx, x, y, size) {
+  /* ... */
+}
 ```
 
 Rules for painters:
@@ -58,13 +60,19 @@ One fenced `js` block with a tiny synth:
 
 ```js
 // initAudio() — lazily creates the AudioContext on the first user gesture
-function initAudio() { /* ... */ }
+function initAudio() {
+  /* ... */
+}
 
 // playTone(freq, duration, type, volume, slideTo) — one oscillator + gain envelope
-function playTone(freq, duration, type, volume, slideTo) { /* ... */ }
+function playTone(freq, duration, type, volume, slideTo) {
+  /* ... */
+}
 
 // playSound(name) — named game sounds
-function playSound(name) { /* ... */ }
+function playSound(name) {
+  /* ... */
+}
 ```
 
 Rules for audio:

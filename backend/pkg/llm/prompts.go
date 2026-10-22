@@ -1,4 +1,4 @@
-package assets
+package llm
 
 import (
 	"crypto/sha256"
@@ -9,30 +9,30 @@ import (
 )
 
 //go:embed prompts/*.md
-var fs embed.FS
+var promptsFS embed.FS
 
 const (
 	promptsDir    = "prompts"
 	promptExt     = ".md"
-	versionLength = 16
+	promptVersion = 16
 )
 
 // Prompt — текст системного промпта по имени без расширения.
 func Prompt(name string) (string, error) {
-	data, err := fs.ReadFile(promptsDir + "/" + name + promptExt)
+	data, err := promptsFS.ReadFile(promptsDir + "/" + name + promptExt)
 	if err != nil {
-		return "", fmt.Errorf("assets.Prompt: %w", err)
+		return "", fmt.Errorf("llm.Prompt: %w", err)
 	}
 
 	return string(data), nil
 }
 
-// PromptVersion — короткий хэш содержимого всех промптов: меняется при правке любого из них.
+// PromptVersion — короткий хэш версии всех встроенных промптов.
 func PromptVersion() string {
 	hash := sha256.New()
 
 	for _, name := range PromptNames() {
-		data, err := fs.ReadFile(promptsDir + "/" + name + promptExt)
+		data, err := promptsFS.ReadFile(promptsDir + "/" + name + promptExt)
 		if err != nil {
 			continue
 		}
@@ -41,12 +41,12 @@ func PromptVersion() string {
 		hash.Write(data)
 	}
 
-	return hex.EncodeToString(hash.Sum(nil))[:versionLength]
+	return hex.EncodeToString(hash.Sum(nil))[:promptVersion]
 }
 
 // PromptNames — имена доступных промптов без расширения, по алфавиту.
 func PromptNames() []string {
-	entries, err := fs.ReadDir(promptsDir)
+	entries, err := promptsFS.ReadDir(promptsDir)
 	if err != nil {
 		return nil
 	}

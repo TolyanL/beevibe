@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/TolyanL/beevibe/internal/domain"
-	"github.com/TolyanL/beevibe/internal/dto"
 )
 
 const okBody = `{"choices":[{"message":{"role":"assistant","content":"Игра готова"}}],` +
@@ -26,7 +25,7 @@ func TestComplete(t *testing.T) {
 		maxRetries int
 		handler    func(calls *atomic.Int32) http.HandlerFunc
 		wantText   string
-		wantUsage  dto.LLMUsage
+		wantUsage  Usage
 		wantErr    bool
 		wantCalls  int32
 	}{
@@ -40,7 +39,7 @@ func TestComplete(t *testing.T) {
 				}
 			},
 			wantText:  "Игра готова",
-			wantUsage: dto.LLMUsage{PromptTokens: 120, CompletionTokens: 340},
+			wantUsage: Usage{PromptTokens: 120, CompletionTokens: 340},
 			wantCalls: 1,
 		},
 		{
@@ -59,7 +58,7 @@ func TestComplete(t *testing.T) {
 				}
 			},
 			wantText:  "Игра готова",
-			wantUsage: dto.LLMUsage{PromptTokens: 120, CompletionTokens: 340},
+			wantUsage: Usage{PromptTokens: 120, CompletionTokens: 340},
 			wantCalls: 2,
 		},
 		{
@@ -116,7 +115,7 @@ func TestComplete(t *testing.T) {
 				RetryBackoff: time.Millisecond,
 			})
 
-			response, err := client.Complete(t.Context(), dto.LLMRequest{
+			response, err := client.Complete(t.Context(), Request{
 				System:      "system prompt",
 				Prompt:      "user prompt",
 				Temperature: 0.4,
@@ -179,7 +178,7 @@ func TestCompleteSendsRequest(t *testing.T) {
 		Timeout: 5 * time.Second,
 	})
 
-	if _, err := client.Complete(t.Context(), dto.LLMRequest{
+	if _, err := client.Complete(t.Context(), Request{
 		System:      "system prompt",
 		Prompt:      "user prompt",
 		Temperature: 0.4,
@@ -240,7 +239,7 @@ func TestCompleteCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := client.Complete(ctx, dto.LLMRequest{System: "system prompt", Prompt: "user prompt"})
+	_, err := client.Complete(ctx, Request{System: "system prompt", Prompt: "user prompt"})
 	if !errors.Is(err, domain.ErrLLMUnavailable) {
 		t.Fatalf("error: want %v, got %v", domain.ErrLLMUnavailable, err)
 	}
