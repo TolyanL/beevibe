@@ -291,11 +291,17 @@ func (u *UseCase) stepReview(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("u.emitStageEvent: %w", err)
 	}
 
+	// Ревью завернуло код на доработку: повторяем цикл код → ассеты → ревью.
+	// Статусная машина допускает reviewing → coding → assets → reviewing.
 	if err := u.stepCode(ctx, p); err != nil {
 		return fmt.Errorf("u.stepCode: %w", err)
 	}
 
-	return nil
+	if err := u.stepAssets(ctx, p); err != nil {
+		return fmt.Errorf("u.stepAssets: %w", err)
+	}
+
+	return u.stepReview(ctx, p)
 }
 
 func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {

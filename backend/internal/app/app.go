@@ -70,7 +70,12 @@ func Run(ctx context.Context, c config.Config) error {
 	root.Mount("/api", v1.NewRouter(v1.New(uc)))
 	root.Mount("/", public.NewRouter(public.New(uc)))
 
-	server := httpserver.New(c.HTTP, root)
+	// Базовый контекст сервера: его отмена при остановке завершает открытые
+	// SSE-потоки, иначе Shutdown ждёт их до таймаута.
+	serverCtx, cancelServer := context.WithCancel(context.Background())
+	defer cancelServer()
+
+	server := httpserver.New(c.HTTP, root, serverCtx)
 
 	generationWorker := NewWorker(uc, c.Worker.Concurrency)
 	generationWorker.Start(ctx)
@@ -94,6 +99,8 @@ func Run(ctx context.Context, c config.Config) error {
 		return fmt.Errorf("server.Start: %w", err)
 	case <-ctx.Done():
 	}
+
+	cancelServer()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), c.HTTP.ShutdownTimeout)
 	defer cancel()

@@ -146,3 +146,50 @@ func TestRunPipelineStopsAtCallBudget(t *testing.T) {
 		t.Fatalf("RunPipeline() error = %v, want ErrLLMBudgetExceeded", err)
 	}
 }
+
+func TestRunPipelineRetriesCodeAfterReviewIssues(t *testing.T) {
+	t.Parallel()
+
+	uc, store, llmMock, validator, outbox := newTestUseCase(t)
+
+	game := domain.Game{
+		ID:      uuid.New(),
+		OwnerID: uuid.New(),
+		Prompt:  "змейка",
+		Status:  domain.StatusAnalyzing,
+	}
+
+	llmMock.EXPECT().Prompt(mock.Anything).Return("system prompt", nil)
+	llmMock.EXPECT().PromptVersion().Return("v1")
+
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: analyzerJSON}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "plan"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "code"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "assets"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{
+		Text: `{"issues":[{"code":"no_touch","message":"нет тача"}],"approved":false}`,
+	}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "code v2"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "assets v2"}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: reviewerJSON}, nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Once()
+
+	validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil)
+	validator.EXPECT().ExtractConfig(mock.Anything, gameHTML).Return(domain.GameConfig{
+		Tempo:   5,
+		MapSize: domain.MapSizeMedium,
+		Style:   domain.StyleNeon,
+	}, nil)
+
+	store.EXPECT().UpdateGame(mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().UpdateGameStatus(mock.Anything, game.ID, mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().CreateVersion(mock.Anything, mock.MatchedBy(func(version domain.Version) bool {
+		return version.GameID == game.ID && version.Number == 1
+	})).Return(nil)
+	store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
+	outbox.EXPECT().InsertOutboxEvent(mock.Anything, mock.Anything).Return(nil)
+
+	if err := uc.RunPipeline(context.Background(), game); err != nil {
+		t.Fatalf("RunPipeline() error = %v, want nil", err)
+	}
+}

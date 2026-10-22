@@ -34,7 +34,8 @@ type chatRequest struct {
 }
 
 type chatChoice struct {
-	Message chatMessage `json:"message"`
+	Message      chatMessage `json:"message"`
+	FinishReason string      `json:"finish_reason"`
 }
 
 type chatUsage struct {
@@ -161,8 +162,13 @@ func (c *Client) decode(raw []byte) (Response, error) {
 		return response, fmt.Errorf("response contains no choices")
 	}
 
+	content := strings.TrimSpace(parsed.Choices[0].Message.Content)
+	if content == "" {
+		return response, fmt.Errorf("response content is empty: %s", parsed.Choices[0].FinishReason)
+	}
+
 	return Response{
-		Text: parsed.Choices[0].Message.Content,
+		Text: content,
 		Usage: Usage{
 			PromptTokens:     parsed.Usage.PromptTokens,
 			CompletionTokens: parsed.Usage.CompletionTokens,
