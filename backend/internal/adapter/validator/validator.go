@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	NodePath string `envconfig:"NODE_PATH" default:""`
+	NodePath string `yaml:"node_path"`
 }
 
 type Validator struct {

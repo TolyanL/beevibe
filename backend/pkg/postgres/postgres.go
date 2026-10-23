@@ -11,10 +11,10 @@ import (
 )
 
 type Config struct {
-	DSN            string        `envconfig:"POSTGRES_DSN"             default:"postgres://bee:12345@localhost:5432/bee?sslmode=disable"`
-	MaxConns       int32         `envconfig:"POSTGRES_MAX_CONNS"        default:"10"`
-	MinConns       int32         `envconfig:"POSTGRES_MIN_CONNS"        default:"2"`
-	ConnectTimeout time.Duration `envconfig:"POSTGRES_CONNECT_TIMEOUT" default:"5s"`
+	DSN            string        `yaml:"dsn"`
+	MaxConns       int32         `yaml:"max_conns"`
+	MinConns       int32         `yaml:"min_conns"`
+	ConnectTimeout time.Duration `yaml:"connect_timeout"`
 }
 
 type DBTX interface {

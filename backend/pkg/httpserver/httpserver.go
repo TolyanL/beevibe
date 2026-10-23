@@ -10,11 +10,11 @@ import (
 )
 
 type Config struct {
-	Port            string        `envconfig:"HTTP_PORT"             default:"8080"`
-	ReadTimeout     time.Duration `envconfig:"HTTP_READ_TIMEOUT"     default:"30s"`
-	WriteTimeout    time.Duration `envconfig:"HTTP_WRITE_TIMEOUT"    default:"0s"`
-	IdleTimeout     time.Duration `envconfig:"HTTP_IDLE_TIMEOUT"     default:"120s"`
-	ShutdownTimeout time.Duration `envconfig:"HTTP_SHUTDOWN_TIMEOUT" default:"10s"`
+	Port            string        `yaml:"port"`
+	ReadTimeout     time.Duration `yaml:"read_timeout"`
+	WriteTimeout    time.Duration `yaml:"write_timeout"`
+	IdleTimeout     time.Duration `yaml:"idle_timeout"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
 type Server struct {

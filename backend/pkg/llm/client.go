@@ -16,14 +16,14 @@ const (
 )
 
 type Config struct {
-	APIKey           string        `envconfig:"OPENROUTER_API_KEY"  required:"true"`
-	Model            string        `envconfig:"OPENROUTER_MODEL"   default:"deepseek/deepseek-chat"`
-	BaseURL          string        `envconfig:"OPENROUTER_BASE_URL" default:"https://openrouter.ai/api/v1"`
-	Timeout          time.Duration `envconfig:"LLM_TIMEOUT"         default:"120s"`
-	MaxRetries       int           `envconfig:"LLM_MAX_RETRIES"     default:"2"`
-	RetryBackoff     time.Duration `envconfig:"LLM_RETRY_BACKOFF"  default:"2s"`
-	ReasoningDialect string        `envconfig:"LLM_REASONING_DIALECT" default:"openrouter"`
-	DebugDir         string        `envconfig:"LLM_DEBUG_DIR"         default:""`
+	APIKey           string        `yaml:"api_key"`
+	Model            string        `yaml:"model"`
+	BaseURL          string        `yaml:"base_url"`
+	Timeout          time.Duration `yaml:"timeout"`
+	MaxRetries       int           `yaml:"max_retries"`
+	RetryBackoff     time.Duration `yaml:"retry_backoff"`
+	ReasoningDialect string        `yaml:"reasoning_dialect"`
+	DebugDir         string        `yaml:"debug_dir"`
 }
 
 func (c Config) Validate() error {

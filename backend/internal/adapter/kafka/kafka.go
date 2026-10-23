@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	Brokers      []string      `envconfig:"KAFKA_BROKERS"       default:"localhost:9094"`
-	Topic        string        `envconfig:"KAFKA_TOPIC"         default:"game.events"`
-	GroupID      string        `envconfig:"KAFKA_GROUP_ID"      default:"gamegen"`
-	WriteTimeout time.Duration `envconfig:"KAFKA_WRITE_TIMEOUT" default:"10s"`
-	ReadTimeout  time.Duration `envconfig:"KAFKA_READ_TIMEOUT"  default:"10s"`
+	Brokers      []string      `yaml:"brokers"`
+	Topic        string        `yaml:"topic"`
+	GroupID      string        `yaml:"group_id"`
+	WriteTimeout time.Duration `yaml:"write_timeout"`
+	ReadTimeout  time.Duration `yaml:"read_timeout"`
 }
 
 type Producer struct {

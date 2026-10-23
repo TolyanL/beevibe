@@ -11,8 +11,8 @@ import (
 )
 
 type Config struct {
-	Level  string `envconfig:"LOG_LEVEL"  default:"info"`
-	Format string `envconfig:"LOG_FORMAT" default:"console"`
+	Level  string `yaml:"level"`
+	Format string `yaml:"format"`
 }
 
 type ContextErrKey struct{}

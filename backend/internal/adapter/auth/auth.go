@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	BcryptCost int `envconfig:"BCRYPT_COST" default:"10"`
+	BcryptCost int `yaml:"bcrypt_cost"`
 }
 
 type Auth struct {

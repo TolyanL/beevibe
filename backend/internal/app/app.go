@@ -7,11 +7,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 
-	"github.com/TolyanL/beevibe/config"
 	"github.com/TolyanL/beevibe/internal/adapter/auth"
 	"github.com/TolyanL/beevibe/internal/adapter/kafka"
 	"github.com/TolyanL/beevibe/internal/adapter/postgres"
 	"github.com/TolyanL/beevibe/internal/adapter/validator"
+	"github.com/TolyanL/beevibe/internal/config"
 	"github.com/TolyanL/beevibe/internal/controller/http/public"
 	"github.com/TolyanL/beevibe/internal/controller/http/v1"
 	"github.com/TolyanL/beevibe/internal/controller/kafka_consumer"
