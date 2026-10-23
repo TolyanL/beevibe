@@ -9,7 +9,7 @@ DB_PORT        ?= 5432
 DB_DSN         ?= postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 MIGRATION_DIR  ?= migrations
 
-.PHONY: build run config lint test up down migrate-up migrate-down migrate-status migrate-create mocks generate tidy clean
+.PHONY: build run config lint test up down migrate-up migrate-down migrate-status migrate-create mocks tidy clean
 
 build:
 	go build -o bin/$(BINARY) ./cmd/$(BINARY)
@@ -46,10 +46,7 @@ migrate-create:
 	goose -dir $(MIGRATION_DIR) create $(name) sql
 
 mocks:
-	go generate ./internal/usecase/...
-
-generate:
-	go generate ./...
+	mockery
 
 tidy:
 	go mod tidy
