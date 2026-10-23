@@ -74,7 +74,7 @@ func (u *UseCase) repair(ctx context.Context, p *pipeline, html string, issues [
 		return "", fmt.Errorf("u.complete: %w", err)
 	}
 
-	return raw, nil
+	return extractHTML(raw), nil
 }
 
 func (u *UseCase) repairWithIssues(ctx context.Context, html, runtimeError string) (string, error) {
@@ -115,7 +115,7 @@ func (u *UseCase) repairWithIssues(ctx context.Context, html, runtimeError strin
 			return "", fmt.Errorf("u.complete: %w", err)
 		}
 
-		current = repaired
+		current = extractHTML(repaired)
 		runtimeError = ""
 	}
 }

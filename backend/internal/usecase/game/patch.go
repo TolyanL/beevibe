@@ -87,7 +87,9 @@ func (u *UseCase) Patch(ctx context.Context, input dto.PatchGameInput) (dto.Patc
 		return output, errors.Join(fmt.Errorf("u.complete: %w", err), u.refund(ctx, input.UserID, input.GameID, u.tokens.PricePatch))
 	}
 
-	issues, err := u.validator.Check(ctx, raw)
+	patched := extractHTML(raw)
+
+	issues, err := u.validator.Check(ctx, patched)
 	if err != nil {
 		return output, errors.Join(fmt.Errorf("validator.Check: %w", err), u.refund(ctx, input.UserID, input.GameID, u.tokens.PricePatch))
 	}
@@ -104,7 +106,7 @@ func (u *UseCase) Patch(ctx context.Context, input dto.PatchGameInput) (dto.Patc
 		return output, err
 	}
 
-	version, err := domain.NewVersion(input.GameID, number, raw, domain.VersionSourcePatch)
+	version, err := domain.NewVersion(input.GameID, number, patched, domain.VersionSourcePatch)
 	if err != nil {
 		return output, fmt.Errorf("domain.NewVersion: %w", err)
 	}

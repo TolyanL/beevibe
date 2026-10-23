@@ -325,7 +325,7 @@ func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("u.complete: %w", err)
 	}
 
-	html := raw
+	html := extractHTML(raw)
 
 	for attempt := range u.worker.MaxFixAttempts {
 		issues, err := u.validator.Check(ctx, html)
