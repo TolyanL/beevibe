@@ -35,3 +35,25 @@ packages:
   github.com/TolyanL/beevibe/pkg/llm:
     interfaces:
       LLM:
+  github.com/TolyanL/beevibe/pkg/postgres:
+    config:
+      dir: 'pkg/postgres/mocks'
+    interfaces:
+      DBTX:
+  github.com/jackc/pgx/v5:
+    config:
+      dir: 'internal/adapter/postgres/mocks'
+    interfaces:
+      Rows:
+      Row:
+  github.com/TolyanL/beevibe/internal/adapter/kafka:
+    config:
+      dir: 'internal/adapter/kafka/mocks'
+    interfaces:
+      MessageWriter:
+  github.com/TolyanL/beevibe/internal/controller/kafka_consumer:
+    config:
+      dir: 'internal/controller/kafka_consumer/mocks'
+    interfaces:
+      MessageReader:
+      Handler:

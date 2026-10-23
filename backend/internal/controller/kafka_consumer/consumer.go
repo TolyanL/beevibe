@@ -17,8 +17,16 @@ type Handler interface {
 	HandleEvent(ctx context.Context, topic, key string, payload []byte) error
 }
 
+// NOTE: the reader is an interface so the fetch/commit loop can be tested
+// without a broker.
+type MessageReader interface {
+	FetchMessage(ctx context.Context) (kafkago.Message, error)
+	CommitMessages(ctx context.Context, msgs ...kafkago.Message) error
+	Close() error
+}
+
 type Consumer struct {
-	reader  *kafkago.Reader
+	reader  MessageReader
 	handler Handler
 	stop    chan struct{}
 	wg      sync.WaitGroup

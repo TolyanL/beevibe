@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"context"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -14,8 +15,14 @@ type Config struct {
 	ReadTimeout  time.Duration `yaml:"read_timeout"`
 }
 
+// NOTE: the writer is an interface so the producer can be tested without a broker.
+type MessageWriter interface {
+	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
+	Close() error
+}
+
 type Producer struct {
-	writer *kafka.Writer
+	writer MessageWriter
 }
 
 func New(cfg Config) *Producer {
