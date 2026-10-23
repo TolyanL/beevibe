@@ -85,7 +85,7 @@ The complete, assembled JavaScript of the game in one block: from `const CONFIG 
 - No `eval`, no `new Function`, no `setTimeout` with a string body.
 - Graphics: inline SVG or canvas primitives only. Audio: WebAudio synthesis in code.
 
-**`CONFIG` block.** The first statement of the script is `const CONFIG = { ... }` with exactly these keys: `tempo` (integer 1..10), `palette` (array of at least 3 CSS colours), `mapSize` ("small" | "medium" | "large"), `difficulty`, `controls`, `style`. Read every value from `CONFIG` instead of hardcoding it somewhere else.
+**`CONFIG` block.** The first statement of the script is `const CONFIG = { ... }` with exactly these keys: `tempo` (integer 1..10), `palette` (array of at least 3 CSS colours), `mapSize` ("small" | "medium" | "large"), `difficulty`, `controls`, `style` (exactly one of "pixel" | "cartoon" | "neon" | "minimal" — a single enum word, never a description). Read every value from `CONFIG` instead of hardcoding it somewhere else. When the input lists canonical CONFIG values for `tempo`, `mapSize` or `style`, copy them verbatim; the SPEC describes the look in free prose, and that prose must never end up in `CONFIG`.
 
 **Full loop.** menu -> playing -> win -> lose -> restart. Restart resets score, lives, timers, entities and input state completely; it must work from both the win and the lose screen without a page reload.
 

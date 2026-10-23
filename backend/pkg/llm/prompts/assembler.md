@@ -54,7 +54,7 @@ Mandatory details:
 - `<!DOCTYPE html>` on the first line, `<html lang="ru">`, `<meta charset="utf-8">`, and a viewport meta with `width=device-width, initial-scale=1, viewport-fit=cover`.
 - All CSS inside one `<style>` element in `<head>`. Minimal but complete: reset, layout, canvas sizing, HUD, overlay screens, touch controls. Use CSS custom properties for the palette colours, e.g. `:root { --c-bg: #101820; --c-accent: #f2a541; }`, and read the same palette values from `CONFIG.palette` in JavaScript. Use `100dvh` with a `100vh` fallback, `env(safe-area-inset-*)`, and `touch-action: none` on the canvas and the controls.
 - Exactly ONE `<script>` element in `<body>`, at the end of the body. No `<script src>`.
-- **The first statement inside that `<script>` is `const CONFIG = { ... };`** — nothing before it, not even a comment or a `"use strict"`. The keys are exactly `tempo` (integer 1..10), `palette` (array of CSS colours), `mapSize` ("small"|"medium"|"large"), `difficulty`, `controls`, `style`.
+- **The first statement inside that `<script>` is `const CONFIG = { ... };`** — nothing before it, not even a comment or a `"use strict"`. The keys are exactly `tempo` (integer 1..10), `palette` (array of CSS colours), `mapSize` ("small"|"medium"|"large"), `difficulty`, `controls`, `style` ("pixel"|"cartoon"|"neon"|"minimal" — one enum word, never a description). When the input lists canonical CONFIG values, copy them verbatim.
 - The body contains the canvas, the HUD, the touch controls and the three overlay screens (menu, win, lose). The game logic selects which overlay is visible.
 - The inline SVG sprite sheet goes into the body, before the `<script>` element.
 
@@ -70,6 +70,7 @@ Mandatory details:
 
 ## Rules
 
+- `CONFIG` carries the canonical values from the input: integer `tempo`, enum `mapSize`, enum `style`. The SPEC's description of the look ("crisp pixel-art", "neon glow") is prose about the visuals — it must never become the value of `CONFIG.style`.
 - Do not drop functionality from the input code to save space: the whole game must survive the merge.
 - Do not add features that are not in the spec.
 - Do not leave TODO markers, placeholders or "..." in the file.
@@ -80,5 +81,6 @@ Mandatory details:
 
 - One code block, one complete HTML document.
 - `const CONFIG = { ... }` is the first statement of the only `<script>`.
+- `CONFIG.tempo`, `CONFIG.mapSize` and `CONFIG.style` are the canonical values from the input, not free-form text.
 - No external resource, no forbidden API.
 - Russian UI, working restart, touch and keyboard controls.

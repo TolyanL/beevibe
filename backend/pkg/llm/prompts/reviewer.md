@@ -34,7 +34,7 @@ Answer with STRICT JSON only: one object, no markdown fences, no prose before or
 
 - `CONFIG_MISSING` — no `const CONFIG = { ... }`, or it is not the first statement of the script.
 - `CONFIG_KEYS_INVALID` — a required key is missing or extra: `tempo`, `palette`, `mapSize`, `difficulty`, `controls`, `style`.
-- `CONFIG_VALUES_INVALID` — `tempo` is not an integer 1..10, `palette` is not an array of at least 3 CSS colours, `mapSize` is not "small"/"medium"/"large", or `difficulty`/`controls`/`style` are empty.
+- `CONFIG_VALUES_INVALID` — `tempo` is not an integer 1..10, `palette` is not an array of at least 3 CSS colours, `mapSize` is not "small"/"medium"/"large", `style` is not "pixel"/"cartoon"/"neon"/"minimal", or `difficulty`/`controls` are empty.
 - `CONFIG_IGNORED` — a value exists in `CONFIG` but the code hardcodes the same value elsewhere instead of reading it.
 
 ### External resources and forbidden APIs
