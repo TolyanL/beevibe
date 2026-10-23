@@ -1,0 +1,74 @@
+app:
+  name: beevibe
+  version: 0.1.0
+
+http:
+  port: "8080"
+  read_timeout: 30s
+  # 0s disables the write timeout: the SSE stream stays open for the whole generation
+  write_timeout: 0s
+  idle_timeout: 120s
+  shutdown_timeout: 10s
+
+logger:
+  level: info
+  format: console
+
+postgres:
+  dsn: postgres://bee:12345@localhost:5432/bee?sslmode=disable
+  max_conns: 10
+  min_conns: 2
+  connect_timeout: 5s
+
+llm:
+  api_key: ""
+  model: deepseek/deepseek-chat
+  base_url: https://openrouter.ai/api/v1
+  timeout: 120s
+  max_retries: 2
+  retry_backoff: 2s
+  # Dialect of the effort field: openrouter sends "reasoning": {"effort": ...},
+  # openai sends "reasoning_effort": ... (OpenAI Chat Completions and llama.cpp,
+  # none turns the thinking off).
+  reasoning_dialect: openrouter
+  # Empty disables the dump; otherwise a directory for the req/resp/meta of every attempt.
+  debug_dir: ""
+
+# Reasoning effort per request: default | none | minimal | low | medium | high | xhigh | max
+# default does not send the field, the provider default applies.
+llm_reasoning:
+  analyzer: default
+  planner: default
+  coder: default
+  assets: default
+  reviewer: default
+  assembler: default
+  patch: default
+  repair: default
+
+tokens:
+  grant_signup: 1000000
+  grant_topup: 500000
+  price_generate: 320000
+  price_patch: 40000
+
+worker:
+  concurrency: 2
+  timeout: 300s
+  max_calls_per_game: 12
+  max_fix_attempts: 2
+
+kafka:
+  brokers:
+    - localhost:9094
+  topic: game.events
+  group_id: beevibe
+  write_timeout: 10s
+  read_timeout: 10s
+
+auth:
+  bcrypt_cost: 10
+
+validator:
+  # Empty looks up node in PATH; without node the JS syntax check is skipped
+  node_path: ""

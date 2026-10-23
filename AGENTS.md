@@ -6,7 +6,7 @@ Priority: the actual linter (the command from `Makefile`/`Justfile`, §0) > this
 
 Deviating from this file is either a bug or a reason to update this file. Silent deviation is not allowed; when you deviate, say so explicitly.
 
-**This file pins neither the stack nor the Go version.** It describes architecture and style that apply to any stack. Mentions of libraries (validator, envconfig, zerolog, chi, pgx, mockery, etc.) describe a typical stack, not a mandatory one: the actual stack and Go version come from the repository (`go.mod`/`go.work`, actual imports, the commands file). The rules of §16 are applied according to the Go version in `go.mod`.
+**This file pins neither the stack nor the Go version.** It describes architecture and style that apply to any stack. Mentions of libraries (validator, yaml, zerolog, chi, pgx, mockery, etc.) describe a typical stack, not a mandatory one: the actual stack and Go version come from the repository (`go.mod`/`go.work`, actual imports, the commands file). The rules of §16 are applied according to the Go version in `go.mod`.
 
 ## 0. Two modes: a new repository and an existing service
 
@@ -15,14 +15,14 @@ Deviating from this file is either a bug or a reason to update this file. Silent
 A clean repository has no code, no `Makefile`, and no `.golangci.yml`. Before generating code, **demand from the user**:
 
 1. The linter config — `.golangci.yml` (the user's own, or explicit permission to take the standard linter set for such a service).
-2. The run-and-check commands file — `Makefile` **or** `Justfile` — with a set of targets: build (`run`), lint (`lint`), unit tests (`test`), integration tests, migrations, generation. Target names are whatever the user is used to.
+2. The run-and-check commands file — `Makefile` **or** `Justfile` — with a set of targets: build (`run`), lint (`lint`), unit tests (`test`), migrations, generation, mock generation, plus integration tests when the project keeps a suite that needs infrastructure. Target names are whatever the user is used to.
 3. Service parameters: module path (`go.mod`), binary name, ports, stack (HTTP/gRPC/Kafka/Postgres/Redis...).
 
 Rules:
 
 - No code is written until the linter config and the commands file are in hand. Commands are not invented: only the ones the user gave.
 - If the user says "create it yourself" — propose a standard `.golangci.yml` and `Makefile` with the canonical targets from §0.1 and get explicit confirmation before generating.
-- The skeleton is created once, per §1: `cmd/`, `config/`, `internal/{app,domain,dto,usecase,adapter,controller}`, `pkg/`, `migration/`, `test/integration/`, `api/` (if the stack has a transport).
+- The skeleton is created once, per §1: `cmd/`, `configs/` (`config.yaml` + `config.example.yaml`), `internal/{config,app,domain,dto,usecase,adapter,controller}`, `pkg/`, `migration/`, `api/` (if the stack has a transport). Tests live next to the code (§10); a separate `test/` tree is created only for a suite with its own fixtures.
 - The commands obtained are recorded in the "Project additions" section (the "Commands" line) and only they are used from then on.
 - Before writing Go code, load the `go-style` skill — it holds the canonical examples and the language style; the rules live in this file.
 
@@ -38,8 +38,8 @@ Rules:
 
 | Layer        | Path                     | May import                                                              |
 | ------------ | ------------------------ | ----------------------------------------------------------------------- |
-| `cmd`        | `cmd/<binary>`           | `config`, `internal/app`, `pkg/*`                                       |
-| `config`     | `config`                 | the layers' `Config` types, `pkg/*`                                     |
+| `cmd`        | `cmd/<binary>`           | `internal/config`, `internal/app`, `pkg/*`                              |
+| `config`     | `internal/config`        | the layers' `Config` types, `pkg/*`                                     |
 | `app`        | `internal/app`           | everything from `internal/*`, `pkg/*`                                   |
 | `controller` | `internal/controller/**` | `usecase`, `dto`, `domain`, `gen/*`, `pkg/*`                            |
 | `usecase`    | `internal/usecase`       | `domain`, `dto`, `pkg/*`                                                |
@@ -52,6 +52,7 @@ Rules:
 Always forbidden:
 
 - importing `internal/*` from `pkg/*`;
+- reading the service configuration from the environment: it lives in `configs/config.yaml`;
 - `usecase` → `adapter`, `adapter` → `usecase`, `adapter` → `controller`;
 - `domain` → `dto`, `pkg/*`, DB drivers, transport;
 - any cyclic dependency;
@@ -163,9 +164,9 @@ if err != nil {
 
 - `internal/app/app.go` is the single composition root: all implementations are created here, `usecase.New(...)` is wired here, and the shutdown order is defined here. No logic beyond assembly.
 - Creation order: pool → clients → metrics → usecase → controllers → workers. Shutdown is strictly the reverse: controllers first, then adapters.
-- `config/config.go` is a `Config` aggregate of the layers' config structs. Each layer owns its config struct (typically `^kelseyhightower/envconfig` tags; per project — any mechanism with the same properties).
-- A mandatory parameter is marked required; an optional one has a default. A parameter with neither is not allowed.
-- A new parameter → a field in the layer's config + a line in `.env.example` in the existing section (`# App`, `# Logger`, `# OTEL`, `# Postgres`, `# Redis`, `# Kafka`).
+- `internal/config/config.go` is a `Config` aggregate of the layers' config structs. Each layer owns its config struct with `yaml` tags; the file `configs/config.yaml` holds the values, `configs/config.example.yaml` is the committed template.
+- A mandatory parameter is checked on startup; an optional one has a default in `internal/config.Defaults()`. A parameter with neither is not allowed.
+- A new parameter → a field in the layer's config + a line in `configs/config.example.yaml` in the existing section (`app`, `http`, `logger`, `postgres`, `llm`, `llm_reasoning`, `tokens`, `worker`, `kafka`, `auth`, `validator`).
 - `cmd/*/main.go` — only `config.New` → `logger.Init` → `otel.Init` → `app.Run`. `log.Fatal` is allowed only here.
 
 ## 4. Transactions
@@ -176,6 +177,7 @@ if err != nil {
 - A nested `transaction.Wrap` is forbidden.
 - A multi-step write (several tables/operations that must be atomic together), including an outbox insert, must happen inside a single `Wrap`.
 - `pkg/transaction` keeps `pool` via `Init()` and the `IsUnitTest` flag — this is a sanctioned exception to the ban on global state. It must not be extended with new globals; `IsUnitTest` may only be toggled in tests.
+- Adapter tests hand the executor in through `transaction.WithDBTX(ctx, db)` (§10): the seam takes priority in `TryExtractTX`, so no pool is needed.
 
 ## 5. Errors
 
@@ -243,10 +245,15 @@ Forbidden in usecase: `profile.Name = domain.Name(*input.Name)`, `profile.Contac
 
 ## 10. Tests
 
+- Tests never need infrastructure: no database, no broker, no docker. `go test ./...` must pass on a clean machine. Postgres, Kafka and the LLM are replaced by mocks or by an `httptest` server.
 - `domain` — table-driven unit tests next to the code (`profile_test.go`). Mandatory when invariants change.
-- Integration — `test/integration/*_test.go` behind `//go:build integration`, a test suite (typically `testify/suite`), requests through the generated API client of this same service. A new endpoint → a new test file.
-- Running them — only with commands from `Makefile`/`Justfile` (§0). The canonical targets: `test` = `go test -v -cover ./...`, `integration-test` = `go test -count=1 -v -tags=integration ./test/integration` (requires running infrastructure — e.g. `make up`). If the commands file lacks the target you need, ask instead of inventing a target name.
-- Mocks — per project (if mockery is used: generated from `.mockery.yml` by the repository's generation command; never written by hand).
+- `usecase` — table-driven tests on the mockery mocks of its ports, together with the failure paths: refund, budget, forbidden, idempotency replay.
+- `controller` — HTTP tests next to the handlers: a chi router assembled the way `app.go` assembles it, `httptest.NewRecorder`, the same port mocks. A new endpoint → a test file or a case in the existing one.
+- `adapter` — tests on a mocked driver. The executor comes from `transaction.WithDBTX` (§4), the kafka producer and the consumer loop take narrow interfaces (`MessageWriter`, `MessageReader`). The subject is the mapping, not the SQL engine: row → domain, `RowsAffected` branches, driver error → domain error.
+- `pkg` — pure helpers are tested directly; `httptest` stands in for the network.
+- Mocks — mockery only, generated from `.mockery.yml` by the repository's generation command; never written by hand. Port mocks live in `internal/usecase/mocks/<package>`; mocks of a driver or an external client carry their own `dir` in the same config and sit next to their adapter.
+- A helper shared by several test packages becomes a small package of its own (`internal/adapter/postgres/pgtest`) instead of being copy-pasted.
+- Running them — only with commands from `Makefile`/`Justfile` (§0): `make test` = `go test -v -cover ./...`. If the commands file lacks the target you need, ask instead of inventing a target name.
 - A test is not fitted to the implementation: if the rule under test governs domain, the test calls domain, not usecase.
 
 ## 11. Naming, files, imports
@@ -299,15 +306,15 @@ Rules:
 1. **domain** — is there an entity/method? Invariants, constructor, a mutation method with validation, singleton errors.
 2. **dto** — `XxxInput` (+ `Validate()`, if there is a shape) and `XxxOutput` in a separate file.
 3. **usecase** — a method with `tracer.Start`, input validation, idempotency (§7) if needed, domain, `transaction.Wrap` for multi-step writes, side effects after the commit.
-4. **port** — if a new method of an external system is needed: an interface in `usecase.go`, `//go:generate mockery`, regenerate the mocks.
+4. **port** — if a new method of an external system is needed: an interface in `usecase.go`, then the mock generation command from `Makefile`/`Justfile` (`make mocks`).
 5. **adapter** — the port implementation: a file per operation, `const sql`, `TryExtractTX`, `ToDomain()`.
 6. **controller** — request→dto→response mapping, `render.Error`, domain error mapping, `nil` as the second value.
 7. **api** — the contract in `api/http/*.yaml` or `api/grpc/*.proto`, then the generation commands from `Makefile`/`Justfile` (e.g. `make grpc_gen` / `make generate`). Editing `gen/**` by hand is forbidden.
 8. **migration** — create a migration with the command from `Makefile`/`Justfile` (e.g. `make migrate-create name=...`), write up and down, then apply it (`make migrate-up`). If such commands do not exist, suggest adding them to the commands file.
-9. **config** — a new parameter: a field in the layer's config (typically `envconfig`) + a line in `.env.example`.
+9. **config** — a new parameter: a field in the layer's config + a line in `configs/config.example.yaml`.
 10. **app** — a new dependency: created in `app.go` and closed in reverse order.
-11. **test** — a table-driven test for domain/invariants, an integration test for the endpoint (§10).
-12. **check** — the lint command (§0), `go build ./...`, unit tests, integration ones if needed — all with commands from `Makefile`/`Justfile`.
+11. **test** — a table-driven test for domain/invariants, a handler test on the port mocks for the endpoint (§10). No test may need infrastructure.
+12. **check** — the lint command (§0), `go build ./...`, `go test ./...` — all with commands from `Makefile`/`Justfile`.
 
 ## 14. Anti-patterns
 
@@ -343,6 +350,9 @@ These are accepted decisions, not bugs. Changing them silently is forbidden; if 
 - `pkg/transaction` depends on `pkg/postgres`.
 - The idempotency key is set **before** the operation with a TTL of 1 hour: a failed operation blocks a legitimate retry until the TTL expires. Removing the key is a manual operator action (`redis-cli DEL idempotency:<key>`), not code.
 - `dto` is a single package for all layers (transport and usecase share the same structs).
+- Tests never touch a real database or broker. The production code keeps three seams for that: `transaction.WithDBTX`, the kafka `MessageWriter` and the consumer's `MessageReader`. The price is that the SQL text and the kafka client are not exercised by CI — a live run with real infrastructure covers them before a release.
+- The service is configured by `configs/config.yaml`; `.env` holds only what docker compose and the migration commands need. The price is that a container needs the file mounted, and a variable alone does not change the service behaviour.
+- The code carries no explanatory comments: machine directives and a `NOTE:` on the seams above only. This departs from §12 by the owner's decision — the rationale lives in the commit message and in the plan under `_dev/`.
 
 ## 16. Modern Go idioms (per the version in go.mod)
 
@@ -384,3 +394,26 @@ Application rules:
 | `sync_waitgroup_go`              | 1.25 | `wg.Go` instead of manual `go f()` + `wg.Add`/`wg.Done`                                                     |
 | `errors_as_type`                 | 1.26 | `errors.AsType[T](err)` instead of a manual type assertion when checking a concrete error type              |
 | `json_v2`                        | 1.27 | in new code — `encoding/json/v2` (stricter defaults); do not change existing `encoding/json` without an explicit request |
+
+## 17. Project additions
+
+Commands (`backend/`, from the `Makefile`):
+
+| Command | What it does |
+| --- | --- |
+| `make build` | `go build -o bin/app ./cmd/app` |
+| `make run` | `go run ./cmd/app` |
+| `make config` | create `configs/config.yaml` from the example if it is missing |
+| `make lint` | `golangci-lint run` |
+| `make test` | `go test -v -cover ./...` |
+| `make mocks` | `mockery` — regenerates every mock from `.mockery.yml` |
+| `make migrate-up` / `migrate-down` / `migrate-status` / `migrate-create name=...` | goose CLI over `migrations/` |
+| `make up` / `make down` | the dev stack from `../docker-compose.dev.yaml` |
+| `make tidy` | `go mod tidy` |
+
+Facts about this service:
+
+- Module `github.com/TolyanL/beevibe`, Go 1.27, binary `cmd/app`, service name `beevibe`.
+- Configuration: `configs/config.yaml` (gitignored), template `configs/config.example.yaml`, override with `APP_CONFIG_PATH`. Missing fields fall back to `internal/config.Defaults()`.
+- Kafka: topic `game.events` (8 partitions), consumer group `beevibe`, outbox table `outbox`, projection `game_event_log`.
+- Infrastructure containers are prefixed `beevibe_` (`beevibe_db`, `beevibe_kafka`, `beevibe_kafka_ui`, volume `beevibe_postgres_data`).
