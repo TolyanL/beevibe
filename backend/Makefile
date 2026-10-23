@@ -9,13 +9,16 @@ DB_PORT        ?= 5432
 DB_DSN         ?= postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 MIGRATION_DIR  ?= migrations
 
-.PHONY: build run lint test integration-test up down migrate-up migrate-down migrate-status migrate-create mocks generate tidy clean
+.PHONY: build run config lint test integration-test up down migrate-up migrate-down migrate-status migrate-create mocks generate tidy clean
 
 build:
 	go build -o bin/$(BINARY) ./cmd/$(BINARY)
 
 run:
 	go run ./cmd/$(BINARY)
+
+config:
+	@test -f configs/config.yaml || cp configs/config.example.yaml configs/config.yaml
 
 lint:
 	golangci-lint run

@@ -12,17 +12,21 @@ Go 1.27, chi v5, pgx v5 (Postgres), goose (миграции), zerolog, OpenRoute
 ## Запуск
 
 ```bash
-make up                              # Postgres + Kafka + Kafka UI (docker-compose.dev.yaml)
-cp .env.example .env                 # заполнить OPENROUTER_API_KEY, APP_NAME, APP_VERSION
-make migrate-up                      # применить миграции (goose CLI)
-make run                             # поднять сервис на :8080
+make up                                     # Postgres + Kafka + Kafka UI (docker-compose.dev.yaml)
+cp configs/config.example.yaml configs/config.yaml   # заполнить llm.api_key
+make migrate-up                             # применить миграции (goose CLI)
+make run                                    # поднять сервис на :8080
 ```
+
+Путь к файлу конфигурации можно переопределить переменной `APP_CONFIG_PATH`.
 
 Миграции — goose CLI по каталогу `migrations/`: `make migrate-up`, `make migrate-down`,
 `make migrate-status`, `make migrate-create name=<имя>`.
 
-Конфиг читается из переменных окружения (envconfig). Каждый параметр либо обязателен, либо имеет значение
-по умолчанию; полный список — `.env.example`.
+Конфиг читается из YAML-файла `configs/config.yaml` (шаблон — `configs/config.example.yaml`,
+рабочая копия в `.gitignore`). Отсутствующие поля берутся из значений по умолчанию,
+некорректные значения (уровень рассуждения, диалект провайдера) приводят к отказу на старте.
+Файл `.env` оставлен только для переменных docker compose и команд миграций.
 
 ## Команды
 
@@ -41,7 +45,7 @@ make run                             # поднять сервис на :8080
 ```
 cmd/app            — точка входа сервиса
 cmd/migrate        — CLI миграций
-config             — агрегат конфигов слоёв
+configs/           — конфигурация сервиса (config.yaml + шаблон config.example.yaml)
 internal/app       — composition root, воркер генерации, порядок остановки
 internal/domain    — сущности, инварианты, статусная машина игры
 internal/dto       — контракты операций (request/response)
@@ -49,6 +53,7 @@ internal/usecase   — агрегат UseCase (usecase.go) + домены:
     user/ game/ catalog/ outbox/ event/
 internal/adapter   — postgres (агрегат + user/ game/ catalog/ outbox/), kafka,
                      validator (контракт игры), auth (bcrypt)
+internal/config    — агрегат конфигов слоёв, чтение YAML
 internal/controller — http (router, v1, public), kafka_consumer
 pkg/               — llm (клиент, порт, промпты), postgres, transaction, render,
                      httpserver, logger, tracer
@@ -69,7 +74,7 @@ test/integration/  — интеграционные тесты (//go:build integ
 (`internal/controller/kafka_consumer`) складывает события в проекцию `game_event_log`
 идемпотентно по `event_id` — повторная доставка не создаёт дубль.
 
-Адрес брокера — `KAFKA_BROKERS` (по умолчанию `localhost:9094`, внешний listener из compose);
+Адрес брокера — `kafka.brokers` в конфиге (по умолчанию `localhost:9094`, внешний listener из compose);
 топик создаётся автоматически (`KAFKA_AUTO_CREATE_TOPICS_ENABLE=true`).
 
 ## Конвейер генерации

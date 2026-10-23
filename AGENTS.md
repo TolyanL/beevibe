@@ -38,8 +38,8 @@ Rules:
 
 | Layer        | Path                     | May import                                                              |
 | ------------ | ------------------------ | ----------------------------------------------------------------------- |
-| `cmd`        | `cmd/<binary>`           | `config`, `internal/app`, `pkg/*`                                       |
-| `config`     | `config`                 | the layers' `Config` types, `pkg/*`                                     |
+| `cmd`        | `cmd/<binary>`           | `internal/config`, `internal/app`, `pkg/*`                              |
+| `config`     | `internal/config`        | the layers' `Config` types, `pkg/*`                                     |
 | `app`        | `internal/app`           | everything from `internal/*`, `pkg/*`                                   |
 | `controller` | `internal/controller/**` | `usecase`, `dto`, `domain`, `gen/*`, `pkg/*`                            |
 | `usecase`    | `internal/usecase`       | `domain`, `dto`, `pkg/*`                                                |
@@ -52,6 +52,7 @@ Rules:
 Always forbidden:
 
 - importing `internal/*` from `pkg/*`;
+- reading the service configuration from the environment: it lives in `configs/config.yaml`;
 - `usecase` → `adapter`, `adapter` → `usecase`, `adapter` → `controller`;
 - `domain` → `dto`, `pkg/*`, DB drivers, transport;
 - any cyclic dependency;
