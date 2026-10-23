@@ -10,7 +10,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
-// Store — порт доступа к таблице outbox.
 type Store interface {
 	InsertOutboxEvent(ctx context.Context, event domain.Event) error
 	ReadOutboxEvents(ctx context.Context, limit int) ([]domain.Event, error)
@@ -18,7 +17,6 @@ type Store interface {
 	InsertGameEvent(ctx context.Context, record domain.GameEventRecord) error
 }
 
-// Kafka — порт публикации события в брокер.
 type Kafka interface {
 	Produce(ctx context.Context, topic, key string, payload []byte) error
 }
@@ -32,7 +30,6 @@ func New(store Store, kafka Kafka) *UseCase {
 	return &UseCase{store: store, kafka: kafka}
 }
 
-// PublishBatch — публикует пачку неотправленных событий и помечает их отправленными.
 func (u *UseCase) PublishBatch(ctx context.Context, limit int) (int, error) {
 	ctx, span := tracer.Start(ctx, "usecase outbox PublishBatch")
 	defer span.End()

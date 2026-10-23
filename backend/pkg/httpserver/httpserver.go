@@ -21,9 +21,6 @@ type Server struct {
 	srv *http.Server
 }
 
-// New — конструктор сервера. baseCtx — базовый контекст для всех запросов:
-// его отмена завершает долгоживущие соединения (SSE), иначе Shutdown ждёт их
-// до истечения таймаута.
 func New(cfg Config, handler http.Handler, baseCtx context.Context) *Server {
 	return &Server{
 		srv: &http.Server{

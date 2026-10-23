@@ -13,8 +13,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
-// NOTE: алиасы дают встроенным полям уникальные имена: типы доменов называются
-// одинаково (Postgres), а встроить их под одним именем нельзя.
 type (
 	UserPostgres    = user.Postgres
 	GamePostgres    = game.Postgres
@@ -22,8 +20,6 @@ type (
 	OutboxPostgres  = outbox.Postgres
 )
 
-// NOTE: Postgres — агрегат доменных адаптеров: под-адаптеры встроены, поэтому их
-// операции промотируются в методный набор агрегата; имена операций уникальны.
 type Postgres struct {
 	pool *pgxpool.Pool
 

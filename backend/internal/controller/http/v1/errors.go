@@ -28,7 +28,7 @@ func writeError(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	//nolint:errcheck // ответ сформирован, кодирование ошибки не влияет на статус
+	//nolint:errcheck
 	json.NewEncoder(w).Encode(errorBody{Error: errorDetail{Code: code, Message: err.Error()}})
 }
 

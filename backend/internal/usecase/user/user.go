@@ -10,7 +10,6 @@ import (
 	"github.com/TolyanL/beevibe/internal/dto"
 )
 
-// Store — порт доступа к данным пользователей, сессий и токеновых операций.
 type Store interface {
 	CreateUser(ctx context.Context, user domain.User) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
@@ -28,14 +27,12 @@ type Store interface {
 	ListUserGamesWithCost(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.ProfileGame, error)
 }
 
-// Auth — порт хеширования паролей и выдачи сессионных токенов.
 type Auth interface {
 	HashPassword(password string) (string, error)
 	CheckPassword(hash, password string) error
 	GenerateToken() (string, error)
 }
 
-// Tokens — гранты и цены в токенах.
 type Tokens struct {
 	GrantSignup   int64
 	GrantTopup    int64

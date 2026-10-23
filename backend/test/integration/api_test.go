@@ -113,7 +113,7 @@ func (f *fakeOpenRouter) handle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	//nolint:errcheck // тестовый сервер: ошибка кодирования не влияет на asserts
+	//nolint:errcheck
 	json.NewEncoder(w).Encode(map[string]any{
 		"choices": []map[string]any{{
 			"message": map[string]string{"role": "assistant", "content": fakeAnswer(system)},
@@ -142,7 +142,6 @@ func fakeAnswer(system string) string {
 	}
 }
 
-// applyMigrations — прогон миграций из каталога migrations (как в make migrate-up).
 func applyMigrations(dsn string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -160,7 +159,6 @@ func applyMigrations(dsn string) error {
 	return nil
 }
 
-// testDSN — отдельная БД тестов: dev-сервер с той же БД забрал бы тестовые игры.
 func testDSN(t *testing.T) string {
 	t.Helper()
 

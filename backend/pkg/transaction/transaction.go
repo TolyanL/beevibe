@@ -12,7 +12,7 @@ import (
 
 type txKey struct{}
 
-var IsUnitTest bool //nolint:gochecknoglobals // sanctioned global: IsUnitTest
+var IsUnitTest bool //nolint:gochecknoglobals
 
 func Init(p *pgxpool.Pool) {
 	postgres.Init(p)

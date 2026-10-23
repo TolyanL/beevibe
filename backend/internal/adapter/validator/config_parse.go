@@ -19,8 +19,6 @@ const (
 	jsUnknown
 )
 
-// NOTE: start/end — границы значения в исходном тексте: они нужны для
-// точечной правки блока CONFIG.
 type jsValue struct {
 	kind    jsKind
 	str     string
@@ -46,8 +44,6 @@ func (e *jsParseError) Error() string {
 	return fmt.Sprintf("js literal at offset %d: %s", e.offset, e.reason)
 }
 
-// NOTE: возвращаются индексы открывающей и закрывающей скобок:
-// текст объекта — html[start:end+1].
 func findConfigObject(html string) (int, int, bool) {
 	decl := regexp.MustCompile(`\b(?:const|let|var)\s+CONFIG\s*=\s*\{`)
 
@@ -91,7 +87,6 @@ type jsParser struct {
 	pos int
 }
 
-// NOTE: src должен начинаться с '{'.
 func parseJSObject(src string) (*jsValue, error) {
 	p := &jsParser{src: src}
 	p.skipSpace()
@@ -235,7 +230,6 @@ func (p *jsParser) parseValue() (*jsValue, error) {
 	return p.parseUnknown()
 }
 
-// NOTE: значение-выражение берётся как есть, чтобы его можно было заменить целиком.
 func (p *jsParser) parseUnknown() (*jsValue, error) {
 	start := p.pos
 	depth := 0

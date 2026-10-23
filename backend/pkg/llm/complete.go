@@ -59,7 +59,6 @@ type chatResponse struct {
 	Usage   chatUsage    `json:"usage"`
 }
 
-// Complete — чат-комплишен с ретраями по 429/5xx и сетевым ошибкам.
 func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 	ctx, span := tracer.Start(ctx, "adapter llm Complete")
 	defer span.End()
@@ -108,9 +107,6 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 			break
 		}
 
-		// Ошибка попытки возвращается наверх только после исчерпания ретраев,
-		// поэтому её промежуточная судьба логируется здесь: без этого
-		// не отличить медленный апстрим от серии быстрых обрывов.
 		log.Debug().Int("attempt", attempt+1).Err(err).Msg("llm complete attempt failed")
 	}
 
@@ -254,8 +250,6 @@ func (c *Client) retryDelay(attempt int) time.Duration {
 	return delay
 }
 
-// NOTE: 402 тоже ретраим: агрегатор провайдера переключает пул апстрима между
-// попытками, и запрос, не прошедший по квоте одного пула, может уйти в другой.
 func retryableStatus(status int) bool {
 	return status == http.StatusTooManyRequests ||
 		status == http.StatusPaymentRequired ||

@@ -11,8 +11,6 @@ import (
 	"github.com/TolyanL/beevibe/internal/domain"
 )
 
-// publishEvent — кладёт lifecycle-событие игры в outbox: запись идёт в той же
-// транзакции, что и доменная правка, публикует событие воркер outbox.
 func (u *UseCase) publishEvent(
 	ctx context.Context,
 	game domain.Game,

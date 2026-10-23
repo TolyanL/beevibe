@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// ProfileGame — игра в профиле пользователя.
 type ProfileGame struct {
 	ID         uuid.UUID `json:"id"`
 	Prompt     string    `json:"prompt"`
@@ -18,7 +17,6 @@ type ProfileGame struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// ProfileTokenOp — операция с балансом в истории профиля.
 type ProfileTokenOp struct {
 	GameID    *uuid.UUID `json:"game_id,omitempty"`
 	Delta     int64      `json:"delta"`
@@ -26,7 +24,6 @@ type ProfileTokenOp struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
-// ProfilePrices — цены сервиса в токенах.
 type ProfilePrices struct {
 	Generate int64 `json:"generate"`
 	Patch    int64 `json:"patch"`

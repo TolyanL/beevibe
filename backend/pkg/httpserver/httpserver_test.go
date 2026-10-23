@@ -54,7 +54,7 @@ func TestServerBaseContextCancelsRequests(t *testing.T) {
 	}
 
 	go func() {
-		_, _ = client.Do(req) //nolint:errcheck // ответ не важен, важна отмена контекста
+		_, _ = client.Do(req) //nolint:errcheck
 	}()
 
 	select {

@@ -9,7 +9,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/logger"
 )
 
-// NewRouter — ручки API. Монтируется в /api (см. internal/app).
 func NewRouter(h *Handlers) http.Handler {
 	r := chi.NewRouter()
 

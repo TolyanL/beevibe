@@ -2,9 +2,6 @@ package game
 
 import "strings"
 
-// extractHTML — отделяет HTML-документ от markdown-забора ответа модели.
-// Ассемблер и патчер отвечают блоком ```html ... ```; без снятия забора
-// документ публикуется с посторонним текстом и без doctype.
 func extractHTML(text string) string {
 	trimmed := strings.TrimSpace(text)
 
@@ -23,7 +20,6 @@ func extractHTML(text string) string {
 	return strings.TrimSpace(trimmed)
 }
 
-// trimFenceLang — убирает язык метки (```html) после открывающего забора.
 func trimFenceLang(text string) string {
 	line, rest, found := strings.Cut(text, "\n")
 	if !found {
@@ -37,7 +33,6 @@ func trimFenceLang(text string) string {
 	return rest
 }
 
-// isLangTag — строка состоит только из букв, цифр и дефисов: это язык метки.
 func isLangTag(line string) bool {
 	trimmed := strings.TrimSpace(line)
 	if trimmed == "" {

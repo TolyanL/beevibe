@@ -13,7 +13,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
-// Store — порт доступа к данным игр, версий, оценок и игровых сессий.
 type Store interface {
 	CreateGame(ctx context.Context, game domain.Game) error
 	GetGame(ctx context.Context, gameID uuid.UUID) (domain.Game, error)
@@ -47,25 +46,21 @@ type Store interface {
 	DeleteIdempotencyKey(ctx context.Context, key, operation string) error
 }
 
-// Validator — порт проверки готовой игры. Реализация: internal/adapter/validator.
 type Validator interface {
 	Check(ctx context.Context, html string) ([]domain.Issue, error)
 	ExtractConfig(ctx context.Context, html string) (domain.GameConfig, error)
 	ApplyConfig(ctx context.Context, html string, cfg domain.GameConfig) (string, error)
 }
 
-// Outbox — порт записи события в outbox.
 type Outbox interface {
 	InsertOutboxEvent(ctx context.Context, event domain.Event) error
 }
 
-// Tokens — цены генерации и патча в токенах.
 type Tokens struct {
 	PriceGenerate int64
 	PricePatch    int64
 }
 
-// Reasoning — уровни рассуждения модели по агентам конвейера.
 type Reasoning struct {
 	Analyze  llm.Effort
 	Plan     llm.Effort
@@ -77,7 +72,6 @@ type Reasoning struct {
 	Repair   llm.Effort
 }
 
-// Worker — настройки конвейера генерации.
 type Worker struct {
 	Timeout         time.Duration
 	MaxCallsPerGame int
@@ -114,7 +108,6 @@ func New(
 	}
 }
 
-// nextVersionNumber — следующий номер версии игры.
 func (u *UseCase) nextVersionNumber(ctx context.Context, gameID uuid.UUID) (int, error) {
 	latest, err := u.store.GetLatestVersion(ctx, gameID)
 	if err != nil {

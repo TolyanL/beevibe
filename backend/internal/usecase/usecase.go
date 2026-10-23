@@ -9,22 +9,17 @@ import (
 	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
-// Tokens — цены и гранты в токенах.
 type Tokens = user.Tokens
 
-// LLMReasoning — уровни рассуждения модели по агентам конвейера.
 type LLMReasoning = game.Reasoning
 
-// Worker — настройки конвейера генерации.
 type Worker = game.Worker
 
-// App — метаданные сервиса.
 type App struct {
 	Name    string
 	Version string
 }
 
-// Config — конфигурация слоя юзкейсов.
 type Config struct {
 	Tokens    Tokens
 	Reasoning LLMReasoning
@@ -32,7 +27,6 @@ type Config struct {
 	App       App
 }
 
-// Store — порт доступа к данным. Реализация: internal/adapter/postgres.
 type Store interface {
 	user.Store
 	game.Store

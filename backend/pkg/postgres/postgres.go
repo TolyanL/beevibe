@@ -23,7 +23,7 @@ type DBTX interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-var pool *pgxpool.Pool //nolint:gochecknoglobals // sanctioned global: pool
+var pool *pgxpool.Pool //nolint:gochecknoglobals
 
 const (
 	defaultMaxConns = 10

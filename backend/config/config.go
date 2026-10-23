@@ -101,7 +101,6 @@ func New() (Config, error) {
 	return cfg, nil
 }
 
-// NewMigrate — конфиг CLI миграций: нужен только доступ к БД.
 func NewMigrate() (postgres.Config, error) {
 	var cfg postgres.Config
 

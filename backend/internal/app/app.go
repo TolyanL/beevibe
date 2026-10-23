@@ -72,8 +72,6 @@ func Run(ctx context.Context, c config.Config) error {
 	root.Mount("/api", v1.NewRouter(v1.New(uc)))
 	root.Mount("/", public.NewRouter(public.New(uc)))
 
-	// Базовый контекст сервера: его отмена при остановке завершает открытые
-	// SSE-потоки, иначе Shutdown ждёт их до таймаута.
 	serverCtx, cancelServer := context.WithCancel(context.Background())
 	defer cancelServer()
 

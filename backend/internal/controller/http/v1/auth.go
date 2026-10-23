@@ -24,7 +24,6 @@ func userIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return userID, ok
 }
 
-// RequireAuth — middleware: сессионная cookie обязательна.
 func (h *Handlers) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookieName)
@@ -46,7 +45,6 @@ func (h *Handlers) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// OptionalAuth — middleware: пользователь есть, но 401 не возвращается.
 func (h *Handlers) OptionalAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookieName)

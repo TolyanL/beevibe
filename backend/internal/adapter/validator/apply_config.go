@@ -23,8 +23,6 @@ type edit struct {
 	text  string
 }
 
-// NOTE: правка выполняется без обращения к LLM: существующие ключи заменяются
-// на месте, отсутствующие добавляются в конец блока.
 func (v *Validator) ApplyConfig(ctx context.Context, html string, cfg domain.GameConfig) (string, error) {
 	ctx, span := tracer.Start(ctx, "adapter validator ApplyConfig")
 	defer span.End()
@@ -131,8 +129,6 @@ func renderMissing(src string, obj *jsValue, missing []configField) (string, int
 	return ", " + body, last.end
 }
 
-// NOTE: отступ членов — отступ последнего члена, иначе отступ открывающей
-// скобки плюс два пробела.
 func memberIndent(src string, obj *jsValue) string {
 	if len(obj.members) > 0 {
 		indent := lineIndent(src, obj.members[len(obj.members)-1].value.start)
@@ -144,7 +140,6 @@ func memberIndent(src string, obj *jsValue) string {
 	return lineIndent(src, obj.start) + "  "
 }
 
-// NOTE: правки применяются с конца к началу, чтобы смещения не «поехали».
 func applyEdits(src string, edits []edit) string {
 	slices.SortFunc(edits, func(a, b edit) int {
 		return cmp.Compare(b.start, a.start)

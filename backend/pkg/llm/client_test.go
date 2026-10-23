@@ -214,8 +214,6 @@ func TestCompleteSendsRequest(t *testing.T) {
 	}
 }
 
-// Тест фиксирует отказ от лимита длины ответа: поле max_tokens не должно
-// попадать в запрос, иначе провайдер обрежет размышления модели.
 func TestCompleteSendsNoMaxTokens(t *testing.T) {
 	t.Parallel()
 

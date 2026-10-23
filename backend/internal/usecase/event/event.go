@@ -13,7 +13,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
-// Store — порт записи в проекцию game_event_log.
 type Store interface {
 	InsertGameEvent(ctx context.Context, record domain.GameEventRecord) error
 }
@@ -26,8 +25,6 @@ func New(store Store) *UseCase {
 	return &UseCase{store: store}
 }
 
-// Handle — разбор и идемпотентная запись события из Kafka: повторная доставка
-// того же event_id не создаёт дубль (уникальный индекс по event_id).
 func (u *UseCase) HandleEvent(ctx context.Context, topic, key string, payload []byte) error {
 	ctx, span := tracer.Start(ctx, "usecase event HandleEvent")
 	defer span.End()

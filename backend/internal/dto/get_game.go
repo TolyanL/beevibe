@@ -8,7 +8,6 @@ import (
 	"github.com/TolyanL/beevibe/internal/domain"
 )
 
-// Stage — состояние этапа конвейера генерации.
 type Stage struct {
 	Stage      string `json:"stage"`
 	Status     string `json:"status"`
@@ -16,7 +15,6 @@ type Stage struct {
 	Issues     int    `json:"issues,omitempty"`
 }
 
-// Version — версия игры в истории.
 type Version struct {
 	ID            uuid.UUID `json:"id"`
 	Number        int       `json:"number"`
@@ -28,7 +26,6 @@ type Version struct {
 	CreatedAt     time.Time `json:"created_at"`
 }
 
-// GameCost — себестоимость игры по данным LLM.
 type GameCost struct {
 	Tokens int `json:"tokens"`
 	Calls  int `json:"calls"`

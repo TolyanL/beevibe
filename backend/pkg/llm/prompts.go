@@ -17,7 +17,6 @@ const (
 	promptVersion = 16
 )
 
-// Prompt — текст системного промпта по имени без расширения.
 func Prompt(name string) (string, error) {
 	data, err := promptsFS.ReadFile(promptsDir + "/" + name + promptExt)
 	if err != nil {
@@ -27,7 +26,6 @@ func Prompt(name string) (string, error) {
 	return string(data), nil
 }
 
-// PromptVersion — короткий хэш версии всех встроенных промптов.
 func PromptVersion() string {
 	hash := sha256.New()
 
@@ -44,7 +42,6 @@ func PromptVersion() string {
 	return hex.EncodeToString(hash.Sum(nil))[:promptVersion]
 }
 
-// PromptNames — имена доступных промптов без расширения, по алфавиту.
 func PromptNames() []string {
 	entries, err := promptsFS.ReadDir(promptsDir)
 	if err != nil {

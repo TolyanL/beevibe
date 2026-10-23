@@ -40,7 +40,7 @@ func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	//nolint:errcheck // тело отдаётся как есть, ошибка записи не меняет статус
+	//nolint:errcheck
 	w.Write([]byte(output.HTML))
 }
 
@@ -63,6 +63,6 @@ func (h *Handlers) DownloadGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="game.html"`)
 	w.WriteHeader(http.StatusOK)
 
-	//nolint:errcheck // тело отдаётся как есть, ошибка записи не меняет статус
+	//nolint:errcheck
 	w.Write([]byte(output.HTML))
 }

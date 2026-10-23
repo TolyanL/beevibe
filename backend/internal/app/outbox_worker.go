@@ -15,7 +15,6 @@ const (
 	outboxBatchSize    = 50
 )
 
-// OutboxWorker — фоновая публикация накопленных событий в Kafka.
 type OutboxWorker struct {
 	usecase  *usecase.UseCase
 	interval time.Duration

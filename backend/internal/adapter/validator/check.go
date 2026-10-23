@@ -73,7 +73,6 @@ type resourceCandidate struct {
 	at   int
 }
 
-// NOTE: игра должна быть самодостаточной: обращения к внешним ресурсам запрещены.
 func externalResourceIssues(html string) []domain.Issue {
 	candidates := resourceCandidates(html)
 
@@ -157,7 +156,6 @@ func resourceCandidates(html string) []resourceCandidate {
 	return candidates
 }
 
-// NOTE: externalOnly ограничивает поиск абсолютными адресами.
 func tagURLCandidates(html, pattern, note string, externalOnly bool) []resourceCandidate {
 	re := regexp.MustCompile(pattern)
 
@@ -273,7 +271,6 @@ func contractIssues(html string) []domain.Issue {
 	return issues
 }
 
-// NOTE: отсутствие node — не ошибка: проверка синтаксиса в этом случае пропускается.
 func (v *Validator) checkJSSyntax(ctx context.Context, html string) (domain.Issue, bool, error) {
 	if v.nodePath == "" {
 		return domain.Issue{}, false, nil
@@ -309,7 +306,6 @@ func (v *Validator) checkJSSyntax(ctx context.Context, html string) (domain.Issu
 	return domain.Issue{}, false, nil
 }
 
-// NOTE: пустой вывод означает корректный синтаксис, непустой — текст ошибки node.
 func (v *Validator) runNodeCheck(ctx context.Context, code string) (string, error) {
 	dir, err := os.MkdirTemp("", "validator-js")
 	if err != nil {
@@ -391,8 +387,6 @@ func nodeErrorLine(output string) (int, bool) {
 	return line, true
 }
 
-// NOTE: xmlns не является внешним ресурсом: URL пространства имён маскируется,
-// чтобы не считать его обращением наружу.
 func maskNamespaceURLs(html string) string {
 	namespace := regexp.MustCompile(`xmlns(:[a-zA-Z0-9_-]+)?\s*=\s*("|')https?://[^"']*("|')`)
 

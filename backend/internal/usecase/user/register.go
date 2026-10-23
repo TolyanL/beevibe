@@ -11,7 +11,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
 
-// SessionTTL — время жизни сессии.
 const SessionTTL = 30 * 24 * time.Hour
 
 func (u *UseCase) RegisterUser(ctx context.Context, input dto.RegisterUserInput) (dto.RegisterUserOutput, error) {

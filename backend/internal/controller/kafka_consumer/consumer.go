@@ -13,12 +13,10 @@ import (
 	"github.com/TolyanL/beevibe/internal/adapter/kafka"
 )
 
-// Handler — обработчик входящего события (реализуется юзкейсом event).
 type Handler interface {
 	HandleEvent(ctx context.Context, topic, key string, payload []byte) error
 }
 
-// Consumer — фоновый цикл чтения топика и передачи сообщений в Handler.
 type Consumer struct {
 	reader  *kafkago.Reader
 	handler Handler

@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// RatingAggregate — агрегат оценок игры.
 type RatingAggregate struct {
 	Cool        int     `json:"cool"`
 	Bad         int     `json:"bad"`
@@ -14,14 +13,12 @@ type RatingAggregate struct {
 	CoolPercent float64 `json:"cool_percent"`
 }
 
-// PlaytimeAggregate — агрегат наигранного времени.
 type PlaytimeAggregate struct {
 	Sessions int     `json:"sessions"`
 	Seconds  int     `json:"seconds"`
 	Hours    float64 `json:"hours"`
 }
 
-// CatalogFilter — фильтр и сортировка каталога.
 type CatalogFilter struct {
 	Sort   string
 	Genre  string
@@ -29,7 +26,6 @@ type CatalogFilter struct {
 	Offset int
 }
 
-// CatalogCard — карточка игры в каталоге.
 type CatalogCard struct {
 	ID         uuid.UUID         `json:"id"`
 	Prompt     string            `json:"prompt"`

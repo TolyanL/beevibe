@@ -14,7 +14,6 @@ type Config struct {
 	ReadTimeout  time.Duration `envconfig:"KAFKA_READ_TIMEOUT"  default:"10s"`
 }
 
-// Producer — реализация порта usecase/outbox.Kafka.
 type Producer struct {
 	writer *kafka.Writer
 }

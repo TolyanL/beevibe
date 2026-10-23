@@ -310,11 +310,10 @@ func TestCompleteDebugDumpWriteFailureDoesNotFailCall(t *testing.T) {
 	}
 
 	client := New(Config{
-		APIKey:  "test-key",
-		Model:   "test-model",
-		BaseURL: server.URL,
-		Timeout: 5 * time.Second,
-		// Родитель пути — файл: MkdirAll гарантированно падает.
+		APIKey:   "test-key",
+		Model:    "test-model",
+		BaseURL:  server.URL,
+		Timeout:  5 * time.Second,
 		DebugDir: filepath.Join(blocker, "debug"),
 	})
 

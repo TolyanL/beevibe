@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// GameEventRecord — запись события, полученного из Kafka (проекция game_event_log).
 type GameEventRecord struct {
 	ID         uuid.UUID `json:"id"`
 	EventID    uuid.UUID `json:"event_id"`

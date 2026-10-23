@@ -74,9 +74,6 @@ func buildAssemblePrompt(p *pipeline) string {
 	return b.String()
 }
 
-// NOTE: спека несёт описательный стиль ("crisp pixel-art ..."), а CONFIG-блок
-// требует enum-значение; без канонических значений из запроса модель копирует
-// описание в поле style и финальная проверка конфига падает.
 func writeCanonicalConfig(b *strings.Builder, p *pipeline) {
 	block := canonicalConfigBlock(p.game.Params)
 	if block == "" {

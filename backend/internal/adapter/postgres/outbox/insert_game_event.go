@@ -29,9 +29,6 @@ func (p *Postgres) InsertGameEvent(ctx context.Context, record domain.GameEventR
 		return fmt.Errorf("postgres.InsertGameEvent: %w", err)
 	}
 
-	// NOTE: ON CONFLICT (event_id) DO NOTHING скрывает конфликт по event_id — ноль
-	// затронутых строк означает повторную доставку того же события, а не
-	// отсутствие записи; ErrAlreadyExists — сигнал юзкейсу event пропустить дубль.
 	if tag.RowsAffected() == 0 {
 		return domain.ErrAlreadyExists
 	}
