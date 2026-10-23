@@ -164,9 +164,9 @@ if err != nil {
 
 - `internal/app/app.go` is the single composition root: all implementations are created here, `usecase.New(...)` is wired here, and the shutdown order is defined here. No logic beyond assembly.
 - Creation order: pool → clients → metrics → usecase → controllers → workers. Shutdown is strictly the reverse: controllers first, then adapters.
-- `config/config.go` is a `Config` aggregate of the layers' config structs. Each layer owns its config struct (typically `^kelseyhightower/envconfig` tags; per project — any mechanism with the same properties).
-- A mandatory parameter is marked required; an optional one has a default. A parameter with neither is not allowed.
-- A new parameter → a field in the layer's config + a line in `.env.example` in the existing section (`# App`, `# Logger`, `# OTEL`, `# Postgres`, `# Redis`, `# Kafka`).
+- `internal/config/config.go` is a `Config` aggregate of the layers' config structs. Each layer owns its config struct with `yaml` tags; the file `configs/config.yaml` holds the values, `configs/config.example.yaml` is the committed template.
+- A mandatory parameter is checked on startup; an optional one has a default in `internal/config.Defaults()`. A parameter with neither is not allowed.
+- A new parameter → a field in the layer's config + a line in `configs/config.example.yaml` in the existing section (`app`, `http`, `logger`, `postgres`, `llm`, `llm_reasoning`, `tokens`, `worker`, `kafka`, `auth`, `validator`).
 - `cmd/*/main.go` — only `config.New` → `logger.Init` → `otel.Init` → `app.Run`. `log.Fatal` is allowed only here.
 
 ## 4. Transactions
@@ -305,7 +305,7 @@ Rules:
 6. **controller** — request→dto→response mapping, `render.Error`, domain error mapping, `nil` as the second value.
 7. **api** — the contract in `api/http/*.yaml` or `api/grpc/*.proto`, then the generation commands from `Makefile`/`Justfile` (e.g. `make grpc_gen` / `make generate`). Editing `gen/**` by hand is forbidden.
 8. **migration** — create a migration with the command from `Makefile`/`Justfile` (e.g. `make migrate-create name=...`), write up and down, then apply it (`make migrate-up`). If such commands do not exist, suggest adding them to the commands file.
-9. **config** — a new parameter: a field in the layer's config (typically `envconfig`) + a line in `.env.example`.
+9. **config** — a new parameter: a field in the layer's config + a line in `configs/config.example.yaml`.
 10. **app** — a new dependency: created in `app.go` and closed in reverse order.
 11. **test** — a table-driven test for domain/invariants, an integration test for the endpoint (§10).
 12. **check** — the lint command (§0), `go build ./...`, unit tests, integration ones if needed — all with commands from `Makefile`/`Justfile`.
