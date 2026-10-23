@@ -128,7 +128,7 @@ func Load(path string) (Config, error) {
 func Defaults() Config {
 	return Config{
 		App: App{
-			Name:    "gamegen",
+			Name:    "beevibe",
 			Version: "0.1.0",
 		},
 		Auth: auth.Config{
@@ -137,7 +137,7 @@ func Defaults() Config {
 		Kafka: kafka.Config{
 			Brokers:      []string{"localhost:9094"},
 			Topic:        "game.events",
-			GroupID:      "gamegen",
+			GroupID:      "beevibe",
 			WriteTimeout: 10 * time.Second,
 			ReadTimeout:  10 * time.Second,
 		},

@@ -260,7 +260,7 @@ func (s *APISuite) SetupSuite() {
 	kafkaCfg := kafka.Config{
 		Brokers: []string{kafkaBroker},
 		Topic:   "game.events",
-		GroupID: "gamegen-integration",
+		GroupID: "beevibe-integration",
 	}
 
 	producer := kafka.New(kafkaCfg)
@@ -277,7 +277,7 @@ func (s *APISuite) SetupSuite() {
 			MaxCallsPerGame: 12,
 			MaxFixAttempts:  2,
 		},
-		App: usecase.App{Name: "gamegen", Version: "integration"},
+		App: usecase.App{Name: "beevibe", Version: "integration"},
 	})
 
 	worker := app.NewWorker(uc, 2)

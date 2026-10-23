@@ -1,5 +1,5 @@
 app:
-  name: gamegen
+  name: beevibe
   version: 0.1.0
 
 http:
@@ -36,7 +36,6 @@ llm:
 
 # Reasoning effort per request: default | none | minimal | low | medium | high | xhigh | max
 # default does not send the field, the provider default applies.
-# WARN: some OpenAI models answer 400 on none/minimal, such a request is not retried.
 llm_reasoning:
   analyzer: default
   planner: default
@@ -63,7 +62,7 @@ kafka:
   brokers:
     - localhost:9094
   topic: game.events
-  group_id: gamegen
+  group_id: beevibe
   write_timeout: 10s
   read_timeout: 10s
 

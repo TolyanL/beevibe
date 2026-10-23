@@ -34,7 +34,7 @@ func TestLoadReadsValues(t *testing.T) {
 
 	path := writeConfig(t, `
 app:
-  name: gamegen
+  name: beevibe
   version: 0.2.0
 http:
   port: "8099"
@@ -67,8 +67,8 @@ worker:
 		t.Fatalf("Load() error = %v, want nil", err)
 	}
 
-	if cfg.App.Name != "gamegen" || cfg.App.Version != "0.2.0" {
-		t.Errorf("app = %+v, want gamegen 0.2.0", cfg.App)
+	if cfg.App.Name != "beevibe" || cfg.App.Version != "0.2.0" {
+		t.Errorf("app = %+v, want beevibe 0.2.0", cfg.App)
 	}
 
 	if cfg.HTTP.Port != "8099" || cfg.HTTP.IdleTimeout != 90*time.Second {

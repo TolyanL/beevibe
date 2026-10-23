@@ -32,7 +32,7 @@ func Run(ctx context.Context, c config.Config) error {
 
 	transaction.Init(pool)
 
-	log.Info().Str("model", c.LLM.Model).Str("llm_base_url", c.LLM.BaseURL).Msg("gamegen configured")
+	log.Info().Str("model", c.LLM.Model).Str("llm_base_url", c.LLM.BaseURL).Msg("beevibe configured")
 
 	store := postgres.New(pool)
 	llmClient := llm.New(c.LLM)

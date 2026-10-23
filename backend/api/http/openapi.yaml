@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: GameGen API
+  title: BeeVibe API
   version: 0.1.0
   description: >
     API генератора браузерных игр. Авторизация — сессионная cookie `session`
