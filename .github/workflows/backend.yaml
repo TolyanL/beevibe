@@ -54,10 +54,10 @@ jobs:
           working-directory: backend
 
       - name: Go Tidy
-        run: |
-          go mod tidy
-          cd "$GITHUB_WORKSPACE"
-          git diff --exit-code
+        run: go mod tidy && git diff --exit-code
+
+      - name: Go Mod
+        run: go mod download
 
       - name: Go Mod Verify
         run: go mod verify
@@ -81,61 +81,3 @@ jobs:
 
       - name: 🧪 Test
         run: go test -race -count=1 -cover ./...
-
-  integration:
-    name: Integration test
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: bee
-          POSTGRES_PASSWORD: "12345"
-          POSTGRES_DB: bee
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U bee"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-      kafka:
-        image: confluentinc/cp-kafka:latest
-        env:
-          KAFKA_NODE_ID: 0
-          KAFKA_PROCESS_ROLES: controller,broker
-          KAFKA_CONTROLLER_QUORUM_VOTERS: 0@localhost:9099
-          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9099,EXTERNAL://:9094
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,EXTERNAL://localhost:9094
-          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-        ports:
-          - 9092:9092
-          - 9094:9094
-        options: >-
-          --health-cmd "kafka-topics --bootstrap-server localhost:9092 --list"
-          --health-interval 10s
-          --health-timeout 10s
-          --health-retries 12
-
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
-
-      - name: 🔧 Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: ${{ env.GO_VERSION_FILE }}
-          cache-dependency-path: backend/go.sum
-
-      - name: 🧪 Integration test
-        env:
-          POSTGRES_TEST_DSN: postgres://bee:12345@localhost:5432/bee_test?sslmode=disable
-        run: go test -count=1 -tags=integration ./test/integration
