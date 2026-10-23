@@ -22,10 +22,16 @@ packages:
   github.com/TolyanL/beevibe/internal/usecase/catalog:
     interfaces:
       Store:
+  github.com/TolyanL/beevibe/internal/usecase/event:
+    interfaces:
+      Store:
   github.com/TolyanL/beevibe/internal/usecase/outbox:
     interfaces:
       Store:
       Kafka:
+  github.com/TolyanL/beevibe/internal/usecase:
+    interfaces:
+      Store:
   github.com/TolyanL/beevibe/pkg/llm:
     interfaces:
       LLM:
