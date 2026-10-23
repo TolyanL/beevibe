@@ -69,7 +69,7 @@ func (u *UseCase) repair(ctx context.Context, p *pipeline, html string, issues [
 		return "", fmt.Errorf("llm.Prompt: %w", err)
 	}
 
-	raw, err := u.complete(ctx, p, system, buildRepairPrompt(html, issues), temperatureCode, u.maxTokensRepair())
+	raw, err := u.complete(ctx, p, system, buildRepairPrompt(html, issues), temperatureCode, u.reasoningRepair())
 	if err != nil {
 		return "", fmt.Errorf("u.complete: %w", err)
 	}
@@ -110,7 +110,7 @@ func (u *UseCase) repairWithIssues(ctx context.Context, html, runtimeError strin
 
 		p := &pipeline{}
 
-		repaired, err := u.complete(ctx, p, system, buildRepairPrompt(current, issues), temperatureCode, u.maxTokensRepair())
+		repaired, err := u.complete(ctx, p, system, buildRepairPrompt(current, issues), temperatureCode, u.reasoningRepair())
 		if err != nil {
 			return "", fmt.Errorf("u.complete: %w", err)
 		}

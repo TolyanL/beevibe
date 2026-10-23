@@ -65,16 +65,16 @@ type Tokens struct {
 	PricePatch    int64
 }
 
-// Limits — лимиты токенов по агентам конвейера.
-type Limits struct {
-	MaxTokensAnalyze  int
-	MaxTokensPlan     int
-	MaxTokensCode     int
-	MaxTokensAssets   int
-	MaxTokensReview   int
-	MaxTokensAssemble int
-	MaxTokensPatch    int
-	MaxTokensRepair   int
+// Reasoning — уровни рассуждения модели по агентам конвейера.
+type Reasoning struct {
+	Analyze  llm.Effort
+	Plan     llm.Effort
+	Code     llm.Effort
+	Assets   llm.Effort
+	Review   llm.Effort
+	Assemble llm.Effort
+	Patch    llm.Effort
+	Repair   llm.Effort
 }
 
 // Worker — настройки конвейера генерации.
@@ -90,18 +90,26 @@ type UseCase struct {
 	llm       llm.LLM
 	validator Validator
 	tokens    Tokens
-	limits    Limits
+	reasoning Reasoning
 	worker    Worker
 }
 
-func New(store Store, outbox Outbox, llmClient llm.LLM, validator Validator, tokens Tokens, limits Limits, worker Worker) *UseCase {
+func New(
+	store Store,
+	outbox Outbox,
+	llmClient llm.LLM,
+	validator Validator,
+	tokens Tokens,
+	reasoning Reasoning,
+	worker Worker,
+) *UseCase {
 	return &UseCase{
 		store:     store,
 		outbox:    outbox,
 		llm:       llmClient,
 		validator: validator,
 		tokens:    tokens,
-		limits:    limits,
+		reasoning: reasoning,
 		worker:    worker,
 	}
 }

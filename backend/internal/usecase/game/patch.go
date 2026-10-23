@@ -82,7 +82,7 @@ func (u *UseCase) Patch(ctx context.Context, input dto.PatchGameInput) (dto.Patc
 
 	p := &pipeline{}
 
-	raw, err := u.complete(ctx, p, system, buildPatchPrompt(latest.HTML, input.Text, history), temperatureCode, u.maxTokensPatch())
+	raw, err := u.complete(ctx, p, system, buildPatchPrompt(latest.HTML, input.Text, history), temperatureCode, u.reasoningPatch())
 	if err != nil {
 		return output, errors.Join(fmt.Errorf("u.complete: %w", err), u.refund(ctx, input.UserID, input.GameID, u.tokens.PricePatch))
 	}

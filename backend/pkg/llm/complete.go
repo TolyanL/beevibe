@@ -10,13 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
 const (
 	chatCompletionsPath = "/chat/completions"
-	defaultMaxTokens    = 4096
 	maxErrorBodySize    = 2048
 	maxRetryDelay       = 30 * time.Second
 )
@@ -26,11 +27,16 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
+type reasoningPayload struct {
+	Effort string `json:"effort"`
+}
+
 type chatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []chatMessage `json:"messages"`
-	Temperature float64       `json:"temperature"`
-	MaxTokens   int           `json:"max_tokens"`
+	Model           string            `json:"model"`
+	Messages        []chatMessage     `json:"messages"`
+	Temperature     float64           `json:"temperature"`
+	Reasoning       *reasoningPayload `json:"reasoning,omitempty"`
+	ReasoningEffort string            `json:"reasoning_effort,omitempty"`
 }
 
 type chatChoice struct {
@@ -38,9 +44,14 @@ type chatChoice struct {
 	FinishReason string      `json:"finish_reason"`
 }
 
+type chatUsageDetails struct {
+	ReasoningTokens int `json:"reasoning_tokens"`
+}
+
 type chatUsage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
+	PromptTokens            int              `json:"prompt_tokens"`
+	CompletionTokens        int              `json:"completion_tokens"`
+	CompletionTokensDetails chatUsageDetails `json:"completion_tokens_details"`
 }
 
 type chatResponse struct {
@@ -62,6 +73,7 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 		return response, fmt.Errorf("chatBody: %w", err)
 	}
 
+	dump := c.newDebugDump()
 	var lastErr error
 
 	for attempt := range max(c.cfg.MaxRetries, 0) + 1 {
@@ -73,23 +85,33 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 			}
 		}
 
+		started := time.Now()
+
 		raw, retryable, err := c.send(ctx, body)
 		if err == nil {
-			decoded, err := c.decode(raw)
-			if err != nil {
-				span.SetError(err)
+			decoded, decodeErr := c.decode(raw)
+			dump.attempt(attempt+1, body, raw, time.Since(started), decodeErr, req.Reasoning, c.dialect())
 
-				return response, fmt.Errorf("decode: %w", unavailable(err))
+			if decodeErr != nil {
+				span.SetError(decodeErr)
+
+				return response, fmt.Errorf("decode: %w", unavailable(decodeErr))
 			}
 
 			return decoded, nil
 		}
 
+		dump.attempt(attempt+1, body, raw, time.Since(started), err, req.Reasoning, c.dialect())
 		lastErr = err
 
 		if !retryable || ctx.Err() != nil {
 			break
 		}
+
+		// Ошибка попытки возвращается наверх только после исчерпания ретраев,
+		// поэтому её промежуточная судьба логируется здесь: без этого
+		// не отличить медленный апстрим от серии быстрых обрывов.
+		log.Debug().Int("attempt", attempt+1).Err(err).Msg("llm complete attempt failed")
 	}
 
 	span.SetError(lastErr)
@@ -98,25 +120,44 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 }
 
 func (c *Client) chatBody(req Request) ([]byte, error) {
-	maxTokens := req.MaxTokens
-	if maxTokens <= 0 {
-		maxTokens = defaultMaxTokens
+	if !req.Reasoning.Valid() {
+		return nil, fmt.Errorf("invalid reasoning effort %q", req.Reasoning)
 	}
 
-	body, err := json.Marshal(chatRequest{
+	chatReq := chatRequest{
 		Model: c.cfg.Model,
 		Messages: []chatMessage{
 			{Role: "system", Content: req.System},
 			{Role: "user", Content: req.Prompt},
 		},
 		Temperature: req.Temperature,
-		MaxTokens:   maxTokens,
-	})
+	}
+
+	if effort := req.Reasoning.value(); effort != "" {
+		switch c.dialect() {
+		case ReasoningDialectOpenRouter:
+			chatReq.Reasoning = &reasoningPayload{Effort: effort}
+		case ReasoningDialectOpenAI:
+			chatReq.ReasoningEffort = effort
+		default:
+			return nil, fmt.Errorf("unknown reasoning dialect %q", c.cfg.ReasoningDialect)
+		}
+	}
+
+	body, err := json.Marshal(chatReq)
 	if err != nil {
 		return nil, fmt.Errorf("json.Marshal: %w", err)
 	}
 
 	return body, nil
+}
+
+func (c *Client) dialect() string {
+	if c.cfg.ReasoningDialect == "" {
+		return ReasoningDialectOpenRouter
+	}
+
+	return c.cfg.ReasoningDialect
 }
 
 func (c *Client) send(ctx context.Context, body []byte) ([]byte, bool, error) {
@@ -138,7 +179,7 @@ func (c *Client) send(ctx context.Context, body []byte) ([]byte, bool, error) {
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		raw, _ := io.ReadAll(io.LimitReader(response.Body, maxErrorBodySize))
 
-		return nil, retryableStatus(response.StatusCode),
+		return raw, retryableStatus(response.StatusCode),
 			fmt.Errorf("unexpected status %d: %s", response.StatusCode, strings.TrimSpace(string(raw)))
 	}
 
@@ -213,8 +254,12 @@ func (c *Client) retryDelay(attempt int) time.Duration {
 	return delay
 }
 
+// NOTE: 402 тоже ретраим: агрегатор провайдера переключает пул апстрима между
+// попытками, и запрос, не прошедший по квоте одного пула, может уйти в другой.
 func retryableStatus(status int) bool {
-	return status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+	return status == http.StatusTooManyRequests ||
+		status == http.StatusPaymentRequired ||
+		status >= http.StatusInternalServerError
 }
 
 func unavailable(err error) error {

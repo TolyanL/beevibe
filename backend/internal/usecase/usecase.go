@@ -12,8 +12,8 @@ import (
 // Tokens — цены и гранты в токенах.
 type Tokens = user.Tokens
 
-// LLMLimits — лимиты токенов по агентам конвейера.
-type LLMLimits = game.Limits
+// LLMReasoning — уровни рассуждения модели по агентам конвейера.
+type LLMReasoning = game.Reasoning
 
 // Worker — настройки конвейера генерации.
 type Worker = game.Worker
@@ -26,10 +26,10 @@ type App struct {
 
 // Config — конфигурация слоя юзкейсов.
 type Config struct {
-	Tokens Tokens
-	Limits LLMLimits
-	Worker Worker
-	App    App
+	Tokens    Tokens
+	Reasoning LLMReasoning
+	Worker    Worker
+	App       App
 }
 
 // Store — порт доступа к данным. Реализация: internal/adapter/postgres.
@@ -62,7 +62,7 @@ func New(store Store, llmClient llm.LLM, validator game.Validator, auth user.Aut
 				PriceGenerate: cfg.Tokens.PriceGenerate,
 				PricePatch:    cfg.Tokens.PricePatch,
 			},
-			cfg.Limits,
+			cfg.Reasoning,
 			cfg.Worker,
 		),
 		Catalog: catalog.New(store),

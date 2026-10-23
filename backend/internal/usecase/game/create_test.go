@@ -27,16 +27,7 @@ func newTestUseCase(t *testing.T) (*UseCase, *gamemocks.MockStore, *llmmocks.Moc
 			PriceGenerate: 320,
 			PricePatch:    40,
 		},
-		Limits{
-			MaxTokensAnalyze:  100,
-			MaxTokensPlan:     100,
-			MaxTokensCode:     100,
-			MaxTokensAssets:   100,
-			MaxTokensReview:   100,
-			MaxTokensAssemble: 100,
-			MaxTokensPatch:    100,
-			MaxTokensRepair:   100,
-		},
+		Reasoning{},
 		Worker{
 			Timeout:         60,
 			MaxCallsPerGame: 12,

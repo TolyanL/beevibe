@@ -119,7 +119,6 @@ func TestComplete(t *testing.T) {
 				System:      "system prompt",
 				Prompt:      "user prompt",
 				Temperature: 0.4,
-				MaxTokens:   128,
 			})
 
 			if got := calls.Load(); got != tt.wantCalls {
@@ -182,7 +181,6 @@ func TestCompleteSendsRequest(t *testing.T) {
 		System:      "system prompt",
 		Prompt:      "user prompt",
 		Temperature: 0.4,
-		MaxTokens:   128,
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -214,9 +212,43 @@ func TestCompleteSendsRequest(t *testing.T) {
 	if body.Temperature != 0.4 {
 		t.Errorf("temperature: want 0.4, got %v", body.Temperature)
 	}
+}
 
-	if body.MaxTokens != 128 {
-		t.Errorf("max tokens: want 128, got %d", body.MaxTokens)
+// Тест фиксирует отказ от лимита длины ответа: поле max_tokens не должно
+// попадать в запрос, иначе провайдер обрежет размышления модели.
+func TestCompleteSendsNoMaxTokens(t *testing.T) {
+	t.Parallel()
+
+	var raw map[string]json.RawMessage
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
+			t.Errorf("decode request: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(okBody))
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		APIKey:  "secret-key",
+		Model:   "test-model",
+		BaseURL: server.URL,
+		Timeout: 5 * time.Second,
+	})
+
+	if _, err := client.Complete(t.Context(), Request{
+		System:      "system prompt",
+		Prompt:      "user prompt",
+		Temperature: 0.4,
+		Reasoning:   EffortHigh,
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, ok := raw["max_tokens"]; ok {
+		t.Errorf("max_tokens must not be sent: body = %v", raw)
 	}
 }
 

@@ -122,7 +122,7 @@ func (u *UseCase) stepAnalyze(ctx context.Context, p *pipeline) error {
 
 	prompt := buildAnalyzePrompt(p.game)
 
-	raw, err := u.complete(ctx, p, system, prompt, temperatureIdeas, u.maxTokensAnalyze())
+	raw, err := u.complete(ctx, p, system, prompt, temperatureIdeas, u.reasoningAnalyze())
 	if err != nil {
 		return fmt.Errorf("u.complete: %w", err)
 	}
@@ -176,7 +176,7 @@ func (u *UseCase) stepPlan(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("marshalSpec: %w", err)
 	}
 
-	raw, err := u.complete(ctx, p, system, spec, temperatureReview, u.maxTokensPlan())
+	raw, err := u.complete(ctx, p, system, spec, temperatureReview, u.reasoningPlan())
 	if err != nil {
 		return fmt.Errorf("u.complete: %w", err)
 	}
@@ -202,7 +202,7 @@ func (u *UseCase) stepCode(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("llm.Prompt: %w", err)
 	}
 
-	raw, err := u.complete(ctx, p, system, buildCodePrompt(p), temperatureCode, u.maxTokensCode())
+	raw, err := u.complete(ctx, p, system, buildCodePrompt(p), temperatureCode, u.reasoningCode())
 	if err != nil {
 		return fmt.Errorf("u.complete: %w", err)
 	}
@@ -233,7 +233,7 @@ func (u *UseCase) stepAssets(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("marshalSpec: %w", err)
 	}
 
-	raw, err := u.complete(ctx, p, system, spec, temperatureIdeas, u.maxTokensAssets())
+	raw, err := u.complete(ctx, p, system, spec, temperatureIdeas, u.reasoningAssets())
 	if err != nil {
 		return fmt.Errorf("u.complete: %w", err)
 	}
@@ -259,7 +259,7 @@ func (u *UseCase) stepReview(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("llm.Prompt: %w", err)
 	}
 
-	raw, err := u.complete(ctx, p, system, buildReviewPrompt(p), temperatureReview, u.maxTokensReview())
+	raw, err := u.complete(ctx, p, system, buildReviewPrompt(p), temperatureReview, u.reasoningReview())
 	if err != nil {
 		return fmt.Errorf("u.complete: %w", err)
 	}
@@ -320,7 +320,7 @@ func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("llm.Prompt: %w", err)
 	}
 
-	raw, err := u.complete(ctx, p, system, buildAssemblePrompt(p), temperatureCode, u.maxTokensAssemble())
+	raw, err := u.complete(ctx, p, system, buildAssemblePrompt(p), temperatureCode, u.reasoningAssemble())
 	if err != nil {
 		return fmt.Errorf("u.complete: %w", err)
 	}
@@ -421,7 +421,13 @@ func (u *UseCase) stepCheck(ctx context.Context, p *pipeline) error {
 	return nil
 }
 
-func (u *UseCase) complete(ctx context.Context, p *pipeline, system, prompt string, temperature float64, maxTokens int) (string, error) {
+func (u *UseCase) complete(
+	ctx context.Context,
+	p *pipeline,
+	system, prompt string,
+	temperature float64,
+	effort llm.Effort,
+) (string, error) {
 	if p.calls >= u.worker.MaxCallsPerGame {
 		return "", domain.ErrLLMBudgetExceeded
 	}
@@ -430,7 +436,7 @@ func (u *UseCase) complete(ctx context.Context, p *pipeline, system, prompt stri
 		System:      system,
 		Prompt:      prompt,
 		Temperature: temperature,
-		MaxTokens:   maxTokens,
+		Reasoning:   effort,
 	})
 	if err != nil {
 		return "", fmt.Errorf("llm.Complete: %w", err)

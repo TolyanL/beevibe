@@ -27,15 +27,39 @@ type Tokens struct {
 	PricePatch    int64 `envconfig:"TOKENS_PRICE_PATCH"    default:"40000"`
 }
 
-type LLMTokens struct {
-	Analyzer  int `envconfig:"LLM_MAX_TOKENS_ANALYZER"  default:"4000"`
-	Planner   int `envconfig:"LLM_MAX_TOKENS_PLANNER"   default:"4000"`
-	Coder     int `envconfig:"LLM_MAX_TOKENS_CODER"     default:"16000"`
-	Assets    int `envconfig:"LLM_MAX_TOKENS_ASSETS"    default:"8000"`
-	Reviewer  int `envconfig:"LLM_MAX_TOKENS_REVIEWER"  default:"4000"`
-	Assembler int `envconfig:"LLM_MAX_TOKENS_ASSEMBLER" default:"8000"`
-	Patch     int `envconfig:"LLM_MAX_TOKENS_PATCH"     default:"16000"`
-	Repair    int `envconfig:"LLM_MAX_TOKENS_REPAIR"    default:"16000"`
+type LLMReasoning struct {
+	Analyzer  llm.Effort `envconfig:"LLM_REASONING_EFFORT_ANALYZER"  default:"default"`
+	Planner   llm.Effort `envconfig:"LLM_REASONING_EFFORT_PLANNER"   default:"default"`
+	Coder     llm.Effort `envconfig:"LLM_REASONING_EFFORT_CODER"     default:"default"`
+	Assets    llm.Effort `envconfig:"LLM_REASONING_EFFORT_ASSETS"    default:"default"`
+	Reviewer  llm.Effort `envconfig:"LLM_REASONING_EFFORT_REVIEWER"  default:"default"`
+	Assembler llm.Effort `envconfig:"LLM_REASONING_EFFORT_ASSEMBLER" default:"default"`
+	Patch     llm.Effort `envconfig:"LLM_REASONING_EFFORT_PATCH"     default:"default"`
+	Repair    llm.Effort `envconfig:"LLM_REASONING_EFFORT_REPAIR"    default:"default"`
+}
+
+func (c LLMReasoning) Validate() error {
+	fields := []struct {
+		name  string
+		value llm.Effort
+	}{
+		{"LLM_REASONING_EFFORT_ANALYZER", c.Analyzer},
+		{"LLM_REASONING_EFFORT_PLANNER", c.Planner},
+		{"LLM_REASONING_EFFORT_CODER", c.Coder},
+		{"LLM_REASONING_EFFORT_ASSETS", c.Assets},
+		{"LLM_REASONING_EFFORT_REVIEWER", c.Reviewer},
+		{"LLM_REASONING_EFFORT_ASSEMBLER", c.Assembler},
+		{"LLM_REASONING_EFFORT_PATCH", c.Patch},
+		{"LLM_REASONING_EFFORT_REPAIR", c.Repair},
+	}
+
+	for _, field := range fields {
+		if !field.value.Valid() {
+			return fmt.Errorf("%s: invalid effort %q", field.name, field.value)
+		}
+	}
+
+	return nil
 }
 
 type Worker struct {
@@ -46,17 +70,17 @@ type Worker struct {
 }
 
 type Config struct {
-	App       App
-	Auth      auth.Config
-	Kafka     kafka.Config
-	HTTP      httpserver.Config
-	Logger    logger.Config
-	Postgres  postgres.Config
-	LLM       llm.Config
-	LLMToken  LLMTokens
-	Tokens    Tokens
-	Validator validator.Config
-	Worker    Worker
+	App          App
+	Auth         auth.Config
+	Kafka        kafka.Config
+	HTTP         httpserver.Config
+	Logger       logger.Config
+	Postgres     postgres.Config
+	LLM          llm.Config
+	LLMReasoning LLMReasoning
+	Tokens       Tokens
+	Validator    validator.Config
+	Worker       Worker
 }
 
 func New() (Config, error) {
@@ -64,6 +88,14 @@ func New() (Config, error) {
 
 	if err := envconfig.Process("", &cfg); err != nil {
 		return Config{}, fmt.Errorf("envconfig.Process: %w", err)
+	}
+
+	if err := cfg.LLM.Validate(); err != nil {
+		return Config{}, fmt.Errorf("LLM.Validate: %w", err)
+	}
+
+	if err := cfg.LLMReasoning.Validate(); err != nil {
+		return Config{}, fmt.Errorf("LLMReasoning.Validate: %w", err)
 	}
 
 	return cfg, nil

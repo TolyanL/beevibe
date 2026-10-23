@@ -9,12 +9,49 @@ type LLM interface {
 	PromptVersion() string
 }
 
+// Effort — уровень рассуждения модели; "" и "default" означают «не отправлять поле».
+type Effort string
+
+const (
+	EffortDefault Effort = ""
+	EffortNone    Effort = "none"
+	EffortMinimal Effort = "minimal"
+	EffortLow     Effort = "low"
+	EffortMedium  Effort = "medium"
+	EffortHigh    Effort = "high"
+	EffortXHigh   Effort = "xhigh"
+	EffortMax     Effort = "max"
+
+	effortDefaultLiteral Effort = "default"
+)
+
+// Valid — значение из allow-list провайдеров.
+func (e Effort) Valid() bool {
+	switch e {
+	case EffortDefault, effortDefaultLiteral, EffortNone, EffortMinimal,
+		EffortLow, EffortMedium, EffortHigh, EffortXHigh, EffortMax:
+		return true
+	default:
+		return false
+	}
+}
+
+func (e Effort) value() string {
+	if e == effortDefaultLiteral {
+		return ""
+	}
+
+	return string(e)
+}
+
 // Request — запрос чат-комплишена.
+// Длина ответа не ограничивается: её задаёт уровень рассуждения модели,
+// а не лимит токенов в запросе.
 type Request struct {
 	System      string  `json:"system"`
 	Prompt      string  `json:"prompt"`
 	Temperature float64 `json:"temperature"`
-	MaxTokens   int     `json:"max_tokens"`
+	Reasoning   Effort  `json:"reasoning"`
 }
 
 // Usage — расход токенов по ответу модели.

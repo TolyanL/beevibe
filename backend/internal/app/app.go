@@ -32,6 +32,8 @@ func Run(ctx context.Context, c config.Config) error {
 
 	transaction.Init(pool)
 
+	log.Info().Str("model", c.LLM.Model).Str("llm_base_url", c.LLM.BaseURL).Msg("gamegen configured")
+
 	store := postgres.New(pool)
 	llmClient := llm.New(c.LLM)
 	validatorAdapter := validator.New(c.Validator)
@@ -45,15 +47,15 @@ func Run(ctx context.Context, c config.Config) error {
 			PriceGenerate: c.Tokens.PriceGenerate,
 			PricePatch:    c.Tokens.PricePatch,
 		},
-		Limits: usecase.LLMLimits{
-			MaxTokensAnalyze:  c.LLMToken.Analyzer,
-			MaxTokensPlan:     c.LLMToken.Planner,
-			MaxTokensCode:     c.LLMToken.Coder,
-			MaxTokensAssets:   c.LLMToken.Assets,
-			MaxTokensReview:   c.LLMToken.Reviewer,
-			MaxTokensAssemble: c.LLMToken.Assembler,
-			MaxTokensPatch:    c.LLMToken.Patch,
-			MaxTokensRepair:   c.LLMToken.Repair,
+		Reasoning: usecase.LLMReasoning{
+			Analyze:  c.LLMReasoning.Analyzer,
+			Plan:     c.LLMReasoning.Planner,
+			Code:     c.LLMReasoning.Coder,
+			Assets:   c.LLMReasoning.Assets,
+			Review:   c.LLMReasoning.Reviewer,
+			Assemble: c.LLMReasoning.Assembler,
+			Patch:    c.LLMReasoning.Patch,
+			Repair:   c.LLMReasoning.Repair,
 		},
 		Worker: usecase.Worker{
 			Timeout:         c.Worker.Timeout,

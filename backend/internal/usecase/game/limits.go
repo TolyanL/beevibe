@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/TolyanL/beevibe/internal/domain"
+	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
 func errorCode(err error) string {
@@ -25,36 +26,36 @@ func errorCode(err error) string {
 	}
 }
 
-func (u *UseCase) maxTokensAnalyze() int {
-	return u.limits.MaxTokensAnalyze
+func (u *UseCase) reasoningAnalyze() llm.Effort {
+	return u.reasoning.Analyze
 }
 
-func (u *UseCase) maxTokensPlan() int {
-	return u.limits.MaxTokensPlan
+func (u *UseCase) reasoningPlan() llm.Effort {
+	return u.reasoning.Plan
 }
 
-func (u *UseCase) maxTokensCode() int {
-	return u.limits.MaxTokensCode
+func (u *UseCase) reasoningCode() llm.Effort {
+	return u.reasoning.Code
 }
 
-func (u *UseCase) maxTokensAssets() int {
-	return u.limits.MaxTokensAssets
+func (u *UseCase) reasoningAssets() llm.Effort {
+	return u.reasoning.Assets
 }
 
-func (u *UseCase) maxTokensReview() int {
-	return u.limits.MaxTokensReview
+func (u *UseCase) reasoningReview() llm.Effort {
+	return u.reasoning.Review
 }
 
-func (u *UseCase) maxTokensAssemble() int {
-	return u.limits.MaxTokensAssemble
+func (u *UseCase) reasoningAssemble() llm.Effort {
+	return u.reasoning.Assemble
 }
 
-func (u *UseCase) maxTokensPatch() int {
-	return u.limits.MaxTokensPatch
+func (u *UseCase) reasoningPatch() llm.Effort {
+	return u.reasoning.Patch
 }
 
-func (u *UseCase) maxTokensRepair() int {
-	return u.limits.MaxTokensRepair
+func (u *UseCase) reasoningRepair() llm.Effort {
+	return u.reasoning.Repair
 }
 
 func (u *UseCase) maxFixAttempts() int {

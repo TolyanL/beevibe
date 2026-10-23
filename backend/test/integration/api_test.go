@@ -274,16 +274,6 @@ func (s *APISuite) SetupSuite() {
 			PriceGenerate: 320_000,
 			PricePatch:    40_000,
 		},
-		Limits: usecase.LLMLimits{
-			MaxTokensAnalyze:  1000,
-			MaxTokensPlan:     1000,
-			MaxTokensCode:     2000,
-			MaxTokensAssets:   1000,
-			MaxTokensReview:   1000,
-			MaxTokensAssemble: 2000,
-			MaxTokensPatch:    2000,
-			MaxTokensRepair:   2000,
-		},
 		Worker: usecase.Worker{
 			Timeout:         60 * time.Second,
 			MaxCallsPerGame: 12,
