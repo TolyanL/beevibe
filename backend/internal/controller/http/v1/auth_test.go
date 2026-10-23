@@ -12,205 +12,230 @@ import (
 
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
-	"github.com/TolyanL/beevibe/internal/usecase"
-	gamemocks "github.com/TolyanL/beevibe/internal/usecase/mocks/game"
-	llmmocks "github.com/TolyanL/beevibe/internal/usecase/mocks/llm"
-	outboxmocks "github.com/TolyanL/beevibe/internal/usecase/mocks/outbox"
-	usecasemocks "github.com/TolyanL/beevibe/internal/usecase/mocks/usecase"
-	usermocks "github.com/TolyanL/beevibe/internal/usecase/mocks/user"
 )
 
-func newTestRouter(t *testing.T) (http.Handler, *usecasemocks.MockStore, *usermocks.MockAuth) {
-	t.Helper()
-
-	store := usecasemocks.NewMockStore(t)
-	auth := usermocks.NewMockAuth(t)
-
-	uc := usecase.New(
-		store,
-		llmmocks.NewMockLLM(t),
-		gamemocks.NewMockValidator(t),
-		auth,
-		outboxmocks.NewMockKafka(t),
-		usecase.Config{
-			Tokens: usecase.Tokens{
-				GrantSignup:   1_000_000,
-				GrantTopup:    500_000,
-				PriceGenerate: 320_000,
-				PricePatch:    40_000,
-			},
-		},
-	)
-
-	return NewRouter(New(uc)), store, auth
-}
+const (
+	testEmail    = "user@example.com"
+	testPassword = "password123"
+)
 
 func TestRegisterUserSetsSessionCookie(t *testing.T) {
 	t.Parallel()
 
-	router, store, auth := newTestRouter(t)
+	env := newTestEnv(t)
 
-	auth.EXPECT().HashPassword("password123").Return("hash", nil)
-	auth.EXPECT().GenerateToken().Return("session-token", nil)
-	store.EXPECT().CreateUser(mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().InsertTokenOp(mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().CreateSession(mock.Anything, "session-token", mock.Anything, mock.Anything).Return(nil)
+	env.auth.EXPECT().HashPassword(testPassword).Return("hash", nil)
+	env.auth.EXPECT().GenerateToken().Return(sessionToken, nil)
+	env.store.EXPECT().CreateUser(mock.Anything, mock.Anything).Return(nil)
+	env.store.EXPECT().InsertTokenOp(mock.Anything, mock.Anything).Return(nil)
+	env.store.EXPECT().CreateSession(mock.Anything, sessionToken, mock.Anything, mock.Anything).Return(nil)
 
-	body := strings.NewReader(`{"email":"user@example.com","password":"password123"}`)
-	req := httptest.NewRequest(http.MethodPost, "/auth/register", body)
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
+	body := strings.NewReader(`{"email":"` + testEmail + `","password":"` + testPassword + `"}`)
+	rec := env.do(httptest.NewRequest(http.MethodPost, "/auth/register", body))
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusCreated, rec.Body.String())
 	}
 
-	cookie := rec.Result().Cookies()
-	if len(cookie) != 1 || cookie[0].Name != "session" || cookie[0].Value != "session-token" {
-		t.Fatalf("cookies = %+v, want session cookie", cookie)
+	var output dto.RegisterUserOutput
+	if err := json.NewDecoder(rec.Body).Decode(&output); err != nil {
+		t.Fatalf("decode output: %v", err)
+	}
+
+	if output.User.Email != testEmail {
+		t.Errorf("email = %q, want %q", output.User.Email, testEmail)
+	}
+
+	if output.User.Balance != 1_000_000 {
+		t.Errorf("balance = %d, want %d", output.User.Balance, int64(1_000_000))
+	}
+
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != "session" || cookies[0].Value != sessionToken {
+		t.Fatalf("cookies = %+v, want session cookie", cookies)
 	}
 }
 
 func TestRegisterUserRejectsInvalidBody(t *testing.T) {
 	t.Parallel()
 
-	router, _, _ := newTestRouter(t)
+	env := newTestEnv(t)
 
-	req := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(`{"email":"bad"}`))
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
+	rec := env.do(httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(`{"email":"bad"}`)))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusBadRequest, rec.Body.String())
 	}
 }
 
+func TestRegisterUserReturnsConflictOnTakenEmail(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	env.auth.EXPECT().HashPassword(testPassword).Return("hash", nil)
+	env.auth.EXPECT().GenerateToken().Return(sessionToken, nil)
+	env.store.EXPECT().CreateUser(mock.Anything, mock.Anything).Return(domain.ErrEmailTaken)
+
+	body := strings.NewReader(`{"email":"` + testEmail + `","password":"` + testPassword + `"}`)
+	rec := env.do(httptest.NewRequest(http.MethodPost, "/auth/register", body))
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusConflict, rec.Body.String())
+	}
+}
+
 func TestLoginUserSetsSessionCookie(t *testing.T) {
 	t.Parallel()
 
-	router, store, auth := newTestRouter(t)
+	env := newTestEnv(t)
 
 	userID := uuid.New()
 
-	store.EXPECT().GetUserByEmail(mock.Anything, "user@example.com").Return(domain.User{
+	env.store.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(domain.User{
 		ID:           userID,
-		Email:        domain.Email("user@example.com"),
+		Email:        domain.Email(testEmail),
 		PasswordHash: domain.PasswordHash("hash"),
 	}, nil)
-	auth.EXPECT().CheckPassword("hash", "password123").Return(nil)
-	auth.EXPECT().GenerateToken().Return("session-token", nil)
-	store.EXPECT().CreateSession(mock.Anything, "session-token", userID, mock.Anything).Return(nil)
+	env.auth.EXPECT().CheckPassword("hash", testPassword).Return(nil)
+	env.auth.EXPECT().GenerateToken().Return(sessionToken, nil)
+	env.store.EXPECT().CreateSession(mock.Anything, sessionToken, userID, mock.Anything).Return(nil)
 
-	body := strings.NewReader(`{"email":"user@example.com","password":"password123"}`)
-	req := httptest.NewRequest(http.MethodPost, "/auth/login", body)
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
+	body := strings.NewReader(`{"email":"` + testEmail + `","password":"` + testPassword + `"}`)
+	rec := env.do(httptest.NewRequest(http.MethodPost, "/auth/login", body))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 
-	cookie := rec.Result().Cookies()
-	if len(cookie) != 1 || cookie[0].Value != "session-token" {
-		t.Fatalf("cookies = %+v, want session cookie", cookie)
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Value != sessionToken {
+		t.Fatalf("cookies = %+v, want session cookie", cookies)
 	}
 }
 
 func TestLoginUserRejectsWrongPassword(t *testing.T) {
 	t.Parallel()
 
-	router, store, auth := newTestRouter(t)
+	env := newTestEnv(t)
 
-	store.EXPECT().GetUserByEmail(mock.Anything, "user@example.com").Return(domain.User{
+	env.store.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(domain.User{
 		ID:           uuid.New(),
-		Email:        domain.Email("user@example.com"),
+		Email:        domain.Email(testEmail),
 		PasswordHash: domain.PasswordHash("hash"),
 	}, nil)
-	auth.EXPECT().CheckPassword("hash", "wrong").Return(domain.ErrUnauthorized)
+	env.auth.EXPECT().CheckPassword("hash", "wrong").Return(domain.ErrUnauthorized)
 
-	body := strings.NewReader(`{"email":"user@example.com","password":"wrong"}`)
-	req := httptest.NewRequest(http.MethodPost, "/auth/login", body)
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
+	body := strings.NewReader(`{"email":"` + testEmail + `","password":"wrong"}`)
+	rec := env.do(httptest.NewRequest(http.MethodPost, "/auth/login", body))
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+}
+
+func TestLoginUserRejectsUnknownEmail(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	env.store.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(domain.User{}, domain.ErrNotFound)
+
+	body := strings.NewReader(`{"email":"` + testEmail + `","password":"` + testPassword + `"}`)
+	rec := env.do(httptest.NewRequest(http.MethodPost, "/auth/login", body))
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+}
+
+func TestLogoutUserClearsCookie(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	env.store.EXPECT().DeleteSession(mock.Anything, sessionToken).Return(nil)
+
+	req := env.authorized(httptest.NewRequest(http.MethodPost, "/auth/logout", nil))
+	rec := env.do(req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusNoContent, rec.Body.String())
+	}
+
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].MaxAge >= 0 {
+		t.Fatalf("cookies = %+v, want cleared session cookie", cookies)
+	}
+}
+
+func TestMeReturnsBalance(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	userID := uuid.New()
+
+	env.expectSession(userID)
+	env.store.EXPECT().GetUserByID(mock.Anything, userID).Return(domain.User{
+		ID:           userID,
+		Email:        domain.Email(testEmail),
+		TokenBalance: 777,
+	}, nil)
+
+	req := env.authorized(httptest.NewRequest(http.MethodGet, "/me", nil))
+	rec := env.do(req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	var output dto.GetMeOutput
+	if err := json.NewDecoder(rec.Body).Decode(&output); err != nil {
+		t.Fatalf("decode output: %v", err)
+	}
+
+	if output.User.Balance != 777 {
+		t.Errorf("balance = %d, want 777", output.User.Balance)
 	}
 }
 
 func TestProtectedRouteRejectsAnonymous(t *testing.T) {
 	t.Parallel()
 
-	router, _, _ := newTestRouter(t)
+	env := newTestEnv(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/me", nil)
-	rec := httptest.NewRecorder()
+	paths := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/me"},
+		{method: http.MethodGet, path: "/profile"},
+		{method: http.MethodPost, path: "/games"},
+		{method: http.MethodGet, path: "/games/" + uuid.NewString()},
+		{method: http.MethodPost, path: "/games/" + uuid.NewString() + "/patch"},
+	}
 
-	router.ServeHTTP(rec, req)
+	for _, tt := range paths {
+		rec := env.do(httptest.NewRequest(tt.method, tt.path, strings.NewReader(`{}`)))
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("%s %s: status = %d, want %d", tt.method, tt.path, rec.Code, http.StatusUnauthorized)
+		}
+	}
+}
+
+func TestProtectedRouteRejectsUnknownSession(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	env.store.EXPECT().GetSessionUserID(mock.Anything, sessionToken).Return(uuid.Nil, domain.ErrNotFound)
+
+	req := env.authorized(httptest.NewRequest(http.MethodGet, "/me", nil))
+	rec := env.do(req)
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
-	}
-}
-
-func TestCreateGameReturnsGameID(t *testing.T) {
-	t.Parallel()
-
-	router, store, _ := newTestRouter(t)
-
-	userID := uuid.New()
-	gameID := uuid.New()
-
-	store.EXPECT().GetSessionUserID(mock.Anything, "session-token").Return(userID, nil)
-	store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
-		ID:           userID,
-		TokenBalance: 1_000_000,
-	}, nil)
-	store.EXPECT().UpdateUser(mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().InsertTokenOp(mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().CreateGame(mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().InsertOutboxEvent(mock.Anything, mock.Anything).Return(nil)
-
-	body := strings.NewReader(`{"prompt":"змейка","genre":"snake"}`)
-	req := httptest.NewRequest(http.MethodPost, "/games", body)
-	req.AddCookie(&http.Cookie{Name: "session", Value: "session-token"})
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusCreated, rec.Body.String())
-	}
-
-	var output dto.CreateGameOutput
-	if err := json.NewDecoder(rec.Body).Decode(&output); err != nil {
-		t.Fatalf("decode output: %v", err)
-	}
-
-	if output.Status != string(domain.StatusQueued) {
-		t.Errorf("status = %q, want %q", output.Status, domain.StatusQueued)
-	}
-
-	if output.ID == uuid.Nil || output.ID == gameID {
-		t.Errorf("id = %s, want generated uuid", output.ID)
-	}
-}
-
-func TestHealthReturnsStatus(t *testing.T) {
-	t.Parallel()
-
-	router, _, _ := newTestRouter(t)
-
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 }
