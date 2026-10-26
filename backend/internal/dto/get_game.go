@@ -44,4 +44,6 @@ type GetGameOutput struct {
 	Config   *domain.GameConfig `json:"config,omitempty"`
 	Versions []Version          `json:"versions"`
 	Cost     GameCost           `json:"cost"`
+	Rating   RatingAggregate    `json:"rating"`
+	MyRating int                `json:"my_rating"`
 }

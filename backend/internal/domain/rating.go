@@ -7,12 +7,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type RatingValue string
+type RatingValue int
 
 const (
-	RatingCool RatingValue = "cool"
-	RatingBad  RatingValue = "bad"
+	Rating1 RatingValue = 1
+	Rating2 RatingValue = 2
+	Rating3 RatingValue = 3
+	Rating4 RatingValue = 4
+	Rating5 RatingValue = 5
 )
+
+func (v RatingValue) Valid() bool {
+	return v >= Rating1 && v <= Rating5
+}
 
 type Rating struct {
 	GameID    uuid.UUID   `json:"game_id"`
@@ -22,8 +29,8 @@ type Rating struct {
 }
 
 func NewRating(gameID, userID uuid.UUID, value RatingValue) (Rating, error) {
-	if value != RatingCool && value != RatingBad {
-		return Rating{}, fmt.Errorf("%w: rating value must be cool or bad", ErrInvalidInput)
+	if !value.Valid() {
+		return Rating{}, fmt.Errorf("%w: rating value must be between 1 and 5", ErrInvalidInput)
 	}
 
 	return Rating{

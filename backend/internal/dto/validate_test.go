@@ -145,13 +145,13 @@ func TestRateGameInputValidate(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		value   string
+		value   int
 		wantErr bool
 	}{
-		{name: "cool", value: "cool"},
-		{name: "bad", value: "bad"},
-		{name: "unknown", value: "awesome", wantErr: true},
-		{name: "empty", value: "", wantErr: true},
+		{name: "one", value: 1},
+		{name: "five", value: 5},
+		{name: "too high", value: 6, wantErr: true},
+		{name: "zero", value: 0, wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -183,7 +183,7 @@ func TestListCatalogInputValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "empty is allowed", input: ListCatalogInput{}},
-		{name: "known sort", input: ListCatalogInput{Sort: "cool", Genre: "snake", Limit: 10}},
+		{name: "known sort", input: ListCatalogInput{Sort: "rating", Genre: "snake", Limit: 10}},
 		{name: "unknown sort", input: ListCatalogInput{Sort: "unknown"}, wantErr: true},
 		{name: "unknown genre", input: ListCatalogInput{Genre: "arcader"}, wantErr: true},
 		{name: "limit too big", input: ListCatalogInput{Limit: 1000}, wantErr: true},

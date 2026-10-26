@@ -113,7 +113,7 @@ paths:
   /profile:
     get:
       tags: [profile]
-      summary: Профиль: баланс, мои игры, история операций, цены
+      summary: "Профиль: баланс, мои игры, история операций, цены"
       security:
         - sessionCookie: []
       responses:
@@ -191,7 +191,7 @@ paths:
       - $ref: "#/components/parameters/GameId"
     get:
       tags: [games]
-      summary: Полный профиль игры: статус, этапы, spec, конфиг, версии, цена
+      summary: "Полный профиль игры: статус, этапы, spec, конфиг, версии, цена"
       security:
         - sessionCookie: []
       responses:
@@ -378,7 +378,7 @@ paths:
       - $ref: "#/components/parameters/GameId"
     post:
       tags: [games]
-      summary: Оценка игры (одна на пользователя, изменяемая)
+      summary: Оценка игры по пятибалльной шкале (одна на пользователя, изменяемая)
       security:
         - sessionCookie: []
       requestBody:
@@ -390,8 +390,9 @@ paths:
               required: [value]
               properties:
                 value:
-                  type: string
-                  enum: [cool, bad]
+                  type: integer
+                  minimum: 1
+                  maximum: 5
       responses:
         "200":
           description: Оценка и агрегат
@@ -401,7 +402,9 @@ paths:
                 type: object
                 properties:
                   rating:
-                    type: string
+                    type: integer
+                    minimum: 1
+                    maximum: 5
                   aggregate:
                     $ref: "#/components/schemas/RatingAggregate"
         "400":
@@ -453,7 +456,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [cool, hours, fresh]
+            enum: [rating, hours, fresh]
             default: fresh
         - name: genre
           in: query
@@ -844,18 +847,28 @@ components:
               type: integer
             fixes:
               type: integer
+        rating:
+          $ref: "#/components/schemas/RatingAggregate"
+        my_rating:
+          type: integer
+          minimum: 0
+          maximum: 5
 
     RatingAggregate:
       type: object
       properties:
-        cool:
-          type: integer
-        bad:
-          type: integer
+        average:
+          type: number
+          description: Средняя оценка от 1 до 5
         total:
           type: integer
-        cool_percent:
-          type: number
+        counts:
+          type: array
+          description: Количество оценок 1, 2, 3, 4 и 5
+          minItems: 5
+          maxItems: 5
+          items:
+            type: integer
 
     PlaytimeAggregate:
       type: object

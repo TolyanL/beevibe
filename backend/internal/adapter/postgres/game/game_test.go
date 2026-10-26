@@ -327,7 +327,7 @@ func TestGetLatestVersionMapsNoRows(t *testing.T) {
 	}
 }
 
-func TestGetRatingAggregateComputesPercent(t *testing.T) {
+func TestGetRatingAggregateComputesAverage(t *testing.T) {
 	t.Parallel()
 
 	db, ctx := pgtest.DB(t)
@@ -335,15 +335,15 @@ func TestGetRatingAggregateComputesPercent(t *testing.T) {
 
 	gameID := uuid.New()
 
-	db.EXPECT().QueryRow(mock.Anything, mock.Anything, pgtest.Args(gameID)).Return(pgtest.Row(t, 3, 1))
+	db.EXPECT().QueryRow(mock.Anything, mock.Anything, pgtest.Args(gameID)).Return(pgtest.Row(t, 4.5, 4, 0, 0, 0, 2, 2))
 
 	aggregate, err := postgres.GetRatingAggregate(ctx, gameID)
 	if err != nil {
 		t.Fatalf("GetRatingAggregate() error = %v, want nil", err)
 	}
 
-	if aggregate.Total != 4 || aggregate.CoolPercent != 75 {
-		t.Errorf("aggregate = %+v, want total 4 and 75%%", aggregate)
+	if aggregate.Total != 4 || aggregate.Average != 4.5 || aggregate.Counts != [5]int{0, 0, 0, 2, 2} {
+		t.Errorf("aggregate = %+v, want total 4, average 4.5, counts 0/0/0/2/2", aggregate)
 	}
 }
 

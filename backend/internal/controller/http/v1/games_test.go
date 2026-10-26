@@ -138,6 +138,8 @@ func TestGetGameReturnsVersionsAndCost(t *testing.T) {
 	env.store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return([]domain.GenEvent{
 		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"analyzing","status":"done"}`)},
 	}, nil)
+	env.store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{Total: 0}, nil)
+	env.store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{}, domain.ErrNotFound)
 
 	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String(), nil))
 	rec := env.do(req)
@@ -513,16 +515,15 @@ func TestRateGameReturnsAggregate(t *testing.T) {
 		Status:  domain.StatusReady,
 	}, nil)
 	env.store.EXPECT().UpsertRating(mock.Anything, mock.MatchedBy(func(rating domain.Rating) bool {
-		return rating.Value == domain.RatingCool
+		return rating.Value == domain.Rating5
 	})).Return(nil)
 	env.store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{
-		Cool:        3,
-		Bad:         1,
-		Total:       4,
-		CoolPercent: 75,
+		Average: 4.5,
+		Total:   4,
+		Counts:  [5]int{0, 0, 0, 2, 2},
 	}, nil)
 
-	body := strings.NewReader(`{"value":"cool"}`)
+	body := strings.NewReader(`{"value":5}`)
 	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rate", body))
 	rec := env.do(req)
 
@@ -535,8 +536,8 @@ func TestRateGameReturnsAggregate(t *testing.T) {
 		t.Fatalf("decode output: %v", err)
 	}
 
-	if output.Rating != "cool" || output.Aggregate.Cool != 3 {
-		t.Errorf("output = %+v, want rating cool and 3 cool votes", output)
+	if output.Rating != 5 || output.Aggregate.Average != 4.5 {
+		t.Errorf("output = %+v, want rating 5 and average 4.5", output)
 	}
 }
 

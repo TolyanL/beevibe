@@ -18,7 +18,7 @@ func (p *Postgres) UpsertRating(ctx context.Context, rating domain.Rating) error
 	             ON CONFLICT (game_id, user_id) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`
 
 	tag, err := transaction.TryExtractTX(ctx).Exec(ctx, sql,
-		rating.GameID, rating.UserID, string(rating.Value), rating.UpdatedAt)
+		rating.GameID, rating.UserID, int(rating.Value), rating.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("txOrPool.Exec: %w", err)
 	}
