@@ -95,7 +95,9 @@ export function stageLabel(stage: string): string {
   return PIPELINE.find((item) => item.id === stage)?.label ?? stage
 }
 
-export function genreLabel(genre: string): string {
+export function genreLabel(genre: string, custom?: string): string {
+  if (genre === 'custom' && custom && custom.trim()) return custom.trim()
+
   const labels: Record<string, string> = {
     arcade: 'Аркада',
     snake: 'Змейка',
@@ -108,7 +110,9 @@ export function genreLabel(genre: string): string {
   return labels[genre] ?? 'Игра'
 }
 
-export function styleLabel(style: string): string {
+export function styleLabel(style: string, custom?: string): string {
+  if (style === 'custom' && custom && custom.trim()) return custom.trim()
+
   const labels: Record<string, string> = {
     pixel: 'Пиксель',
     cartoon: 'Мультяшный',

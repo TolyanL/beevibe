@@ -19,6 +19,11 @@
   --bv-yellow: #ffcc00;
   --bv-yellow-deep: #e6b800;
   --bv-ink: #141414;
+  --bv-hover-ink: #2e2e29;
+  --bv-hover-surface: rgba(23, 23, 19, 0.06);
+  --bv-hover-surface-strong: rgba(23, 23, 19, 0.1);
+  --bv-hover-text: #141414;
+  --bv-hover-accent: #8a6800;
   --bv-green: #16a34a;
   --bv-red: #dc2626;
   --bv-orange: #f97316;
@@ -37,6 +42,11 @@
   --bv-faint: #777361;
   --bv-line: rgba(246, 244, 232, 0.11);
   --bv-line-strong: rgba(246, 244, 232, 0.2);
+  --bv-hover-ink: #ffffff;
+  --bv-hover-surface: rgba(246, 244, 232, 0.08);
+  --bv-hover-surface-strong: rgba(246, 244, 232, 0.14);
+  --bv-hover-text: #fffdf7;
+  --bv-hover-accent: #ffd633;
 }
 
 @theme inline {
@@ -56,6 +66,11 @@
   --color-bee: var(--bv-yellow);
   --color-bee-deep: var(--bv-yellow-deep);
   --color-graphite: var(--bv-ink);
+  --color-hover-ink: var(--bv-hover-ink);
+  --color-hover-surface: var(--bv-hover-surface);
+  --color-hover-surface-strong: var(--bv-hover-surface-strong);
+  --color-hover-text: var(--bv-hover-text);
+  --color-hover-accent: var(--bv-hover-accent);
   --color-good: var(--bv-green);
   --color-bad: var(--bv-red);
   --color-warn: var(--bv-orange);
@@ -240,7 +255,7 @@
 
   .p-button.p-button-secondary:not(:disabled):hover {
     border-color: var(--bv-yellow-deep);
-    background: color-mix(in srgb, var(--bv-yellow) 14%, transparent);
+    background: var(--bv-hover-surface-strong);
     color: var(--bv-text);
   }
 
@@ -439,6 +454,18 @@
 
   .thin-scroll {
     scrollbar-width: thin;
+  }
+
+  .hover-row {
+    @apply transition hover:bg-hover-surface;
+  }
+
+  .hover-link {
+    @apply transition hover:text-hover-accent;
+  }
+
+  .hover-button {
+    @apply transition hover:bg-hover-surface-strong;
   }
 }
 

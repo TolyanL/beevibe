@@ -3,10 +3,14 @@ import type {
   CreateGameInput,
   CreateGameResponse,
   Game,
-  PatchGameResponse,
+  GameMeta,
+  ListUserGamesPage,
+  GameJobResponse,
   PlaytimeResponse,
   RateGameResponse,
+  TokenOpsPage,
   VersionResponse,
+  Visibility,
 } from './types'
 
 export function createGame(input: CreateGameInput): Promise<CreateGameResponse> {
@@ -23,10 +27,11 @@ export function getGame(id: string, signal?: AbortSignal): Promise<Game> {
   return request<Game>(`/games/${id}`, { signal })
 }
 
-export function patchGame(id: string, text: string): Promise<PatchGameResponse> {
-  return request<PatchGameResponse>(`/games/${id}/patch`, {
+export function patchGame(id: string, text: string): Promise<GameJobResponse> {
+  return request<GameJobResponse>(`/games/${id}/patch`, {
     method: 'POST',
     body: { text },
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
   })
 }
 
@@ -51,10 +56,41 @@ export function rollbackGame(id: string, version: number): Promise<VersionRespon
   })
 }
 
-export function fixGame(id: string, error?: string): Promise<VersionResponse> {
-  return request<VersionResponse>(`/games/${id}/fix`, {
+export function fixGame(id: string, error?: string): Promise<GameJobResponse> {
+  return request<GameJobResponse>(`/games/${id}/fix`, {
     method: 'POST',
     body: error ? { error } : {},
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
+  })
+}
+
+export function retryGame(id: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/games/${id}/retry`, { method: 'POST' })
+}
+
+export function cancelGame(id: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/games/${id}/cancel`, { method: 'POST' })
+}
+
+export function deleteGame(id: string): Promise<{ deleted: boolean }> {
+  return request<{ deleted: boolean }>(`/games/${id}`, { method: 'DELETE' })
+}
+
+export function updateGameVisibility(id: string, visibility: Visibility): Promise<{ visibility: Visibility }> {
+  return request<{ visibility: Visibility }>(`/games/${id}/visibility`, {
+    method: 'PATCH',
+    body: { visibility },
+  })
+}
+
+export function updateGameMeta(id: string, meta: Partial<GameMeta>): Promise<GameMeta> {
+  return request<GameMeta>(`/games/${id}/meta`, { method: 'PATCH', body: meta })
+}
+
+export function generateGameMeta(id: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/games/${id}/meta/generate`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
   })
 }
 
@@ -70,4 +106,35 @@ export function recordPlaytime(id: string, seconds: number): Promise<PlaytimeRes
     method: 'POST',
     body: { seconds },
   })
+}
+
+export interface ListUserGamesQuery {
+  status?: string
+  sort?: 'created_at' | 'tokens_cost'
+  limit?: number
+  offset?: number
+}
+
+export function listUserGames(query: ListUserGamesQuery = {}): Promise<ListUserGamesPage> {
+  const params = new URLSearchParams()
+
+  if (query.status) params.set('status', query.status)
+  if (query.sort) params.set('sort', query.sort)
+  if (query.limit) params.set('limit', String(query.limit))
+  if (query.offset) params.set('offset', String(query.offset))
+
+  const suffix = params.size ? `?${params.toString()}` : ''
+
+  return request<ListUserGamesPage>(`/games${suffix}`)
+}
+
+export function listTokenOps(query: { limit?: number; offset?: number } = {}): Promise<TokenOpsPage> {
+  const params = new URLSearchParams()
+
+  if (query.limit) params.set('limit', String(query.limit))
+  if (query.offset) params.set('offset', String(query.offset))
+
+  const suffix = params.size ? `?${params.toString()}` : ''
+
+  return request<TokenOpsPage>(`/me/token-ops${suffix}`)
 }

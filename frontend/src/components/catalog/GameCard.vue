@@ -29,19 +29,28 @@ function hash(value: string): number {
 }
 
 const style = computed<CSSProperties>(() => {
+  const cover = props.card.cover?.palette
+
+  if (cover && cover.length >= 2) {
+    return { '--thumb-a': cover[0], '--thumb-b': cover[cover.length - 1] } as CSSProperties
+  }
+
   const [a, b] = palettes[hash(props.card.id) % palettes.length] ?? palettes[0]!
+
   return { '--thumb-a': a, '--thumb-b': b } as CSSProperties
 })
 
-const genre = computed(() => genreLabel(props.card.genre))
-const styleName = computed(() => styleLabel(props.card.style))
+const title = computed(() => props.card.title?.trim() || props.card.prompt)
+const genre = computed(() => genreLabel(props.card.genre, props.card.custom_genre))
+const styleName = computed(() => styleLabel(props.card.style, props.card.custom_style))
+const author = computed(() => props.card.author ?? '')
 const mapSize = computed(() => mapSizeLabel(props.card.map_size))
 const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
 </script>
 
 <template>
   <RouterLink
-    :to="{ name: 'play', params: { id: card.id } }"
+    :to="{ name: 'play', params: { id: card.slug || card.id } }"
     class="group flex flex-col overflow-hidden rounded-[1.35rem] border border-line bg-surface/75 transition duration-300 hover:-translate-y-1 hover:border-bee-deep/50 hover:shadow-lift"
   >
     <div class="game-thumb relative aspect-[16/10]" :style="style">
@@ -78,10 +87,12 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
 
     <div class="flex flex-1 flex-col p-4">
       <h3 class="line-clamp-2 text-[15px] font-bold leading-snug tracking-[-0.015em]">
-        {{ card.prompt }}
+        {{ title }}
       </h3>
       <div class="mt-auto flex items-center justify-between gap-3 pt-4">
-        <span class="text-[11px] text-faint">{{ formatRelative(card.created_at) }}</span>
+        <span class="text-[11px] text-faint">
+          <span v-if="author" class="text-muted">{{ author }} · </span>{{ formatRelative(card.created_at) }}
+        </span>
         <span class="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
           Играть
           <AppIcon name="arrow-right" :size="13" />

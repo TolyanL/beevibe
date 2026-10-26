@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import InputText from 'openvue/inputtext'
 import type { CatalogSort, Genre } from '@/api/types'
-import { genreLabel } from '@/lib/game'
 import { useCatalogStore } from '@/stores/catalog'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import GameCard from '@/components/catalog/GameCard.vue'
@@ -15,6 +14,7 @@ const catalog = useCatalogStore()
 const search = ref('')
 const sentinel = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const sortOptions: { value: CatalogSort; label: string; icon: 'clock' | 'star' | 'flame' }[] = [
   { value: 'fresh', label: 'Свежие', icon: 'clock' },
@@ -32,23 +32,24 @@ const genres: { value: Genre | ''; label: string }[] = [
   { value: 'custom', label: 'Своя механика' },
 ]
 
-const filtered = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  if (!query) return catalog.items
-
-  return catalog.items.filter((card) => {
-    const haystack = [card.prompt, genreLabel(card.genre), card.style].join(' ').toLowerCase()
-    return haystack.includes(query)
-  })
-})
-
 const hasFilters = computed(() => Boolean(search.value) || Boolean(catalog.genre) || catalog.sort !== 'fresh')
 
 function syncQuery(): void {
   const query: Record<string, string> = {}
+  if (search.value.trim()) query.q = search.value.trim()
   if (catalog.sort !== 'fresh') query.sort = catalog.sort
   if (catalog.genre) query.genre = catalog.genre
   void router.replace({ query })
+}
+
+function onSearchInput(value: string | undefined): void {
+  if (searchTimer) clearTimeout(searchTimer)
+
+  searchTimer = setTimeout(() => {
+    searchTimer = null
+    syncQuery()
+    void catalog.setSearch(value ?? '')
+  }, 350)
 }
 
 function chooseSort(sort: CatalogSort): void {
@@ -67,6 +68,7 @@ function reset(): void {
   search.value = ''
   catalog.sort = 'fresh'
   catalog.genre = ''
+  catalog.setSearch('')
   syncQuery()
   void catalog.load(true)
 }
@@ -83,9 +85,15 @@ watch(
 onMounted(() => {
   const routeSort = route.query.sort
   const routeGenre = route.query.genre
+  const routeQuery = route.query.q
+
   if (routeSort === 'rating' || routeSort === 'hours' || routeSort === 'fresh') catalog.sort = routeSort
   if (typeof routeGenre === 'string' && genres.some((item) => item.value === routeGenre)) {
     catalog.genre = routeGenre as Genre
+  }
+  if (typeof routeQuery === 'string' && routeQuery) {
+    search.value = routeQuery
+    catalog.setSearch(routeQuery)
   }
 
   void catalog.load(true)
@@ -103,6 +111,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+
   observer?.disconnect()
   observer = null
 })
@@ -147,6 +157,7 @@ onBeforeUnmount(() => {
                 class="h-11 w-full pl-11"
                 placeholder="Поиск по промпту: змейка, неон, кликер…"
                 aria-label="Поиск по каталогу"
+                @update:model-value="onSearchInput"
               />
             </div>
 
@@ -171,7 +182,7 @@ onBeforeUnmount(() => {
               :key="item.value"
               type="button"
               class="rounded-full px-3 py-1.5 text-[11px] font-bold transition"
-              :class="catalog.genre === item.value ? 'bg-bee text-graphite' : 'text-muted hover:bg-canvas hover:text-ink'"
+              :class="catalog.genre === item.value ? 'bg-bee text-graphite' : 'text-muted hover:bg-hover-surface hover:text-ink'"
               @click="chooseGenre(item.value)"
             >
               {{ item.label }}
@@ -196,8 +207,8 @@ onBeforeUnmount(() => {
             Загружаем игры…
           </span>
           <span v-else>
-            <b class="font-bold text-ink">{{ filtered.length }}</b>
-            {{ filtered.length === 1 ? 'игра' : filtered.length < 5 ? 'игры' : 'игр' }}
+            <b class="font-bold text-ink">{{ catalog.total }}</b>
+            {{ catalog.total === 1 ? 'игра' : catalog.total < 5 ? 'игры' : 'игр' }}
             <span v-if="search" class="text-faint">по запросу «{{ search }}»</span>
           </span>
         </p>
@@ -229,8 +240,8 @@ onBeforeUnmount(() => {
         </EmptyState>
       </div>
 
-      <div v-else-if="filtered.length" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <GameCard v-for="card in filtered" :key="card.id" :card="card" />
+      <div v-else-if="catalog.items.length" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <GameCard v-for="card in catalog.items" :key="card.id" :card="card" />
       </div>
 
       <div v-else class="mt-4">
@@ -241,7 +252,7 @@ onBeforeUnmount(() => {
         >
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-2.5 text-xs font-bold transition hover:bg-surface"
+            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-2.5 text-xs font-bold transition hover:bg-hover-surface-strong"
             @click="reset"
           >
             <AppIcon name="refresh" :size="14" />

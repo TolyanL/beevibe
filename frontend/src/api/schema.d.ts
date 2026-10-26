@@ -247,7 +247,35 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Обновить публичное имя автора */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        display_name?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Обновлённый пользователь */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserEnvelope"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
         trace?: never;
     };
     "/profile/topup": {
@@ -259,15 +287,27 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Пополнить баланс (демо-грант) */
+        /**
+         * Демо-пополнение баланса (без реальной оплаты)
+         * @description Сумма ограничена `tokens.topup_min`/`tokens.topup_max`, суточный лимит — `tokens.topup_daily_cap`. Выключается флагом `tokens.demo_topup`. Заголовок `Idempotency-Key` защищает от двойного начисления при ретрае.
+         */
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    "Idempotency-Key"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        amount: number;
+                    };
+                };
+            };
             responses: {
                 /** @description Новый баланс */
                 200: {
@@ -281,7 +321,26 @@ export interface paths {
                         };
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
+                /** @description Демо-пополнение выключено */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Суточный лимит пополнений исчерпан */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -297,7 +356,38 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Список игр текущего пользователя с пагинацией */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "queued" | "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking" | "patching" | "ready" | "failed";
+                    /** @description Порядок выдачи */
+                    sort?: "created_at" | "tokens_cost";
+                    limit?: number;
+                    offset?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Игры и общий счёт по фильтрам без учёта limit/offset */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items?: components["schemas"]["ProfileGame"][];
+                            total?: number;
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
         put?: never;
         /**
          * Запустить генерацию игры
@@ -383,6 +473,217 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        /** Мягко удалить игру (deleted_at; пропадает из каталога и профиля) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Игра помечена удалённой */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            deleted?: boolean;
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                /** @description Игра сейчас правится */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/games/{id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Опубликовать игру в каталоге или скрыть её
+         * @description Публиковать можно только готовую игру; каталог показывает лишь `public`-игры.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        visibility: "public" | "private";
+                    };
+                };
+            };
+            responses: {
+                /** @description Новое значение видимости */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            visibility?: "public" | "private";
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description Игра не готова или уже правится */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/games/{id}/meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Название, описание и обложка игры (без LLM, бесплатно)
+         * @description Частичное обновление — незаданные поля остаются как были.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GameMetaRequest"];
+                };
+            };
+            responses: {
+                /** @description Сохранённая мета */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GameMeta"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/games/{id}/meta/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Сгенерировать название, описание и обложку за токены
+         * @description Списывает `tokens.price_meta` и ставит задачу в воркер: клиент получает `202`, а результат приходит в SSE-поток событием `artifact{kind:"meta"}`. При ошибке до первого ответа модели токены возвращаются.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "Idempotency-Key"?: string;
+                };
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Генерация поставлена в очередь */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status?: "queued";
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description Не хватает токенов или игра сейчас правится */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -400,7 +701,7 @@ export interface paths {
         };
         /**
          * SSE-поток событий генерации
-         * @description События: `stage` (этап конвейера), `artifact` (spec/config), `done` (финальная версия и цена), `error`. Поддерживается реконнект: клиент шлёт `Last-Event-ID`, сервер доигрывает пропущенные события.
+         * @description События: `stage` (этап конвейера, статусы `running`/`done`/`error`), `artifact` (spec, config, version), `done` (финальная версия и цена), `error` (код и текст ошибки). Событие приходит как `event: <type>` с JSON в `data` и порядковым номером в `id`. Поддерживается реконнект: клиент шлёт `Last-Event-ID`, сервер доигрывает пропущенные события. Патч и починка идут тем же потоком: этапы `patching` и `checking`.
          */
         get: {
             parameters: {
@@ -447,11 +748,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Правка игры текстом (через LLM) */
+        /**
+         * Поставить правку игры текстом в очередь (LLM работает в воркере)
+         * @description Запрос принимает правку, списывает токены и возвращает `202` со статусом `patching`. Новая версия собирается асинхронно: прогресс и результат приходят в SSE-поток `/games/{id}/stream` событиями `stage`, `artifact`, `done`, `error`. Заголовок `Idempotency-Key` защищает от повторного списания при ретрае.
+         */
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     id: components["parameters"]["GameId"];
                 };
@@ -465,22 +771,133 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Новая версия */
+                /** @description Правка принята, версия появится в SSE-потоке */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GameJobAccepted"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description Нет токенов, игра уже правится или запрос уже выполняется */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/games/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Перезапустить упавшую генерацию без нового списания
+         * @description Доступно только для игры в статусе `failed`; игра возвращается в очередь с теми же `prompt` и `params`, клиент получает `202 {status:"queued"}` и обычный SSE-поток.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Игра снова в очереди конвейера */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status?: "queued";
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                /** @description Игра не в статусе failed */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/games/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Отменить идущую генерацию или правку
+         * @description Отменяет задачу воркера и дожидается её остановки. Токены возвращаются, только если модель ещё не ответила ни на один запрос; после первого ответа списание сохраняется.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Итоговый статус игры после отмены */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** Format: uuid */
-                            versionId?: string;
-                            tokensSpent?: number;
+                            status?: string;
                         };
                     };
                 };
-                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
-                /** @description Нет токенов или игра генерируется */
+                403: components["responses"]["Forbidden"];
+                /** @description Отменять нечего — задача не запущена или уже завершена */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -602,11 +1019,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Починить упавшую игру (repair-агент) */
+        /**
+         * Поставить починку игры в очередь (repair-агент работает в воркере)
+         * @description Запрос принимает починку и возвращает `202` со статусом `patching`. Прогресс и результат приходят в SSE-поток `/games/{id}/stream`. Заголовок `Idempotency-Key` защищает от повторной постановки задачи.
+         */
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     id: components["parameters"]["GameId"];
                 };
@@ -621,17 +1043,18 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Новая версия */
-                200: {
+                /** @description Починка принята, версия появится в SSE-потоке */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["VersionResponse"];
+                        "application/json": components["schemas"]["GameJobAccepted"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
-                /** @description Игра генерируется или исчерпан лимит починок */
+                403: components["responses"]["Forbidden"];
+                /** @description Игра правится/генерируется или исчерпан лимит починок */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -659,7 +1082,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Оценка игры по пятибалльной шкале (одна на пользователя, изменяемая) */
+        /**
+         * Оценка игры по пятибалльной шкале (одна на пользователя, изменяемая)
+         * @description Автор игры не может оценивать собственную игру — такой запрос отклоняется с `403 cannot_rate_own_game`.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -691,6 +1117,15 @@ export interface paths {
                 };
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
+                /** @description Запрос от автора игры — оценивать свою игру нельзя */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -749,6 +1184,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/token-ops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** История операций с токенами (пагинация) */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    offset?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Операции и общий счёт без учёта limit/offset */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items?: components["schemas"]["ProfileTokenOp"][];
+                            total?: number;
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/catalog": {
         parameters: {
             query?: never;
@@ -760,6 +1239,8 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description Поиск по промпту игры (подстрока) */
+                    q?: string;
                     sort?: "rating" | "hours" | "fresh";
                     genre?: "arcade" | "snake" | "clicker" | "platformer" | "puzzle" | "custom";
                     limit?: number;
@@ -779,9 +1260,51 @@ export interface paths {
                     content: {
                         "application/json": {
                             items?: components["schemas"]["CatalogCard"][];
+                            /** @description Общее число карточек по фильтрам без учёта limit/offset */
+                            total?: number;
                         };
                     };
                 };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/games/{id}/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Публичная карточка игры (метаданные и агрегаты, без HTML) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Карточка игры; для авторизованного зрителя заполняется my_rating */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GamePublicCard"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
             };
         };
         put?: never;
@@ -912,8 +1435,12 @@ export interface components {
             /** Format: uuid */
             id?: string;
             prompt?: string;
+            title?: string;
+            slug?: string;
             genre?: string;
             status?: string;
+            /** @enum {string} */
+            visibility?: "public" | "private";
             tokens_cost?: number;
             model_calls?: number;
             fixes?: number;
@@ -926,7 +1453,7 @@ export interface components {
             /** Format: int64 */
             delta?: number;
             /** @enum {string} */
-            reason?: "signup_grant" | "generate" | "patch" | "topup" | "refund";
+            reason?: "signup_grant" | "generate" | "patch" | "meta" | "topup" | "refund";
             /** Format: date-time */
             created_at?: string;
         };
@@ -944,13 +1471,19 @@ export interface components {
         };
         CreateGameRequest: {
             prompt: string;
+            /** @description Необязательное название игры */
+            title?: string;
             /** @enum {string} */
             genre?: "arcade" | "snake" | "clicker" | "platformer" | "puzzle" | "custom";
             tempo?: number;
             /** @enum {string} */
             mapSize?: "small" | "medium" | "large";
             /** @enum {string} */
-            style?: "pixel" | "cartoon" | "neon" | "minimal";
+            style?: "pixel" | "cartoon" | "neon" | "minimal" | "custom";
+            /** @description Своя механика, обязательна при genre=custom */
+            customGenre?: string;
+            /** @description Свой стиль, обязателен при style=custom */
+            customStyle?: string;
         };
         CreateGameResponse: {
             /** Format: uuid */
@@ -986,6 +1519,8 @@ export interface components {
             /** Format: int64 */
             durationMs?: number;
             issues?: number;
+            /** @description Тип операции для этапа patching (patch/fix) */
+            operation?: string;
         };
         Version: {
             /** Format: uuid */
@@ -1005,8 +1540,34 @@ export interface components {
             versionId?: string;
         };
         Game: {
+            /** Format: uuid */
+            id?: string;
+            prompt?: string;
+            /** @description Название игры; пустое, пока автор его не задал */
+            title?: string;
+            description?: string;
+            /** @description Читаемый идентификатор для публичных ссылок */
+            slug?: string;
+            cover?: components["schemas"]["GameCover"];
+            params?: {
+                genre?: string;
+                custom_genre?: string;
+                tempo?: number;
+                map_size?: string;
+                style?: string;
+                custom_style?: string;
+            };
             /** @enum {string} */
             status?: "queued" | "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking" | "ready" | "failed";
+            /** @description Причина остановки конвейера, заполнен только в статусе failed */
+            fail_reason?: string;
+            /**
+             * @description Видимость игры в каталоге; новые игры создаются private
+             * @enum {string}
+             */
+            visibility?: "public" | "private";
+            /** Format: date-time */
+            created_at?: string;
             stages?: components["schemas"]["Stage"][];
             spec?: components["schemas"]["GameSpec"];
             config?: components["schemas"]["GameConfig"];
@@ -1018,6 +1579,18 @@ export interface components {
             };
             rating?: components["schemas"]["RatingAggregate"];
             my_rating?: number;
+            /**
+             * Format: int64
+             * @description Последний порядковый номер события генерации на момент ответа
+             */
+            cursor?: number;
+            /** @description Активная операция (патч/починка); null, когда игра не меняется */
+            operation?: {
+                /** @enum {string} */
+                kind?: "patch" | "fix" | "config" | "meta";
+                /** Format: date-time */
+                started_at?: string;
+            } | null;
         };
         RatingAggregate: {
             /** @description Средняя оценка от 1 до 5 */
@@ -1038,12 +1611,61 @@ export interface components {
             genre?: string;
             map_size?: string;
             style?: string;
+            title?: string;
+            description?: string;
+            cover?: components["schemas"]["GameCover"];
+            /** @description Публичное имя автора */
+            author?: string;
+            slug?: string;
+            custom_genre?: string;
+            custom_style?: string;
             /** Format: date-time */
             created_at?: string;
             rating?: components["schemas"]["RatingAggregate"];
             playtime?: components["schemas"]["PlaytimeAggregate"];
             tokens_cost?: number;
             model_calls?: number;
+        };
+        GameCover: {
+            palette?: string[];
+            style?: string;
+            seed?: string;
+        };
+        GameMeta: {
+            title?: string;
+            description?: string;
+            cover?: components["schemas"]["GameCover"];
+        };
+        GameMetaRequest: {
+            title?: string;
+            description?: string;
+            cover?: components["schemas"]["GameCover"];
+        };
+        GameJobAccepted: {
+            /** @enum {string} */
+            status: "patching";
+        };
+        GamePublicCard: {
+            custom_genre?: string;
+            custom_style?: string;
+            /** Format: uuid */
+            id?: string;
+            prompt?: string;
+            title?: string;
+            slug?: string;
+            author?: string;
+            cover?: components["schemas"]["GameCover"];
+            genre?: string;
+            style?: string;
+            map_size?: string;
+            /** Format: date-time */
+            created_at?: string;
+            rating?: components["schemas"]["RatingAggregate"];
+            playtime?: components["schemas"]["PlaytimeAggregate"];
+            /** @description Оценка текущего зрителя, 0 если гость */
+            my_rating?: number;
+            /** @description true, если смотрит автор игры (автор не может оценивать свою игру) */
+            is_owner?: boolean;
         };
         UpdateConfigRequest: {
             tempo?: number;

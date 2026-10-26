@@ -209,7 +209,7 @@ async function submit(): Promise<void> {
                   />
                   <button
                     type="button"
-                    class="absolute right-2.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-faint transition hover:bg-canvas hover:text-ink"
+                    class="absolute right-2.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-faint transition hover:bg-hover-surface hover:text-ink"
                     :aria-label="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
                     @click="showPassword = !showPassword"
                   >

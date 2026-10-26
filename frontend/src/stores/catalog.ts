@@ -8,6 +8,8 @@ const PAGE_SIZE = 12
 
 export const useCatalogStore = defineStore('catalog', () => {
   const items = ref<CatalogCard[]>([])
+  const total = ref(0)
+  const search = ref('')
   const sort = ref<CatalogSort>('fresh')
   const genre = ref<Genre | ''>('')
   const loading = ref(false)
@@ -35,6 +37,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
     try {
       const page = await getCatalog({
+        q: search.value || undefined,
         sort: sort.value,
         genre: genre.value,
         limit: PAGE_SIZE,
@@ -44,12 +47,13 @@ export const useCatalogStore = defineStore('catalog', () => {
       if (current !== requestId.value) return
 
       const next = page.items ?? []
+      total.value = page.total ?? 0
 
       if (reset) items.value = next
       else items.value = [...items.value, ...next]
 
       offset.value = items.value.length
-      hasMore.value = next.length === PAGE_SIZE
+      hasMore.value = items.value.length < total.value
     } catch (err) {
       if (current === requestId.value) error.value = messageFromError(err)
     } finally {
@@ -64,6 +68,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     await load(false)
   }
 
+  function setSearch(next: string): void {
+    const query = next.trim()
+    if (query === search.value) return
+
+    search.value = query
+    void load(true)
+  }
+
   function setFilters(next: { sort?: CatalogSort; genre?: Genre | '' }): void {
     if (next.sort !== undefined) sort.value = next.sort
     if (next.genre !== undefined) genre.value = next.genre
@@ -72,6 +84,8 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   return {
     items,
+    total,
+    search,
     sort,
     genre,
     loading,
@@ -81,6 +95,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     isEmpty,
     load,
     loadMore,
+    setSearch,
     setFilters,
   }
 })

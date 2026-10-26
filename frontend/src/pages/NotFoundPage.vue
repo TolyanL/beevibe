@@ -25,7 +25,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
           </RouterLink>
           <RouterLink
             to="/catalog"
-            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-3 text-xs font-bold transition hover:bg-surface"
+            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-3 text-xs font-bold transition hover:bg-hover-surface-strong"
           >
             <AppIcon name="grid" :size="15" />
             В каталог

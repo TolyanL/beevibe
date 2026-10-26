@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import Button from 'openvue/button'
 import Textarea from 'openvue/textarea'
 import Select from 'openvue/select'
+import InputText from 'openvue/inputtext'
 import { useToast } from 'openvue/usetoast'
 import { getCatalog } from '@/api/catalog'
 import type { CatalogCard, GameStyle, Genre, MapSize } from '@/api/types'
@@ -23,6 +24,9 @@ const game = useGameStore()
 const prompt = ref('')
 const genre = ref<Genre>('arcade')
 const style = ref<GameStyle>('neon')
+const customGenre = ref('')
+const customStyle = ref('')
+const title = ref('')
 const mapSize = ref<MapSize>('medium')
 const tempo = ref(6)
 const advanced = ref(false)
@@ -34,8 +38,15 @@ const latestLoading = ref(true)
 const maxPrompt = 2000
 const currentPrice = computed(() => auth.prices.generate)
 const enoughTokens = computed(() => !auth.isAuthenticated || auth.balance >= currentPrice.value)
+const customGenreReady = computed(() => genre.value !== 'custom' || customGenre.value.trim().length >= 2)
+const customStyleReady = computed(() => style.value !== 'custom' || customStyle.value.trim().length >= 2)
 const canSubmit = computed(
-  () => prompt.value.trim().length >= 3 && prompt.value.length <= maxPrompt && !submitting.value,
+  () =>
+    prompt.value.trim().length >= 3 &&
+    prompt.value.length <= maxPrompt &&
+    !submitting.value &&
+    customGenreReady.value &&
+    customStyleReady.value,
 )
 const examples = [
   {
@@ -104,6 +115,7 @@ const styleOptions = [
   { label: 'Мультяшный', value: 'cartoon' },
   { label: 'Неон', value: 'neon' },
   { label: 'Минимализм', value: 'minimal' },
+  { label: 'Свой стиль', value: 'custom' },
 ]
 
 const mapOptions = [
@@ -149,8 +161,11 @@ async function submit(): Promise<void> {
   try {
     const id = await game.create({
       prompt: prompt.value.trim(),
+      title: title.value.trim() || undefined,
       genre: genre.value,
       style: style.value,
+      customGenre: genre.value === 'custom' ? customGenre.value.trim() : undefined,
+      customStyle: style.value === 'custom' ? customStyle.value.trim() : undefined,
       mapSize: mapSize.value,
       tempo: tempo.value,
     })
@@ -286,14 +301,33 @@ onMounted(async () => {
                 </button>
               </div>
 
-              <div class="mt-6 grid gap-4 sm:grid-cols-2">
+              <div class="mt-6">
+                <label class="mono-label mb-2 block">Название (необязательно)</label>
+                <InputText v-model="title" maxlength="80" class="w-full" placeholder="Например: Кристаллы" />
+              </div>
+
+              <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label class="mono-label mb-2 block">Жанр</label>
                   <Select v-model="genre" :options="genreOptions" option-label="label" option-value="value" />
+                  <InputText
+                    v-if="genre === 'custom'"
+                    v-model="customGenre"
+                    maxlength="32"
+                    class="mt-2 w-full"
+                    placeholder="Например: ритм-игра, tower defense"
+                  />
                 </div>
                 <div>
                   <label class="mono-label mb-2 block">Стиль</label>
                   <Select v-model="style" :options="styleOptions" option-label="label" option-value="value" />
+                  <InputText
+                    v-if="style === 'custom'"
+                    v-model="customStyle"
+                    maxlength="32"
+                    class="mt-2 w-full"
+                    placeholder="Например: аниме-нуар, бумажный коллаж"
+                  />
                 </div>
               </div>
 

@@ -129,7 +129,7 @@ onBeforeUnmount(() => {
             >
               <RouterLink
                 :to="{ name: 'profile' }"
-                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-canvas"
+                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-hover-surface"
                 role="menuitem"
               >
                 <AppIcon name="chart" :size="16" class="text-muted" />
@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
               </RouterLink>
               <RouterLink
                 :to="{ name: 'generator' }"
-                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-canvas"
+                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-hover-surface"
                 role="menuitem"
               >
                 <AppIcon name="wand" :size="16" class="text-muted" />
@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
               <div class="my-1 h-px bg-line" />
               <button
                 type="button"
-                class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-bad hover:bg-canvas disabled:opacity-50"
+                class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-bad hover:bg-hover-surface disabled:opacity-50"
                 role="menuitem"
                 :disabled="loggingOut"
                 @click="logout"
@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
         <RouterLink
           v-else
           :to="{ name: 'login' }"
-          class="hidden rounded-full bg-ink px-4 py-2.5 text-[12px] font-bold text-canvas transition hover:bg-graphite/85 sm:inline-flex"
+          class="hidden rounded-full bg-ink px-4 py-2.5 text-[12px] font-bold text-canvas transition hover:bg-hover-ink sm:inline-flex"
         >
           Войти
         </RouterLink>
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
             :key="item.name"
             :to="{ name: item.name }"
             class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
-            :class="route.name === item.name ? 'bg-bee text-graphite' : 'text-muted hover:bg-surface'"
+            :class="route.name === item.name ? 'bg-bee text-graphite' : 'text-muted hover:bg-hover-surface'"
           >
             <AppIcon :name="item.icon" :size="18" />
             {{ item.label }}
@@ -195,7 +195,7 @@ onBeforeUnmount(() => {
             v-if="auth.isAuthenticated"
             :to="{ name: 'profile' }"
             class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
-            :class="route.name === 'profile' ? 'bg-bee text-graphite' : 'text-muted hover:bg-surface'"
+            :class="route.name === 'profile' ? 'bg-bee text-graphite' : 'text-muted hover:bg-hover-surface'"
           >
             <AppIcon name="chart" :size="18" />
             Профиль

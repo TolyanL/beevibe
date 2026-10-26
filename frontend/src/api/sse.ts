@@ -7,12 +7,18 @@ import type {
 } from './types'
 
 export interface GameStreamHandlers {
-  onStage: (payload: StageEventPayload) => void
-  onArtifact: (payload: ArtifactEventPayload) => void
-  onDone: (payload: DoneEventPayload) => void
-  onError: (payload: ErrorEventPayload) => void
+  onStage: (payload: StageEventPayload, seq: number) => void
+  onArtifact: (payload: ArtifactEventPayload, seq: number) => void
+  onDone: (payload: DoneEventPayload, seq: number) => void
+  onError: (payload: ErrorEventPayload, seq: number) => void
   onConnectionError?: () => void
   onOpen?: () => void
+}
+
+function seqOf(event: MessageEvent<string>): number {
+  const seq = Number(event.lastEventId)
+
+  return Number.isFinite(seq) ? seq : 0
 }
 
 function parse<T>(event: MessageEvent<string>): T | null {
@@ -32,17 +38,17 @@ export function openGameStream(gameId: string, handlers: GameStreamHandlers): ()
 
   source.addEventListener('stage', (event) => {
     const payload = parse<StageEventPayload>(event as MessageEvent<string>)
-    if (payload) handlers.onStage(payload)
+    if (payload) handlers.onStage(payload, seqOf(event))
   })
 
   source.addEventListener('artifact', (event) => {
     const payload = parse<ArtifactEventPayload>(event as MessageEvent<string>)
-    if (payload) handlers.onArtifact(payload)
+    if (payload) handlers.onArtifact(payload, seqOf(event))
   })
 
   source.addEventListener('done', (event) => {
     const payload = parse<DoneEventPayload>(event as MessageEvent<string>)
-    if (payload) handlers.onDone(payload)
+    if (payload) handlers.onDone(payload, seqOf(event))
     source.close()
   })
 
@@ -50,7 +56,7 @@ export function openGameStream(gameId: string, handlers: GameStreamHandlers): ()
     // A server-sent `error` event has data; a transport error does not.
     if (event instanceof MessageEvent && event.data) {
       const payload = parse<ErrorEventPayload>(event as MessageEvent<string>)
-      if (payload) handlers.onError(payload)
+      if (payload) handlers.onError(payload, seqOf(event))
       source.close()
       return
     }

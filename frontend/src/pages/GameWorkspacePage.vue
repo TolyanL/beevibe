@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Button from 'openvue/button'
-import Dialog from 'openvue/dialog'
-import Rating from 'openvue/rating'
+import InputText from 'openvue/inputtext'
 import Select from 'openvue/select'
 import Textarea from 'openvue/textarea'
 import { useConfirm } from 'openvue/useconfirm'
@@ -27,10 +26,12 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import StatusPill from '@/components/ui/StatusPill.vue'
 import RatingBadge from '@/components/ui/RatingBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import AiProgress from '@/components/ui/AiProgress.vue'
 import GameFrame from '@/components/game/GameFrame.vue'
 import StageTimeline from '@/components/game/StageTimeline.vue'
 
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
@@ -46,17 +47,56 @@ const versions = computed(() =>
 )
 const latestVersion = computed(() => versions.value[0])
 const meta = computed(() => statusMeta(game.status))
+const metaForm = reactive({ title: '', description: '' })
+const metaSaving = ref(false)
+const metaGenerating = ref(false)
+
+const coverGradient = computed(() => {
+  const palette = game.game?.cover?.palette ?? game.spec?.palette ?? []
+
+  if (palette.length >= 2) {
+    return { background: `linear-gradient(135deg, ${palette[0]}, ${palette[palette.length - 1]})` }
+  }
+
+  return { background: 'linear-gradient(135deg, var(--bv-yellow), var(--bv-ink))' }
+})
+const isPublic = computed(() => game.game?.visibility === 'public')
+const operation = computed(() => game.operation)
+const operationLabel = computed(() => {
+  switch (game.operation?.kind) {
+    case 'fix':
+      return 'Чиним игру'
+    case 'config':
+      return 'Применяем настройки'
+    case 'meta':
+      return 'Придумываем название'
+    default:
+      return 'Применяем правки'
+  }
+})
+
+const operationHint = computed(() => {
+  switch (game.operation?.kind) {
+    case 'meta':
+      return 'Модель пишет название, описание и обложку'
+    case 'fix':
+      return 'Модель ищет и чинит ошибку'
+    default:
+      return 'Модель переписывает игру'
+  }
+})
+
+const operationExpectedSeconds = computed(() => (game.operation?.kind === 'meta' ? 45 : 150))
+const isMetaOperation = computed(() => game.operation?.kind === 'meta')
+
+type EditTab = 'patch' | 'config' | 'fix'
 
 const patchText = ref('')
 const patchError = ref('')
-const patchOpen = ref(true)
-const fixOpen = ref(false)
 const fixText = ref('')
 const savingConfig = ref(false)
-const vote = ref(0)
-const ratingKey = ref(0)
-const voteError = ref('')
 const copied = ref(false)
+const editTab = ref<EditTab>('patch')
 const session = usePlaytime(() => id.value, () => game.isReady)
 const sessionSeconds = session.seconds
 
@@ -87,7 +127,6 @@ const patchSuggestions = [
   'исправь коллизии со стенами',
 ]
 
-const ratingInputColor = computed(() => (vote.value ? ratingTone(vote.value).hex : '#e6b800'))
 const averageTone = computed(() => ratingTone(game.rating.average))
 
 const ratingRows = computed(() =>
@@ -98,13 +137,28 @@ const ratingRows = computed(() =>
   }),
 )
 const maxRatingCount = computed(() => Math.max(1, ...ratingRows.value.map((row) => row.count)))
-const canPatch = computed(() => patchText.value.trim().length >= 3 && !game.actionPending)
+const canPatch = computed(
+  () => patchText.value.trim().length >= 3 && !game.actionPending && !game.operation,
+)
 const showMaintenance = computed(() => game.isReady && !game.loading)
+const editTabs = computed<{ value: EditTab; label: string; icon: 'wand' | 'settings' | 'refresh' }[]>(() => [
+  { value: 'patch', label: 'Патч', icon: 'wand' },
+  ...(game.config ? [{ value: 'config' as const, label: 'Настройки', icon: 'settings' as const }] : []),
+  { value: 'fix', label: 'Починка', icon: 'refresh' },
+])
 
 watch(
-  () => game.myRating,
-  (value) => {
-    vote.value = value
+  () => game.game?.title,
+  (title) => {
+    metaForm.title = title ?? ''
+  },
+  { immediate: true },
+)
+
+watch(
+  () => game.game?.description,
+  (description) => {
+    metaForm.description = description ?? ''
   },
   { immediate: true },
 )
@@ -157,7 +211,12 @@ async function sendPatch(): Promise<void> {
   try {
     await game.applyPatch(patchText.value.trim())
     patchText.value = ''
-    toast.add({ severity: 'success', summary: 'Патч применён', detail: 'Новая версия собрана.', life: 2600 })
+    toast.add({
+      severity: 'success',
+      summary: 'Правка принята',
+      detail: 'Собираем новую версию — прогресс в блоке сборки.',
+      life: 3000,
+    })
   } catch (err) {
     patchError.value = messageFromError(err)
   }
@@ -197,38 +256,129 @@ function rollback(version: GameVersion): void {
   })
 }
 
-function onRatingInput(value: number | null): void {
-  if (!value) {
-    // NOTE: OpenVue Rating clears the active value on a repeated click; remount restores it.
-    ratingKey.value++
-    return
-  }
-
-  vote.value = value
-  void rate(value)
+function cancelRun(): void {
+  confirm.require({
+    header: 'Отменить сборку?',
+    message:
+      'Задача остановится и игра вернётся в готовое состояние. Токены вернутся, только если модель ещё не ответила.',
+    acceptLabel: 'Отменить сборку',
+    rejectLabel: 'Подождать',
+    accept: async () => {
+      try {
+        await game.cancel()
+        toast.add({ severity: 'info', summary: 'Задача отменена', life: 2400 })
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Не удалось отменить', detail: messageFromError(err), life: 3200 })
+      }
+    },
+  })
 }
 
-async function rate(value: number): Promise<void> {
-  voteError.value = ''
+async function saveMeta(): Promise<void> {
+  metaSaving.value = true
   try {
-    await game.vote(value)
-    toast.add({ severity: 'success', summary: 'Оценка сохранена', detail: 'Спасибо — это помогает каталогу.', life: 2200 })
+    await game.saveMeta({ title: metaForm.title, description: metaForm.description })
+    toast.add({ severity: 'success', summary: 'Название и описание сохранены', life: 2400 })
   } catch (err) {
-    vote.value = game.myRating
-    voteError.value = messageFromError(err)
+    toast.add({ severity: 'error', summary: 'Не удалось сохранить', detail: messageFromError(err), life: 3200 })
+  } finally {
+    metaSaving.value = false
+  }
+}
+
+function generateMeta(): void {
+  confirm.require({
+    header: 'Сгенерировать название и описание?',
+    message: `Модель придумает название, описание и обложку. Спишется ${formatTokens(auth.prices.meta)} токенов.`,
+    acceptLabel: 'Сгенерировать',
+    rejectLabel: 'Отмена',
+    accept: async () => {
+      metaGenerating.value = true
+      try {
+        await game.generateMeta()
+        toast.add({
+          severity: 'success',
+          summary: 'Генерация меты запущена',
+          detail: 'Результат появится в панели публикации.',
+          life: 2800,
+        })
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Не удалось запустить', detail: messageFromError(err), life: 3200 })
+      } finally {
+        metaGenerating.value = false
+      }
+    },
+  })
+}
+
+function toggleVisibility(): void {
+  const next = isPublic.value ? 'private' : 'public'
+
+  confirm.require({
+    header: next === 'public' ? 'Опубликовать игру?' : 'Скрыть игру из каталога?',
+    message:
+      next === 'public'
+        ? 'Игра появится в каталоге и станет доступна по публичной ссылке.'
+        : 'Игра пропадёт из каталога, публичная ссылка перестанет открываться.',
+    acceptLabel: next === 'public' ? 'Опубликовать' : 'Скрыть',
+    rejectLabel: 'Отмена',
+    accept: async () => {
+      try {
+        await game.setVisibility(next)
+        toast.add({
+          severity: 'success',
+          summary: next === 'public' ? 'Игра опубликована' : 'Игра скрыта',
+          life: 2400,
+        })
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Не удалось изменить видимость', detail: messageFromError(err), life: 3200 })
+      }
+    },
+  })
+}
+
+function removeGame(): void {
+  confirm.require({
+    header: 'Удалить игру?',
+    message: 'Игра исчезнет из профиля и каталога. Файлы и версии останутся в архиве.',
+    acceptLabel: 'Удалить',
+    rejectLabel: 'Отмена',
+    accept: async () => {
+      try {
+        await game.remove()
+        toast.add({ severity: 'success', summary: 'Игра удалена', life: 2400 })
+        await router.push({ name: 'profile' })
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Не удалось удалить', detail: messageFromError(err), life: 3200 })
+      }
+    },
+  })
+}
+
+async function retryGame(): Promise<void> {
+  try {
+    await game.retry()
+    toast.add({ severity: 'success', summary: 'Сборка перезапущена', life: 2600 })
+  } catch (err) {
+    toast.add({ severity: 'error', summary: 'Не удалось перезапустить', detail: messageFromError(err), life: 3200 })
   }
 }
 
 function openFix(): void {
   fixText.value = ''
-  fixOpen.value = true
+  openEdit('fix')
+}
+
+function openEdit(tab: EditTab): void {
+  editTab.value = tab
+  document.querySelector('#edits')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 async function repair(): Promise<void> {
   try {
     await game.repair(fixText.value.trim() || undefined)
-    fixOpen.value = false
-    toast.add({ severity: 'success', summary: 'Починка запущена', detail: 'Следим за конвейером справа.', life: 2800 })
+    fixText.value = ''
+    toast.add({ severity: 'success', summary: 'Починка принята', detail: 'Собираем новую версию — прогресс в блоке сборки.', life: 3000 })
   } catch (err) {
     toast.add({ severity: 'error', summary: 'Починка не запустилась', detail: messageFromError(err), life: 3200 })
   }
@@ -236,17 +386,53 @@ async function repair(): Promise<void> {
 
 function useSuggestion(text: string): void {
   patchText.value = text
-  patchOpen.value = true
-  document.querySelector('#patch')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  openEdit('patch')
 }
 
 let poll: ReturnType<typeof setInterval> | null = null
+let lastVersionNumber = 0
+
+function pollDelay(): number {
+  return game.operation ? 2_500 : 15_000
+}
+
+function schedulePoll(): void {
+  if (poll) clearInterval(poll)
+
+  poll = setInterval(() => {
+    if (game.loading || (!game.isActive && !game.operation)) return
+    void game.refresh()
+  }, pollDelay())
+}
+
+watch(
+  () => Boolean(game.operation),
+  () => schedulePoll(),
+)
+
+watch(
+  () => latestVersion.value?.number ?? 0,
+  (number) => {
+    if (!number) return
+    if (lastVersionNumber && number > lastVersionNumber) {
+      toast.add({ severity: 'success', summary: `Версия #${number} готова`, life: 3000 })
+    }
+    lastVersionNumber = number
+  },
+)
+
+watch(
+  () => game.streamError,
+  (message) => {
+    if (!message) return
+    toast.add({ severity: 'error', summary: 'Правка не применилась', detail: message, life: 4000 })
+  },
+)
 
 onMounted(() => {
   void load()
-  poll = setInterval(() => {
-    if (game.isActive && !game.loading) void game.refresh()
-  }, 15_000)
+  lastVersionNumber = 0
+  schedulePoll()
 })
 
 onBeforeUnmount(() => {
@@ -304,6 +490,13 @@ onBeforeUnmount(() => {
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
               <StatusPill :status="game.status" />
+              <span
+                v-if="operation"
+                class="inline-flex items-center gap-1.5 rounded-full border border-bee-deep/30 bg-bee/10 px-2.5 py-1 text-[10px] font-bold text-bee-deep dark:text-bee"
+              >
+                <span class="size-2 animate-pulse-soft rounded-full bg-bee" />
+                {{ operationLabel }}…
+              </span>
               <span class="font-mono text-[9px] uppercase tracking-[0.12em] text-faint">
                 {{ genreLabel(profileGame?.genre ?? game.spec?.genre ?? '') }}
                 <span v-if="profileGame?.created_at"> · {{ formatDate(profileGame.created_at) }}</span>
@@ -321,13 +514,28 @@ onBeforeUnmount(() => {
             </div>
             <RouterLink
               v-if="game.isReady"
-              :to="{ name: 'play', params: { id } }"
+              :to="{ name: 'play', params: { id: game.game?.slug || id } }"
               target="_blank"
               class="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-2 text-[11px] font-bold transition hover:border-bee-deep hover:bg-bee/10"
             >
               <AppIcon name="external" :size="13" />
               Публичная страница
             </RouterLink>
+            <button
+              v-if="game.isReady"
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[11px] font-bold transition"
+              :class="
+                isPublic
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/15'
+                  : 'border-line-strong text-muted hover:border-bee-deep hover:text-ink'
+              "
+              :disabled="Boolean(game.actionPending)"
+              @click="toggleVisibility"
+            >
+              <AppIcon :name="isPublic ? 'external' : 'shield'" :size="13" />
+              {{ isPublic ? 'В каталоге' : 'Скрыта' }}
+            </button>
             <Button v-if="game.isReady" class="p-button-secondary" :loading="game.actionPending === 'fix'" @click="openFix">
               <AppIcon name="refresh" :size="14" />
               <span class="ml-1.5">Починить</span>
@@ -337,8 +545,22 @@ onBeforeUnmount(() => {
 
         <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
           <div class="min-w-0 space-y-5">
-            <div v-if="promptText" class="animate-rise">
-              <GameFrame :game-id="id" :status="game.status" :version-token="game.refreshKey" @loaded="session.flush()" />
+            <div v-if="promptText" class="relative animate-rise">
+              <GameFrame
+                :game-id="id"
+                :slug="game.game?.slug"
+                :status="game.status"
+                :version-token="game.refreshKey" @loaded="session.flush()" />
+
+              <div
+                v-if="operation && !isMetaOperation"
+                class="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-3"
+              >
+                <span class="inline-flex items-center gap-2 rounded-full border border-bee-deep/30 bg-canvas/95 px-3.5 py-2 text-[11px] font-bold text-ink shadow-lift backdrop-blur">
+                  <span class="size-2.5 animate-pulse-soft rounded-full bg-bee-deep" />
+                  {{ operationLabel }} — собираем новую версию
+                </span>
+              </div>
             </div>
 
             <div
@@ -365,6 +587,10 @@ onBeforeUnmount(() => {
                       <AppIcon name="refresh" :size="14" />
                       <span class="ml-1.5">Починить игру</span>
                     </Button>
+                    <Button class="p-button-secondary" :loading="game.actionPending === 'retry'" @click="retryGame">
+                      <AppIcon name="refresh" :size="14" />
+                      <span class="ml-1.5">Перезапустить сборку</span>
+                    </Button>
                     <RouterLink to="/" class="rounded-full border border-line-strong px-4 py-2.5 text-xs font-bold">
                       Начать заново
                     </RouterLink>
@@ -373,16 +599,34 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
+            <AiProgress
+              v-if="game.isActive && !operation"
+              :started-at="profileGame?.created_at"
+              label="Нейросеть собирает игру"
+              hint="этапы конвейера ниже"
+              :expected-seconds="240"
+            />
+
             <div v-if="game.isActive" class="panel overflow-hidden">
               <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
                 <div>
                   <p class="mono-label">Live build</p>
                   <h2 class="mt-1 font-display text-lg font-bold">Сборка в реальном времени</h2>
                 </div>
-                <span class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-bee-deep dark:text-bee">
-                  <span class="size-1.5 animate-pulse-soft rounded-full bg-bee" />
-                  {{ game.streaming ? 'stream' : 'poll' }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <span class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-bee-deep dark:text-bee">
+                    <span class="size-1.5 animate-pulse-soft rounded-full bg-bee" />
+                    {{ game.streaming ? 'stream' : 'poll' }}
+                  </span>
+                  <button
+                    type="button"
+                    class="rounded-full border border-line-strong px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-bad/40 hover:text-bad disabled:opacity-50"
+                    :disabled="Boolean(game.actionPending)"
+                    @click="cancelRun"
+                  >
+                    Отменить
+                  </button>
+                </div>
               </div>
 
               <div class="grid gap-0 md:grid-cols-[.9fr_1.1fr]">
@@ -406,6 +650,16 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="p-4">
+                  <AiProgress
+                    v-if="operation && !isMetaOperation"
+                    class="mb-3"
+                    compact
+                    :started-at="operation.started_at"
+                    :label="operationLabel"
+                    :hint="operationHint"
+                    :expected-seconds="operationExpectedSeconds"
+                  />
+
                   <div class="terminal h-[210px] p-4">
                     <p><span class="tok-comment">// beevibe pipeline</span></p>
                     <p v-for="stage in game.stages" :key="stage.stage">
@@ -427,72 +681,32 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <div v-if="game.spec" class="panel p-5 sm:p-6">
-              <div class="flex items-start justify-between gap-4">
+            <div v-if="showMaintenance" id="edits" class="panel overflow-hidden">
+              <div class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
                 <div>
-                  <p class="mono-label">Game spec</p>
-                  <h2 class="mt-1 font-display text-xl font-bold">Что за игра</h2>
-                </div>
-                <span class="rounded-full border border-line bg-canvas/50 px-3 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
-                  {{ genreLabel(game.spec.genre) }} · {{ styleLabel(game.spec.style) }}
-                </span>
-              </div>
-
-              <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
-                  <p class="mono-label">Механика</p>
-                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.mechanic }}</p>
-                </div>
-                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
-                  <p class="mono-label">Управление</p>
-                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.controls }}</p>
-                </div>
-                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
-                  <p class="mono-label">Победа</p>
-                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.win_condition }}</p>
-                </div>
-                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
-                  <p class="mono-label">Проигрыш</p>
-                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.lose_condition }}</p>
-                </div>
-              </div>
-
-              <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
-                <span class="mono-label mr-1">Палитра</span>
-                <span
-                  v-for="color in game.spec.palette"
-                  :key="color"
-                  class="size-7 rounded-full border border-black/10 shadow-inner"
-                  :style="{ backgroundColor: color }"
-                  :title="color"
-                />
-                <span class="ml-auto font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
-                  {{ mapSizeLabel(game.spec.map_size) }} карта
-                </span>
-              </div>
-            </div>
-
-            <div v-if="showMaintenance" id="patch" class="panel p-5 sm:p-6">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p class="mono-label">Патч промптом</p>
-                  <h2 class="mt-1 font-display text-xl font-bold">Что изменить?</h2>
+                  <p class="mono-label">Правки</p>
+                  <h2 class="mt-1 font-display text-xl font-bold">Изменить игру</h2>
                 </div>
                 <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
-                  {{ formatTokens(auth.prices.patch) }} токенов
+                  патч · {{ formatTokens(auth.prices.patch) }} токенов
                 </span>
               </div>
 
-              <button
-                type="button"
-                class="mt-4 flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-canvas/35 px-4 py-3 text-left text-xs font-semibold text-muted transition hover:border-bee-deep/40 md:hidden"
-                @click="patchOpen = !patchOpen"
-              >
-                {{ patchOpen ? 'Свернуть редактор' : 'Открыть редактор правок' }}
-                <AppIcon name="chevron-down" :size="14" :class="patchOpen ? 'rotate-180' : ''" />
-              </button>
+              <div class="flex flex-wrap items-center gap-1 border-b border-line px-4 py-2.5">
+                <button
+                  v-for="tab in editTabs"
+                  :key="tab.value"
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition"
+                  :class="editTab === tab.value ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:bg-hover-surface hover:text-ink'"
+                  @click="editTab = tab.value"
+                >
+                  <AppIcon :name="tab.icon" :size="13" />
+                  {{ tab.label }}
+                </button>
+              </div>
 
-              <div v-show="patchOpen" class="mt-4">
+              <div v-show="editTab === 'patch'" class="p-4 sm:p-5">
                 <Textarea
                   v-model="patchText"
                   rows="3"
@@ -519,12 +733,153 @@ onBeforeUnmount(() => {
 
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <p class="text-[10px] leading-4 text-faint">
-                    Патч создаёт новую версию. Старые можно вернуть в любой момент.
+                    Патч создаёт новую версию. Старые можно вернуть в списке версий ниже.
                   </p>
-                  <Button class="bee-button" :loading="game.actionPending === 'patch'" :disabled="!canPatch" @click="sendPatch">
+                  <Button
+                    class="bee-button"
+                    :loading="Boolean(operation) || game.actionPending === 'patch'"
+                    :disabled="!canPatch"
+                    @click="sendPatch"
+                  >
                     <AppIcon name="wand" :size="15" />
                     <span class="ml-1.5">Применить патч</span>
                   </Button>
+                </div>
+              </div>
+
+              <div v-show="editTab === 'config'" class="p-4 sm:p-5">
+                <div v-if="game.config" class="grid gap-4 sm:grid-cols-2">
+                  <div class="sm:col-span-2">
+                    <div class="mb-2 flex items-center justify-between">
+                      <label class="mono-label">Темп</label>
+                      <span class="font-mono text-[10px] font-bold">{{ configForm.tempo }}/10</span>
+                    </div>
+                    <input
+                      v-model.number="configForm.tempo"
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      class="w-full accent-[var(--bv-yellow)]"
+                      aria-label="Темп игры"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="mono-label mb-2 block">Размер карты</label>
+                    <Select v-model="configForm.mapSize" :options="mapOptions" option-label="label" option-value="value" />
+                  </div>
+
+                  <div>
+                    <label class="mono-label mb-2 block">Сложность</label>
+                    <Select v-model="configForm.difficulty" :options="difficultyOptions" option-label="label" option-value="value" />
+                  </div>
+
+                  <div class="sm:col-span-2">
+                    <label class="mono-label mb-2 block">Палитра</label>
+                    <div class="flex gap-2">
+                      <label
+                        v-for="(_color, index) in configForm.palette"
+                        :key="index"
+                        class="relative size-8 cursor-pointer overflow-hidden rounded-full border border-line-strong"
+                        :style="{ backgroundColor: configForm.palette[index] }"
+                        :title="configForm.palette[index]"
+                      >
+                        <input v-model="configForm.palette[index]" type="color" class="absolute inset-0 cursor-pointer opacity-0" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                  <p class="text-[10px] leading-4 text-faint">
+                    Тюнинг применяется к игре без вызова LLM и создаёт новую версию.
+                  </p>
+                  <Button class="p-button-secondary" :loading="savingConfig" :disabled="!game.config" @click="saveConfig">
+                    Сохранить настройки
+                  </Button>
+                </div>
+              </div>
+
+              <div v-show="editTab === 'fix'" class="p-4 sm:p-5">
+                <p class="text-xs leading-5 text-muted">
+                  Опишите, что сломалось. Если оставить поле пустым, агент попробует восстановить игру по
+                  коду и последним ошибкам.
+                </p>
+                <Textarea
+                  v-model="fixText"
+                  rows="4"
+                  maxlength="2000"
+                  class="mt-3 text-[13px]"
+                  placeholder="Например: после победы не перезапускается уровень, кнопка рестарта не реагирует…"
+                />
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <p class="text-[10px] leading-4 text-faint">Починка тоже создаёт новую версию.</p>
+                  <Button class="bee-button" :loading="Boolean(operation) || game.actionPending === 'fix'" :disabled="Boolean(operation)" @click="repair">
+                    <AppIcon name="refresh" :size="14" />
+                    <span class="ml-1.5">Запустить починку</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="showMaintenance" class="panel overflow-hidden">
+              <div class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+                <div>
+                  <p class="mono-label">Публикация</p>
+                  <h2 class="mt-1 font-display text-xl font-bold">Название и обложка</h2>
+                </div>
+                <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                  мета · {{ formatTokens(auth.prices.meta) }} токенов
+                </span>
+              </div>
+
+              <div v-if="isMetaOperation" class="px-4 pt-3 sm:px-5">
+                <AiProgress
+                  compact
+                  :started-at="operation?.started_at"
+                  label="Нейросеть придумывает название"
+                  :hint="operationHint"
+                  :expected-seconds="operationExpectedSeconds"
+                />
+              </div>
+
+              <div class="grid gap-4 p-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:p-5">
+                <div class="overflow-hidden rounded-2xl border border-line">
+                  <div class="aspect-square" :style="coverGradient" />
+                  <p class="px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
+                    {{ game.game?.cover?.style ?? game.spec?.style ?? 'градиент' }}
+                  </p>
+                </div>
+
+                <div class="space-y-3">
+                  <div>
+                    <label class="mono-label mb-1.5 block">Название</label>
+                    <InputText v-model="metaForm.title" maxlength="80" class="w-full" placeholder="Например: Кристаллы" />
+                  </div>
+                  <div>
+                    <label class="mono-label mb-1.5 block">Описание</label>
+                    <Textarea v-model="metaForm.description" rows="3" maxlength="500" class="text-[13px]" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
+                <p class="text-[10px] leading-4 text-faint">
+                  Ручная правка бесплатна. В каталоге и на публичной странице показывается название,
+                  пока его нет — промпт.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <Button
+                    class="p-button-secondary"
+                    :loading="metaGenerating || isMetaOperation"
+                    :disabled="Boolean(operation)"
+                    @click="generateMeta"
+                  >
+                    <AppIcon name="spark" :size="14" />
+                    <span class="ml-1.5">Сгенерировать</span>
+                  </Button>
+                  <Button class="bee-button" :loading="metaSaving" @click="saveMeta">Сохранить</Button>
                 </div>
               </div>
             </div>
@@ -570,6 +925,51 @@ onBeforeUnmount(() => {
                 </div>
               </div>
               <div v-else class="px-5 py-8 text-center text-xs text-faint">Версий пока нет.</div>
+            </div>
+
+            <div v-if="game.spec" class="panel p-5 sm:p-6">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="mono-label">Game spec</p>
+                  <h2 class="mt-1 font-display text-xl font-bold">Что за игра</h2>
+                </div>
+                <span class="rounded-full border border-line bg-canvas/50 px-3 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
+                  {{ genreLabel(game.spec.genre) }} · {{ styleLabel(game.spec.style) }}
+                </span>
+              </div>
+
+              <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
+                  <p class="mono-label">Механика</p>
+                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.mechanic }}</p>
+                </div>
+                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
+                  <p class="mono-label">Управление</p>
+                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.controls }}</p>
+                </div>
+                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
+                  <p class="mono-label">Победа</p>
+                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.win_condition }}</p>
+                </div>
+                <div class="rounded-2xl border border-line bg-canvas/35 p-4">
+                  <p class="mono-label">Проигрыш</p>
+                  <p class="mt-2 text-[13px] leading-6">{{ game.spec.lose_condition }}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                <span class="mono-label mr-1">Палитра</span>
+                <span
+                  v-for="color in game.spec.palette"
+                  :key="color"
+                  class="size-7 rounded-full border border-black/10 shadow-inner"
+                  :style="{ backgroundColor: color }"
+                  :title="color"
+                />
+                <span class="ml-auto font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                  {{ mapSizeLabel(game.spec.map_size) }} карта
+                </span>
+              </div>
             </div>
           </div>
 
@@ -631,78 +1031,10 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <div class="mt-5 border-t border-line pt-4">
-                <p class="mono-label mb-2">Ваша оценка</p>
-                <div class="flex items-center gap-3">
-                  <div class="rating-choice" :style="{ '--rating-color': ratingInputColor }">
-                    <Rating
-                      :key="ratingKey"
-                      :model-value="vote"
-                      @update:model-value="onRatingInput"
-                    />
-                  </div>
-                  <span v-if="game.myRating" class="font-mono text-[10px] text-muted">{{ game.myRating }} / 5</span>
-                </div>
-                <p v-if="voteError" class="mt-2 text-[10px] text-red-500">{{ voteError }}</p>
-                <p class="mt-2 text-[10px] leading-4 text-faint">Можно изменить оценку в любой момент.</p>
-              </div>
-            </section>
-
-            <section v-if="showMaintenance && game.config" class="panel p-5">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="mono-label">Тюнинг</p>
-                  <h2 class="mt-1 font-display text-lg font-bold">Настройки</h2>
-                </div>
-                <AppIcon name="settings" :size="18" class="text-muted" />
-              </div>
-
-              <div class="mt-4 space-y-4">
-                <div>
-                  <div class="mb-2 flex items-center justify-between">
-                    <label class="mono-label">Темп</label>
-                    <span class="font-mono text-[10px] font-bold">{{ configForm.tempo }}/10</span>
-                  </div>
-                  <input
-                    v-model.number="configForm.tempo"
-                    type="range"
-                    min="1"
-                    max="10"
-                    step="1"
-                    class="w-full accent-[var(--bv-yellow)]"
-                    aria-label="Темп игры"
-                  />
-                </div>
-
-                <div>
-                  <label class="mono-label mb-2 block">Размер карты</label>
-                  <Select v-model="configForm.mapSize" :options="mapOptions" option-label="label" option-value="value" />
-                </div>
-
-                <div>
-                  <label class="mono-label mb-2 block">Сложность</label>
-                  <Select v-model="configForm.difficulty" :options="difficultyOptions" option-label="label" option-value="value" />
-                </div>
-
-                <div>
-                  <label class="mono-label mb-2 block">Палитра</label>
-                  <div class="flex gap-2">
-                    <label
-                      v-for="(_color, index) in configForm.palette"
-                      :key="index"
-                      class="relative size-8 cursor-pointer overflow-hidden rounded-full border border-line-strong"
-                      :style="{ backgroundColor: configForm.palette[index] }"
-                      :title="configForm.palette[index]"
-                    >
-                      <input v-model="configForm.palette[index]" type="color" class="absolute inset-0 cursor-pointer opacity-0" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <Button class="p-button-secondary mt-5 w-full" :loading="savingConfig" @click="saveConfig">
-                Сохранить настройки
-              </Button>
+              <p class="mt-4 border-t border-line pt-3 text-[10px] leading-4 text-faint">
+                Оценки ставят игроки на публичной странице. Автор не может оценивать свою игру,
+                поэтому здесь только статистика.
+              </p>
             </section>
 
             <section class="panel p-5">
@@ -729,46 +1061,21 @@ onBeforeUnmount(() => {
                   <span class="font-mono text-muted">{{ promptText.length }} симв.</span>
                 </p>
               </div>
+
+              <button
+                type="button"
+                class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-bad/30 px-3 py-2 text-[10px] font-bold text-bad transition hover:bg-bad/10 disabled:opacity-50"
+                :disabled="Boolean(game.actionPending)"
+                @click="removeGame"
+              >
+                <AppIcon name="x" :size="12" />
+                Удалить игру
+              </button>
             </section>
           </aside>
         </div>
       </template>
     </div>
 
-    <Dialog
-      v-model:visible="fixOpen"
-      modal
-      header="Починить игру"
-      :style="{ width: 'min(92vw, 480px)' }"
-      :draggable="false"
-    >
-      <p class="text-xs leading-5 text-muted">
-        Опишите, что сломалось. Если оставить поле пустым, агент попробует восстановить игру по
-        коду и последним ошибкам.
-      </p>
-      <Textarea
-        v-model="fixText"
-        rows="4"
-        maxlength="2000"
-        class="mt-4 text-[13px]"
-        placeholder="Например: после победы не перезапускается уровень, кнопка рестарта не реагирует…"
-      />
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <Button class="p-button-secondary" @click="fixOpen = false">Отмена</Button>
-          <Button class="bee-button" :loading="game.actionPending === 'fix'" @click="repair">
-            <AppIcon name="refresh" :size="14" />
-            <span class="ml-1.5">Запустить починку</span>
-          </Button>
-        </div>
-      </template>
-    </Dialog>
   </div>
 </template>
-
-<style scoped>
-.rating-choice :deep(.p-rating-option-active),
-.rating-choice :deep(.p-rating-option-active .p-rating-icon) {
-  color: var(--rating-color);
-}
-</style>

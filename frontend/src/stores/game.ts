@@ -1,15 +1,32 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { createGame, fixGame, getGame, patchGame, rateGame, rollbackGame, updateGameConfig } from '@/api/games'
+import {
+  cancelGame,
+  createGame,
+  deleteGame,
+  fixGame,
+  getGame,
+  patchGame,
+  rateGame,
+  retryGame,
+  rollbackGame,
+  updateGameConfig,
+  updateGameMeta,
+  updateGameVisibility,
+  generateGameMeta,
+} from '@/api/games'
 import { messageFromError } from '@/api/client'
 import { openGameStream } from '@/api/sse'
 import type {
+  ActiveOperation,
   CreateGameInput,
   Game,
   GameConfig,
+  GameMeta,
   GameSpec,
   GameStage,
   RatingAggregate,
+  Visibility,
 } from '@/api/types'
 
 const PIPELINE_STAGES = 8
@@ -33,6 +50,7 @@ export const useGameStore = defineStore('game', () => {
   const config = ref<GameConfig | null>(null)
   const rating = ref<RatingAggregate>({ average: 0, total: 0, counts: [] })
   const myRating = ref(0)
+  const operation = ref<ActiveOperation | null>(null)
   const loading = ref(false)
   const error = ref('')
   const streamError = ref('')
@@ -42,6 +60,7 @@ export const useGameStore = defineStore('game', () => {
 
   let closeStream: (() => void) | null = null
   let currentId = ''
+  let streamSeq = 0
 
   const status = computed(() => game.value?.status ?? 'queued')
   const isReady = computed(() => status.value === 'ready')
@@ -63,6 +82,8 @@ export const useGameStore = defineStore('game', () => {
     config.value = next.config ?? null
     rating.value = next.rating ?? { average: 0, total: 0, counts: [] }
     myRating.value = next.my_rating ?? 0
+    operation.value = next.operation ?? null
+    streamSeq = Math.max(streamSeq, next.cursor ?? 0)
   }
 
   async function load(id: string, options: { silent?: boolean } = {}): Promise<void> {
@@ -96,38 +117,80 @@ export const useGameStore = defineStore('game', () => {
     streamError.value = ''
     streaming.value = true
 
+    const baseline = streamSeq
+    const isRunningOperation = (): boolean => status.value === 'patching'
+    const isReplay = (seq: number): boolean => {
+      if (seq && seq <= baseline) return true
+      if (seq > streamSeq) streamSeq = seq
+
+      return false
+    }
+
     closeStream = openGameStream(id, {
       onOpen: () => {
         streamError.value = ''
       },
-      onStage: (payload) => {
+      onStage: (payload, seq) => {
+        if (isReplay(seq)) return
+
         const index = stages.value.findIndex((stage) => stage.stage === payload.stage)
 
         if (index >= 0) stages.value[index] = payload
         else stages.value = [...stages.value, payload]
 
+        if (payload.status === 'running') streamError.value = ''
+
         if (game.value && payload.status === 'running') {
           game.value.status = payload.stage as Game['status']
         }
       },
-      onArtifact: (payload) => {
+      onArtifact: (payload, seq) => {
+        if (isReplay(seq)) return
         if (payload.kind === 'spec') spec.value = payload.content as GameSpec
         if (payload.kind === 'config') config.value = payload.content as GameConfig
+        if (payload.kind === 'meta') {
+          const meta = payload.content as GameMeta
+
+          if (game.value) {
+            game.value.title = meta.title
+            game.value.description = meta.description
+            game.value.cover = meta.cover
+          }
+        }
       },
-      onDone: () => {
+      onDone: (_payload, seq) => {
+        if (isReplay(seq) || !isRunningOperation()) return
+
         stopStream()
         refreshKey.value++
         void load(id, { silent: true })
       },
-      onError: (payload) => {
-        streamError.value = payload.message
-        if (game.value) game.value.status = 'failed'
+      onError: (payload, seq) => {
+        if (isReplay(seq) || !isRunningOperation()) return
+
+        streamError.value = friendlyStreamError(payload.code, payload.message)
         stopStream()
+        void load(id, { silent: true })
       },
       onConnectionError: () => {
         streamError.value = 'Связь с конвейером прервана. Переподключаемся…'
       },
     })
+  }
+
+  function friendlyStreamError(code: string, message: string): string {
+    switch (code) {
+      case 'llm_unavailable':
+        return 'Модель недоступна — правка отменена, токены вернулись на баланс.'
+      case 'llm_budget_exceeded':
+        return 'Исчерпан бюджет вызовов модели — токены вернулись на баланс.'
+      case 'validation_failed':
+        return 'Правка не прошла проверку — токены вернулись на баланс.'
+      case 'timeout':
+        return 'Модель не успела ответить — токены вернулись на баланс.'
+      default:
+        return message
+    }
   }
 
   function stopStream(): void {
@@ -149,9 +212,9 @@ export const useGameStore = defineStore('game', () => {
   async function applyPatch(text: string): Promise<void> {
     if (!currentId) return
     actionPending.value = 'patch'
+    streamError.value = ''
     try {
       await patchGame(currentId, text)
-      refreshKey.value++
       await refresh()
     } finally {
       actionPending.value = ''
@@ -185,9 +248,78 @@ export const useGameStore = defineStore('game', () => {
   async function repair(runtimeError?: string): Promise<void> {
     if (!currentId) return
     actionPending.value = 'fix'
+    streamError.value = ''
     try {
       await fixGame(currentId, runtimeError)
-      refreshKey.value++
+      await refresh()
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function retry(): Promise<void> {
+    if (!currentId) return
+    actionPending.value = 'retry'
+    try {
+      streamError.value = ''
+      await retryGame(currentId)
+      await refresh()
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function cancel(): Promise<void> {
+    if (!currentId) return
+    actionPending.value = 'cancel'
+    try {
+      await cancelGame(currentId)
+      stopStream()
+      await refresh()
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function saveMeta(meta: Partial<GameMeta>): Promise<void> {
+    if (!currentId) return
+    actionPending.value = 'meta'
+    try {
+      await updateGameMeta(currentId, meta)
+      await refresh()
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function generateMeta(): Promise<void> {
+    if (!currentId) return
+    actionPending.value = 'meta-generate'
+    streamError.value = ''
+    try {
+      await generateGameMeta(currentId)
+      await refresh()
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function remove(): Promise<void> {
+    if (!currentId) return
+    actionPending.value = 'delete'
+    try {
+      await deleteGame(currentId)
+      stopStream()
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function setVisibility(visibility: Visibility): Promise<void> {
+    if (!currentId) return
+    actionPending.value = 'visibility'
+    try {
+      await updateGameVisibility(currentId, visibility)
       await refresh()
     } finally {
       actionPending.value = ''
@@ -215,6 +347,7 @@ export const useGameStore = defineStore('game', () => {
     config.value = null
     rating.value = { average: 0, total: 0, counts: [] }
     myRating.value = 0
+    operation.value = null
     error.value = ''
     streamError.value = ''
     refreshKey.value = 0
@@ -228,6 +361,7 @@ export const useGameStore = defineStore('game', () => {
     config,
     rating,
     myRating,
+    operation,
     loading,
     error,
     streamError,
@@ -244,6 +378,12 @@ export const useGameStore = defineStore('game', () => {
     create,
     applyPatch,
     applyConfig,
+    cancel,
+    retry,
+    saveMeta,
+    generateMeta,
+    remove,
+    setVisibility,
     rollback,
     repair,
     vote,

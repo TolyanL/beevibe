@@ -1,30 +1,46 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { getCatalog } from '@/api/catalog'
-import type { CatalogCard } from '@/api/types'
+import Rating from 'openvue/rating'
+import { useToast } from 'openvue/usetoast'
+import { getCatalog, getGamePublicCard } from '@/api/catalog'
+import { messageFromError } from '@/api/client'
+import { rateGame } from '@/api/games'
+import type { CatalogCard, GamePublicCard } from '@/api/types'
 import { formatDate, formatHours, plural } from '@/lib/format'
 import { genreLabel, styleLabel } from '@/lib/game'
+import { ratingTone } from '@/lib/rating'
 import { usePlaytime } from '@/composables/usePlaytime'
+import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import GameCard from '@/components/catalog/GameCard.vue'
 import GameFrame from '@/components/game/GameFrame.vue'
 import RatingBadge from '@/components/ui/RatingBadge.vue'
 
 const route = useRoute()
+const toast = useToast()
+const auth = useAuthStore()
 const id = computed(() => String(route.params.id ?? ''))
-const card = ref<CatalogCard | null>(null)
-const items = ref<CatalogCard[]>([])
+const card = ref<GamePublicCard | null>(null)
+const related = ref<CatalogCard[]>([])
 const loading = ref(true)
 const frameLoaded = ref(false)
+const vote = ref(0)
+const ratingKey = ref(0)
+const votePending = ref(false)
+const voteError = ref('')
 
 const session = usePlaytime(() => id.value, () => frameLoaded.value)
 const sessionSeconds = session.seconds
-const more = computed(() => items.value.filter((item) => item.id !== id.value).slice(0, 3))
-const title = computed(() => card.value?.prompt ?? 'Игра BeeVibe')
-const genre = computed(() => genreLabel(card.value?.genre ?? ''))
-const styleName = computed(() => styleLabel(card.value?.style ?? ''))
+const more = computed(() => related.value.slice(0, 3))
+const title = computed(() => card.value?.title?.trim() || card.value?.prompt || 'Игра BeeVibe')
+const author = computed(() => card.value?.author ?? '')
+const genre = computed(() => genreLabel(card.value?.genre ?? '', card.value?.custom_genre))
+const styleName = computed(() => styleLabel(card.value?.style ?? '', card.value?.custom_style))
 const playtime = computed(() => formatHours(card.value?.playtime?.hours ?? 0))
+const canVote = computed(() => Boolean(card.value) && auth.isAuthenticated && !card.value?.is_owner)
+const ratingInputColor = computed(() => (vote.value ? ratingTone(vote.value).hex : '#e6b800'))
+const loginLink = computed(() => ({ name: 'login', query: { redirect: `/play/${id.value}` } }))
 
 function sessionLabel(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -32,15 +48,54 @@ function sessionLabel(seconds: number): string {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
+async function rate(value: number): Promise<void> {
+  if (!card.value) return
+
+  votePending.value = true
+  voteError.value = ''
+
+  try {
+    const response = await rateGame(card.value.id, value)
+
+    vote.value = response.rating
+    card.value.my_rating = response.rating
+    card.value.rating = response.aggregate
+    toast.add({ severity: 'success', summary: 'Оценка сохранена', detail: 'Спасибо — рейтинг обновлён.', life: 2200 })
+  } catch (err) {
+    vote.value = card.value.my_rating
+    voteError.value = messageFromError(err)
+  } finally {
+    votePending.value = false
+  }
+}
+
+function onRatingInput(value: number | null): void {
+  if (!value) {
+    // NOTE: OpenVue Rating clears the active value on a repeated click; remount restores it.
+    ratingKey.value++
+    return
+  }
+
+  vote.value = value
+  void rate(value)
+}
+
 onMounted(async () => {
   try {
-    const response = await getCatalog({ limit: 100, sort: 'fresh' })
-    items.value = response.items ?? []
-    card.value = items.value.find((item) => item.id === id.value) ?? null
+    card.value = await getGamePublicCard(id.value)
+    vote.value = card.value.my_rating ?? 0
   } catch {
     card.value = null
   } finally {
     loading.value = false
+  }
+
+  try {
+    const response = await getCatalog({ limit: 3, sort: 'fresh' })
+
+    related.value = (response.items ?? []).filter((item) => item.id !== id.value)
+  } catch {
+    related.value = []
   }
 })
 </script>
@@ -82,6 +137,9 @@ onMounted(async () => {
               :average="card.rating?.average ?? 0"
               :total="card.rating?.total ?? 0"
             />
+            <span v-if="author" class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+              {{ author }}
+            </span>
             <span v-if="card" class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
               {{ playtime }} в игре
             </span>
@@ -104,7 +162,13 @@ onMounted(async () => {
       </header>
 
       <div class="animate-rise">
-        <GameFrame :game-id="id" status="ready" :version-token="1" @loaded="frameLoaded = true" />
+        <GameFrame
+          :game-id="card?.id ?? id"
+          :slug="id"
+          status="ready"
+          :version-token="1"
+          @loaded="frameLoaded = true"
+        />
       </div>
 
       <div class="mt-5 grid gap-5 lg:grid-cols-[1.4fr_.6fr]">
@@ -159,7 +223,37 @@ onMounted(async () => {
             Оценки доступны из каталога после загрузки карточки игры.
           </div>
 
-          <p class="mt-4 text-[11px] leading-5 text-faint">
+          <div v-if="card && !card.is_owner" class="mt-5 border-t border-line pt-4">
+            <template v-if="canVote">
+              <p class="mono-label mb-2">Ваша оценка</p>
+              <div class="flex items-center gap-3">
+                <div class="rating-choice" :style="{ '--rating-color': ratingInputColor }">
+                  <Rating
+                    :key="ratingKey"
+                    :model-value="vote"
+                    :disabled="votePending"
+                    @update:model-value="onRatingInput"
+                  />
+                </div>
+                <span v-if="card.my_rating" class="font-mono text-[10px] text-muted">{{ card.my_rating }} / 5</span>
+              </div>
+              <p v-if="voteError" class="mt-2 text-[10px] text-red-500">{{ voteError }}</p>
+              <p class="mt-2 text-[10px] leading-4 text-faint">Оценку можно изменить в любой момент.</p>
+            </template>
+
+            <template v-else-if="!auth.isAuthenticated">
+              <p class="text-[11px] leading-5 text-faint">
+                <RouterLink :to="loginLink" class="font-bold text-bee-deep hover-link dark:text-bee">Войдите</RouterLink>,
+                чтобы поставить оценку — она попадёт в рейтинг каталога.
+              </p>
+            </template>
+          </div>
+
+          <p v-else-if="card?.is_owner" class="mt-4 border-t border-line pt-3 text-[11px] leading-5 text-faint">
+            Это ваша игра: оценивать её могут только другие игроки, поэтому здесь только статистика.
+          </p>
+
+          <p v-if="!card" class="mt-4 text-[11px] leading-5 text-faint">
             Оценка хранится в аккаунте и меняет средний рейтинг в каталоге. Пять — восторг,
             один — совсем не зашло.
           </p>
@@ -184,3 +278,10 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.rating-choice :deep(.p-rating-option-active),
+.rating-choice :deep(.p-rating-option-active .p-rating-icon) {
+  color: var(--rating-color);
+}
+</style>

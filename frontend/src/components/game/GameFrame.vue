@@ -8,6 +8,7 @@ import { statusMeta } from '@/lib/game'
 const props = withDefaults(
   defineProps<{
     gameId: string
+    slug?: string
     status: string
     versionToken?: number
   }>(),
@@ -28,7 +29,7 @@ const src = computed(
   () => `${gameBase}/g/${encodeURIComponent(props.gameId)}?v=${props.versionToken}-${manualReload.value}`,
 )
 const downloadUrl = computed(() => `${gameBase}/g/${encodeURIComponent(props.gameId)}/download`)
-const publicUrl = computed(() => `${window.location.origin}/play/${props.gameId}`)
+const publicUrl = computed(() => `${window.location.origin}/play/${props.slug || props.gameId}`)
 const ready = computed(() => props.status === 'ready')
 const meta = computed(() => statusMeta(props.status))
 
