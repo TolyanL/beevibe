@@ -41,6 +41,16 @@ func TestGetReturnsGameWithVersionsAndCost(t *testing.T) {
 	store.EXPECT().GetGame(mock.Anything, gameID).Return(game, nil)
 	store.EXPECT().ListVersions(mock.Anything, gameID).Return(versions, nil)
 	store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return(events, nil)
+	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{
+		Average: 4.5,
+		Total:   4,
+		Counts:  [5]int{0, 0, 0, 2, 2},
+	}, nil)
+	store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{
+		GameID: gameID,
+		UserID: userID,
+		Value:  domain.Rating5,
+	}, nil)
 
 	output, err := uc.Get(context.Background(), dto.GetGameInput{UserID: userID, GameID: gameID})
 	if err != nil {
@@ -61,6 +71,10 @@ func TestGetReturnsGameWithVersionsAndCost(t *testing.T) {
 
 	if len(output.Stages) != 1 || output.Stages[0].Stage != "analyzing" {
 		t.Errorf("stages = %+v, want one analyzing stage", output.Stages)
+	}
+
+	if output.Rating.Average != 4.5 || output.MyRating != 5 {
+		t.Errorf("rating = %+v my = %d, want average 4.5 and 5", output.Rating, output.MyRating)
 	}
 }
 

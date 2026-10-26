@@ -63,14 +63,14 @@ func TestNewRatingAcceptsKnownValues(t *testing.T) {
 	gameID := uuid.New()
 	userID := uuid.New()
 
-	for _, value := range []RatingValue{RatingCool, RatingBad} {
+	for _, value := range []RatingValue{Rating1, Rating2, Rating3, Rating4, Rating5} {
 		rating, err := NewRating(gameID, userID, value)
 		if err != nil {
 			t.Fatalf("NewRating() error = %v, want nil", err)
 		}
 
 		if rating.Value != value {
-			t.Errorf("value = %s, want %s", rating.Value, value)
+			t.Errorf("value = %d, want %d", rating.Value, value)
 		}
 	}
 }
@@ -78,7 +78,7 @@ func TestNewRatingAcceptsKnownValues(t *testing.T) {
 func TestNewRatingRejectsUnknownValue(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewRating(uuid.New(), uuid.New(), RatingValue("awesome"))
+	_, err := NewRating(uuid.New(), uuid.New(), RatingValue(6))
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("NewRating() error = %v, want ErrInvalidInput", err)
 	}

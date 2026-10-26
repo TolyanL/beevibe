@@ -26,28 +26,29 @@ func TestRateStoresRatingAndReturnsAggregate(t *testing.T) {
 		Status:  domain.StatusReady,
 	}, nil)
 	store.EXPECT().UpsertRating(mock.Anything, mock.MatchedBy(func(rating domain.Rating) bool {
-		return rating.GameID == gameID && rating.UserID == userID && rating.Value == domain.RatingCool
+		return rating.GameID == gameID && rating.UserID == userID && rating.Value == domain.Rating5
 	})).Return(nil)
 	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{
-		Cool: 3,
-		Bad:  1,
+		Average: 4.5,
+		Total:   4,
+		Counts:  [5]int{0, 0, 0, 2, 2},
 	}, nil)
 
 	output, err := uc.Rate(context.Background(), dto.RateGameInput{
 		UserID: userID,
 		GameID: gameID,
-		Value:  "cool",
+		Value:  5,
 	})
 	if err != nil {
 		t.Fatalf("Rate() error = %v, want nil", err)
 	}
 
-	if output.Rating != "cool" {
-		t.Errorf("rating = %q, want %q", output.Rating, "cool")
+	if output.Rating != 5 {
+		t.Errorf("rating = %d, want %d", output.Rating, 5)
 	}
 
-	if output.Aggregate.Cool != 3 || output.Aggregate.Bad != 1 {
-		t.Errorf("aggregate = %+v, want cool 3 bad 1", output.Aggregate)
+	if output.Aggregate.Average != 4.5 || output.Aggregate.Total != 4 {
+		t.Errorf("aggregate = %+v, want average 4.5 and 4 votes", output.Aggregate)
 	}
 }
 
@@ -67,7 +68,7 @@ func TestRateRejectsForeignGame(t *testing.T) {
 	_, err := uc.Rate(context.Background(), dto.RateGameInput{
 		UserID: uuid.New(),
 		GameID: gameID,
-		Value:  "cool",
+		Value:  5,
 	})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("Rate() error = %v, want ErrForbidden", err)
@@ -82,7 +83,7 @@ func TestRateRejectsUnknownValue(t *testing.T) {
 	_, err := uc.Rate(context.Background(), dto.RateGameInput{
 		UserID: uuid.New(),
 		GameID: uuid.New(),
-		Value:  "awesome",
+		Value:  6,
 	})
 	if err == nil {
 		t.Fatal("Rate() error = nil, want validation error")

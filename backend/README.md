@@ -207,12 +207,20 @@ Errors: `400 invalid_input`, `409 not_enough_tokens`, `409 idempotency_in_progre
       "created_at": "2026-10-23T22:33:00Z"
     }
   ],
-  "cost": { "tokens": 181081, "calls": 6, "fixes": 0 }
+  "cost": { "tokens": 181081, "calls": 6, "fixes": 0 },
+  "rating": { "average": 4.6, "total": 18, "counts": [0, 1, 1, 4, 12] },
+  "my_rating": 5
 }
 ```
 
 `stages[]` is the latest state per stage; `versions[].source` — `generate`,
 `config`, `patch`, `repair`, `rollback`, `review`.
+
+`rating.average` is the mean of all votes on a 1..5 scale, `rating.total` is the
+number of votes, and `rating.counts` holds the number of 1, 2, 3, 4 and 5 star
+votes in that order. `my_rating` is the owner's current vote, or `0` when the
+owner has not rated the game yet.
+
 Errors: `403 forbidden`, `404 not_found`.
 
 ### `GET /api/games/{id}/stream`
@@ -324,19 +332,28 @@ Errors: `400 invalid_input`, `403 forbidden`, `404 not_found`,
 ### `POST /api/games/{id}/rate`
 
 ```json
-{ "value": "cool" }
+{ "value": 5 }
 ```
 
-`value` — `cool` or `bad`. One vote per user, a repeat overwrites it.
+`value` — an integer from 1 to 5, where 5 is the best score. One vote per user,
+a repeat overwrites the previous vote.
 
 **200**
 
 ```json
 {
-  "rating": "cool",
-  "aggregate": { "cool": 1, "bad": 0, "total": 1, "cool_percent": 100 }
+  "rating": 5,
+  "aggregate": {
+    "average": 4.6,
+    "total": 18,
+    "counts": [0, 1, 1, 4, 12]
+  }
 }
 ```
+
+`aggregate.average` is the mean score on the 1..5 scale, `aggregate.total` is the
+number of votes, and `aggregate.counts` holds the counts for 1, 2, 3, 4 and 5
+stars in that order.
 
 Errors: `400 invalid_input`, `403 forbidden`, `404 not_found`.
 
@@ -353,16 +370,16 @@ Errors: `400 invalid_input`, `404 not_found`.
 
 ## Catalog
 
-### `GET /api/catalog?sort=cool&genre=arcade&limit=20&offset=0`
+### `GET /api/catalog?sort=rating&genre=arcade&limit=20&offset=0`
 
 No auth. Only `ready` games are listed.
 
-| Query    | Rule                                                               |
-| -------- | ------------------------------------------------------------------ |
-| `sort`   | `cool` (rating), `hours` (playtime), `fresh` (newest, the default) |
-| `genre`  | the same enum as `POST /api/games`                                 |
-| `limit`  | 1..100, defaults to 20                                             |
-| `offset` | 0 or more                                                          |
+| Query    | Rule                                                                 |
+| -------- | -------------------------------------------------------------------- |
+| `sort`   | `rating` (average score), `hours` (playtime), `fresh` (default)      |
+| `genre`  | the same enum as `POST /api/games`                                   |
+| `limit`  | 1..100, defaults to 20                                               |
+| `offset` | 0 or more                                                            |
 
 **200**
 
@@ -376,7 +393,7 @@ No auth. Only `ready` games are listed.
       "map_size": "small",
       "style": "pixel",
       "created_at": "2026-10-23T22:33:00Z",
-      "rating": { "cool": 1, "bad": 0, "total": 1, "cool_percent": 100 },
+      "rating": { "average": 4.6, "total": 18, "counts": [0, 1, 1, 4, 12] },
       "playtime": { "sessions": 1, "seconds": 120, "hours": 0.03 },
       "tokens_cost": 181081,
       "model_calls": 6

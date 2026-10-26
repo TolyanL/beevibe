@@ -10,7 +10,7 @@ type RateGameInput struct {
 	UserID uuid.UUID
 	GameID uuid.UUID
 
-	Value string `json:"value" validate:"required,oneof=cool bad"`
+	Value int `json:"value" validate:"required,min=1,max=5"`
 }
 
 func (i RateGameInput) Validate() error {
@@ -22,6 +22,6 @@ func (i RateGameInput) Validate() error {
 }
 
 type RateGameOutput struct {
-	Rating    string          `json:"rating"`
+	Rating    int             `json:"rating"`
 	Aggregate RatingAggregate `json:"aggregate"`
 }

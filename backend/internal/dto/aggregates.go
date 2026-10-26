@@ -7,10 +7,9 @@ import (
 )
 
 type RatingAggregate struct {
-	Cool        int     `json:"cool"`
-	Bad         int     `json:"bad"`
-	Total       int     `json:"total"`
-	CoolPercent float64 `json:"cool_percent"`
+	Average float64 `json:"average"`
+	Total   int     `json:"total"`
+	Counts  [5]int  `json:"counts"`
 }
 
 type PlaytimeAggregate struct {

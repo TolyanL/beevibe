@@ -22,7 +22,7 @@ func (p *Postgres) GetRating(ctx context.Context, gameID, userID uuid.UUID) (dom
 	var (
 		storedGameID uuid.UUID
 		storedUserID uuid.UUID
-		value        string
+		value        int
 		updatedAt    time.Time
 	)
 

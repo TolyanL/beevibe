@@ -87,7 +87,7 @@ func TestClampPlaytime(t *testing.T) {
 func TestNewRating(t *testing.T) {
 	t.Parallel()
 
-	if _, err := NewRating(uuid.New(), uuid.New(), RatingValue("meh")); !errors.Is(err, ErrInvalidInput) {
+	if _, err := NewRating(uuid.New(), uuid.New(), RatingValue(0)); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("NewRating() error = %v, want ErrInvalidInput", err)
 	}
 }

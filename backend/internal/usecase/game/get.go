@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/TolyanL/beevibe/internal/domain"
@@ -33,6 +34,21 @@ func (u *UseCase) Get(ctx context.Context, input dto.GetGameInput) (dto.GetGameO
 	events, err := u.store.ListGenEvents(ctx, input.GameID, 0)
 	if err != nil {
 		return output, fmt.Errorf("store.ListGenEvents: %w", err)
+	}
+
+	rating, err := u.store.GetRatingAggregate(ctx, input.GameID)
+	if err != nil {
+		return output, fmt.Errorf("store.GetRatingAggregate: %w", err)
+	}
+
+	myRating, err := u.store.GetRating(ctx, input.GameID, input.UserID)
+	if err != nil && !errors.Is(err, domain.ErrNotFound) {
+		return output, fmt.Errorf("store.GetRating: %w", err)
+	}
+
+	output.Rating = rating
+	if err == nil {
+		output.MyRating = int(myRating.Value)
 	}
 
 	output.Status = string(game.Status)

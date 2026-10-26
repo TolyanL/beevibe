@@ -28,14 +28,14 @@ func TestListAppliesDefaultLimit(t *testing.T) {
 	cards := []dto.CatalogCard{{ID: uuid.New(), Prompt: "змейка", Genre: "snake"}}
 
 	store.EXPECT().ListCatalog(mock.Anything, dto.CatalogFilter{
-		Sort:   "cool",
+		Sort:   "rating",
 		Genre:  "snake",
 		Limit:  20,
 		Offset: 0,
 	}).Return(cards, nil)
 
 	output, err := uc.List(context.Background(), dto.ListCatalogInput{
-		Sort:  "cool",
+		Sort:  "rating",
 		Genre: "snake",
 	})
 	if err != nil {

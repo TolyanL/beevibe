@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	catalogOrderByCool  = `CASE WHEN cool + bad > 0 THEN cool::float / (cool + bad) ELSE 0 END DESC, created_at DESC`
-	catalogOrderByHours = `seconds DESC, created_at DESC`
-	catalogOrderByFresh = `created_at DESC`
+	catalogOrderByRating = `rating_average DESC, rating_total DESC, created_at DESC`
+	catalogOrderByHours  = `seconds DESC, created_at DESC`
+	catalogOrderByFresh  = `created_at DESC`
 )
 
 func catalogOrderBy(sort string) string {
 	switch sort {
-	case "cool":
-		return catalogOrderByCool
+	case "rating":
+		return catalogOrderByRating
 	case "hours":
 		return catalogOrderByHours
 	default:
@@ -35,8 +35,9 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	           g.prompt,
 	           g.params_json,
 	           g.created_at,
-	           COALESCE(ra.cool, 0) AS cool,
-	           COALESCE(ra.bad, 0) AS bad,
+	           COALESCE(ra.rating_average, 0) AS rating_average,
+	           COALESCE(ra.rating_total, 0) AS rating_total,
+	           COALESCE(ra.rating_counts, ARRAY[0, 0, 0, 0, 0]::int[]) AS rating_counts,
 	           COALESCE(pa.sessions, 0) AS sessions,
 	           COALESCE(pa.seconds, 0) AS seconds,
 	           COALESCE(va.tokens_cost, 0) AS tokens_cost,
@@ -44,8 +45,15 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	    FROM games g
 	    LEFT JOIN (
 	        SELECT game_id,
-	               COUNT(*) FILTER (WHERE value = 'cool') AS cool,
-	               COUNT(*) FILTER (WHERE value = 'bad') AS bad
+	               AVG(value)::float8 AS rating_average,
+	               COUNT(*) AS rating_total,
+	               ARRAY[
+	                   COUNT(*) FILTER (WHERE value = 1),
+	                   COUNT(*) FILTER (WHERE value = 2),
+	                   COUNT(*) FILTER (WHERE value = 3),
+	                   COUNT(*) FILTER (WHERE value = 4),
+	                   COUNT(*) FILTER (WHERE value = 5)
+	               ]::int[] AS rating_counts
 	        FROM ratings GROUP BY game_id
 	    ) ra ON ra.game_id = g.id
 	    LEFT JOIN (
@@ -62,7 +70,7 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	       COALESCE(params_json->>'genre', ''),
 	       COALESCE(params_json->>'map_size', ''),
 	       COALESCE(params_json->>'style', ''),
-	       created_at, cool, bad, sessions, seconds, tokens_cost, model_calls
+	       created_at, rating_average, rating_total, rating_counts, sessions, seconds, tokens_cost, model_calls
 	FROM catalog
 	ORDER BY `
 
@@ -78,22 +86,24 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 
 	for rows.Next() {
 		var (
-			card      dto.CatalogCard
-			cool, bad int
-			sessions  int
-			seconds   int
+			card          dto.CatalogCard
+			ratingAverage float64
+			ratingTotal   int
+			ratingCounts  []int32
+			sessions      int
+			seconds       int
 		)
 
 		if err := rows.Scan(
 			&card.ID, &card.Prompt, &card.Genre, &card.MapSize, &card.Style, &card.CreatedAt,
-			&cool, &bad, &sessions, &seconds, &card.TokensCost, &card.ModelCalls,
+			&ratingAverage, &ratingTotal, &ratingCounts, &sessions, &seconds, &card.TokensCost, &card.ModelCalls,
 		); err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
 
-		card.Rating = dto.RatingAggregate{Cool: cool, Bad: bad, Total: cool + bad}
-		if card.Rating.Total > 0 {
-			card.Rating.CoolPercent = float64(cool) / float64(card.Rating.Total) * 100
+		card.Rating = dto.RatingAggregate{Average: ratingAverage, Total: ratingTotal}
+		for i := 0; i < len(ratingCounts) && i < len(card.Rating.Counts); i++ {
+			card.Rating.Counts[i] = int(ratingCounts[i])
 		}
 
 		card.Playtime = dto.PlaytimeAggregate{

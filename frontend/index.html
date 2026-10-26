@@ -1,10 +1,23 @@
-<!DOCTYPE html>
-<html lang="">
+<!doctype html>
+<html lang="ru">
   <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffcc00" />
+    <meta
+      name="description"
+      content="BeeVibe — генератор браузерных игр по текстовому промпту: идея, конвейер, playable-игра и каталог."
+    />
+    <title>BeeVibe — игры из промпта</title>
+    <script>
+      ;(() => {
+        const saved = localStorage.getItem('bv_theme')
+        const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.classList.toggle('dark', dark)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

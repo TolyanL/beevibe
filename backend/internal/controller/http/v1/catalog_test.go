@@ -26,7 +26,7 @@ func TestCatalogReturnsCards(t *testing.T) {
 		Limit:  20,
 		Offset: 0,
 	}).Return([]dto.CatalogCard{
-		{ID: gameID, Prompt: "змейка", Genre: "snake", Rating: dto.RatingAggregate{CoolPercent: 100}},
+		{ID: gameID, Prompt: "змейка", Genre: "snake", Rating: dto.RatingAggregate{Average: 5}},
 	}, nil)
 
 	rec := env.do(httptest.NewRequest(http.MethodGet, "/catalog?sort=fresh", nil))

@@ -15,27 +15,27 @@ func (p *Postgres) GetRatingAggregate(ctx context.Context, gameID uuid.UUID) (dt
 	ctx, span := tracer.Start(ctx, "adapter postgres GetRatingAggregate")
 	defer span.End()
 
-	const sql = `SELECT COUNT(*) FILTER (WHERE value = 'cool'), COUNT(*) FILTER (WHERE value = 'bad')
+	const sql = `SELECT COALESCE(AVG(value), 0)::float8,
+	                    COUNT(*),
+	                    COUNT(*) FILTER (WHERE value = 1),
+	                    COUNT(*) FILTER (WHERE value = 2),
+	                    COUNT(*) FILTER (WHERE value = 3),
+	                    COUNT(*) FILTER (WHERE value = 4),
+	                    COUNT(*) FILTER (WHERE value = 5)
 	             FROM ratings WHERE game_id = $1`
 
-	var cool, bad int
+	var (
+		aggregate          dto.RatingAggregate
+		v1, v2, v3, v4, v5 int
+	)
 
-	err := transaction.TryExtractTX(ctx).QueryRow(ctx, sql, gameID).Scan(&cool, &bad)
+	err := transaction.TryExtractTX(ctx).QueryRow(ctx, sql, gameID).
+		Scan(&aggregate.Average, &aggregate.Total, &v1, &v2, &v3, &v4, &v5)
 	if err != nil {
 		return dto.RatingAggregate{}, fmt.Errorf("txOrPool.QueryRow: %w", err)
 	}
 
-	total := cool + bad
-
-	aggregate := dto.RatingAggregate{
-		Cool:  cool,
-		Bad:   bad,
-		Total: total,
-	}
-
-	if total > 0 {
-		aggregate.CoolPercent = float64(cool) / float64(total) * 100
-	}
+	aggregate.Counts = [5]int{v1, v2, v3, v4, v5}
 
 	return aggregate, nil
 }
