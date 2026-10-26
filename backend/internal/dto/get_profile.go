@@ -11,6 +11,9 @@ type ProfileGame struct {
 	Prompt     string    `json:"prompt"`
 	Genre      string    `json:"genre"`
 	Status     string    `json:"status"`
+	Visibility string    `json:"visibility"`
+	Title      string    `json:"title"`
+	Slug       string    `json:"slug"`
 	TokensCost int       `json:"tokens_cost"`
 	ModelCalls int       `json:"model_calls"`
 	Fixes      int       `json:"fixes"`
@@ -27,6 +30,7 @@ type ProfileTokenOp struct {
 type ProfilePrices struct {
 	Generate int64 `json:"generate"`
 	Patch    int64 `json:"patch"`
+	Meta     int64 `json:"meta"`
 }
 
 type GetProfileInput struct {

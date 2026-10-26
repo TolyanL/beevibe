@@ -11,6 +11,7 @@ func (h *Handlers) ListCatalog(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	input := dto.ListCatalogInput{
+		Q:      query.Get("q"),
 		Sort:   query.Get("sort"),
 		Genre:  query.Get("genre"),
 		Limit:  atoiDefault(query.Get("limit"), 0),

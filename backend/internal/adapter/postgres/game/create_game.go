@@ -19,12 +19,15 @@ func (p *Postgres) CreateGame(ctx context.Context, game domain.Game) error {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	const sql = `INSERT INTO games (id, owner_id, prompt, params_json, spec_json, config_json, status, fail_reason, created_at, updated_at)
-	             VALUES ($1, $2, $3, $4::jsonb, NULLIF($5, '')::jsonb, NULLIF($6, '')::jsonb, $7, $8, $9, $10)`
+	const sql = `INSERT INTO games (id, owner_id, prompt, params_json, spec_json, config_json, status, fail_reason,
+	                          visibility, title, description, cover_json, slug, created_at, updated_at)
+	             VALUES ($1, $2, $3, $4::jsonb, NULLIF($5, '')::jsonb, NULLIF($6, '')::jsonb, $7, $8, $9,
+	                     $10, $11, NULLIF($12, '')::jsonb, $13, $14, $15)`
 
 	tag, err := transaction.TryExtractTX(ctx).Exec(ctx, sql,
 		game.ID, game.OwnerID, game.Prompt, string(params), specJSON(game.Spec), configJSON(game.Config),
-		game.Status, game.FailReason, game.CreatedAt, game.UpdatedAt)
+		game.Status, game.FailReason, string(game.Visibility),
+		game.Title, game.Description, coverJSON(game.Cover), game.Slug, game.CreatedAt, game.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("txOrPool.Exec: %w", err)
 	}

@@ -55,6 +55,7 @@ func New(store Store, llmClient llm.LLM, validator game.Validator, auth user.Aut
 			game.Tokens{
 				PriceGenerate: cfg.Tokens.PriceGenerate,
 				PricePatch:    cfg.Tokens.PricePatch,
+				PriceMeta:     cfg.Tokens.PriceMeta,
 			},
 			cfg.Reasoning,
 			cfg.Worker,

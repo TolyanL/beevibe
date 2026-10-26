@@ -14,6 +14,8 @@ func (u *UseCase) List(ctx context.Context, input dto.ListCatalogInput) (dto.Lis
 
 	var output dto.ListCatalogOutput
 
+	input.Trim()
+
 	if err := input.Validate(); err != nil {
 		return output, fmt.Errorf("input.Validate: %w", err)
 	}
@@ -23,7 +25,8 @@ func (u *UseCase) List(ctx context.Context, input dto.ListCatalogInput) (dto.Lis
 		limit = 20
 	}
 
-	cards, err := u.store.ListCatalog(ctx, dto.CatalogFilter{
+	cards, total, err := u.store.ListCatalog(ctx, dto.CatalogFilter{
+		Q:      input.Q,
 		Sort:   input.Sort,
 		Genre:  input.Genre,
 		Limit:  limit,
@@ -34,6 +37,7 @@ func (u *UseCase) List(ctx context.Context, input dto.ListCatalogInput) (dto.Lis
 	}
 
 	output.Items = cards
+	output.Total = total
 
 	return output, nil
 }

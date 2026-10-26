@@ -51,6 +51,12 @@ func TestGetGameServesHTML(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
 		ID:     uuid.New(),
 		GameID: gameID,
@@ -83,6 +89,12 @@ func TestGetGameNotFound(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{}, domain.ErrVersionNotFound)
 
 	req := httptest.NewRequest(http.MethodGet, "/g/"+gameID.String(), nil)
@@ -95,17 +107,19 @@ func TestGetGameNotFound(t *testing.T) {
 	}
 }
 
-func TestGetGameRejectsBrokenID(t *testing.T) {
+func TestGetGameTreatsUnknownSlugAsNotFound(t *testing.T) {
 	t.Parallel()
 
-	router, _ := newTestRouter(t)
+	router, store := newTestRouter(t)
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "not-a-uuid").Return(domain.Game{}, domain.ErrNotFound)
 
 	req := httptest.NewRequest(http.MethodGet, "/g/not-a-uuid", nil)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
+	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusBadRequest, rec.Body.String())
 	}
 }
@@ -117,6 +131,12 @@ func TestDownloadGameSetsAttachment(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
 		ID:     uuid.New(),
 		GameID: gameID,

@@ -35,6 +35,7 @@ func (h *Handlers) FixGame(w http.ResponseWriter, r *http.Request) {
 
 	body.UserID = userID
 	body.GameID = gameID
+	body.IdempotencyKey = r.Header.Get("Idempotency-Key")
 
 	output, err := h.usecase.Game.Fix(r.Context(), body)
 	if err != nil {
@@ -45,5 +46,5 @@ func (h *Handlers) FixGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, output)
+	writeJSON(w, http.StatusAccepted, output)
 }

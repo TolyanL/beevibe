@@ -12,7 +12,6 @@ import (
 
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
-	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
 func TestCreateGameDebitsTokens(t *testing.T) {
@@ -204,7 +203,7 @@ func TestGetForeignGameIsForbidden(t *testing.T) {
 	}
 }
 
-func TestPatchCreatesVersionAndCharges(t *testing.T) {
+func TestPatchAcceptsJobAndCharges(t *testing.T) {
 	t.Parallel()
 
 	env := newTestEnv(t)
@@ -212,16 +211,15 @@ func TestPatchCreatesVersionAndCharges(t *testing.T) {
 	userID := uuid.New()
 	gameID := uuid.New()
 
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML}
-
 	env.expectSession(userID)
 	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
 		ID:      gameID,
 		OwnerID: userID,
 		Status:  domain.StatusReady,
 	}, nil)
-	env.store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
-	env.store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{latest}, nil)
+	env.store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
+	}, nil)
 	env.store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
 		ID:           userID,
 		TokenBalance: 100_000,
@@ -232,29 +230,18 @@ func TestPatchCreatesVersionAndCharges(t *testing.T) {
 	env.store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
 		return op.Delta == -40_000 && op.Reason == domain.ReasonPatch
 	})).Return(nil)
-
-	env.llm.EXPECT().Prompt("patch").Return("system prompt", nil)
-	env.llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{
-		Text:  gameHTML,
-		Usage: llm.Usage{PromptTokens: 10, CompletionTokens: 20},
-	}, nil)
-	env.llm.EXPECT().PromptVersion().Return("v1")
-	env.validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil)
-
-	env.store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
-	env.store.EXPECT().CreateVersion(mock.Anything, mock.MatchedBy(func(version domain.Version) bool {
-		return version.Source == domain.VersionSourcePatch && version.Number == 2
+	env.store.EXPECT().InsertGameJob(mock.Anything, mock.MatchedBy(func(job domain.GameJob) bool {
+		return job.Kind == domain.JobKindPatch && job.GameID == gameID
 	})).Return(nil)
-	env.store.EXPECT().InsertOutboxEvent(mock.Anything, mock.MatchedBy(func(event domain.Event) bool {
-		return event.Type == domain.EventGamePatched
-	})).Return(nil)
+	env.store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusPatching, "").Return(nil)
+	env.store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 
 	body := strings.NewReader(`{"text":"сделай кнопки больше"}`)
 	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/patch", body))
 	rec := env.do(req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusAccepted, rec.Body.String())
 	}
 
 	var output dto.PatchGameOutput
@@ -262,8 +249,8 @@ func TestPatchCreatesVersionAndCharges(t *testing.T) {
 		t.Fatalf("decode output: %v", err)
 	}
 
-	if output.VersionID == uuid.Nil || output.TokensSpent != 30 {
-		t.Errorf("output = %+v, want version id and 30 tokens", output)
+	if output.Status != string(domain.StatusPatching) {
+		t.Errorf("status = %q, want %q", output.Status, domain.StatusPatching)
 	}
 }
 
@@ -312,61 +299,6 @@ func TestPatchRejectsGameInProgress(t *testing.T) {
 
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusConflict, rec.Body.String())
-	}
-}
-
-func TestPatchRefundsOnRejectedResult(t *testing.T) {
-	t.Parallel()
-
-	env := newTestEnv(t)
-
-	userID := uuid.New()
-	gameID := uuid.New()
-
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML}
-
-	env.expectSession(userID)
-	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
-		ID:      gameID,
-		OwnerID: userID,
-		Status:  domain.StatusReady,
-	}, nil)
-	env.store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
-	env.store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{latest}, nil)
-	env.store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
-		ID:           userID,
-		TokenBalance: 100_000,
-	}, nil).Once()
-	env.store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(user domain.User) bool {
-		return user.TokenBalance == 60_000
-	})).Return(nil).Once()
-	env.store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
-		return op.Delta == -40_000
-	})).Return(nil).Once()
-
-	env.llm.EXPECT().Prompt("patch").Return("system prompt", nil)
-	env.llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil)
-	env.validator.EXPECT().Check(mock.Anything, gameHTML).Return([]domain.Issue{
-		{Code: "external_url", Message: "external url found"},
-	}, nil)
-
-	env.store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
-		ID:           userID,
-		TokenBalance: 60_000,
-	}, nil).Once()
-	env.store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(user domain.User) bool {
-		return user.TokenBalance == 100_000
-	})).Return(nil).Once()
-	env.store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
-		return op.Delta == 40_000 && op.Reason == domain.ReasonRefund
-	})).Return(nil).Once()
-
-	body := strings.NewReader(`{"text":"сделай кнопки больше"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/patch", body))
-	rec := env.do(req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusBadRequest, rec.Body.String())
 	}
 }
 
@@ -465,7 +397,7 @@ func TestRollbackCreatesVersion(t *testing.T) {
 	}
 }
 
-func TestFixRepairsGame(t *testing.T) {
+func TestFixAcceptsJob(t *testing.T) {
 	t.Parallel()
 
 	env := newTestEnv(t)
@@ -473,30 +405,33 @@ func TestFixRepairsGame(t *testing.T) {
 	userID := uuid.New()
 	gameID := uuid.New()
 
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML}
-
 	env.expectSession(userID)
 	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
 		ID:      gameID,
 		OwnerID: userID,
 		Status:  domain.StatusReady,
 	}, nil)
-	env.store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil).Once()
-	env.validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil).Once()
-	env.llm.EXPECT().Prompt("repair").Return("system prompt", nil)
-	env.llm.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil)
-	env.validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil).Once()
-	env.store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil).Once()
-	env.store.EXPECT().CreateVersion(mock.Anything, mock.MatchedBy(func(version domain.Version) bool {
-		return version.Source == domain.VersionSourceRepair
+	env.store.EXPECT().InsertGameJob(mock.Anything, mock.MatchedBy(func(job domain.GameJob) bool {
+		return job.Kind == domain.JobKindFix && job.Instruction == "не работает прыжок"
 	})).Return(nil)
+	env.store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusPatching, "").Return(nil)
+	env.store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 
 	body := strings.NewReader(`{"error":"не работает прыжок"}`)
 	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/fix", body))
 	rec := env.do(req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusAccepted, rec.Body.String())
+	}
+
+	var output dto.FixGameOutput
+	if err := json.NewDecoder(rec.Body).Decode(&output); err != nil {
+		t.Fatalf("decode output: %v", err)
+	}
+
+	if output.Status != string(domain.StatusPatching) {
+		t.Errorf("status = %q, want %q", output.Status, domain.StatusPatching)
 	}
 }
 
@@ -511,7 +446,7 @@ func TestRateGameReturnsAggregate(t *testing.T) {
 	env.expectSession(userID)
 	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
 		ID:      gameID,
-		OwnerID: userID,
+		OwnerID: uuid.New(),
 		Status:  domain.StatusReady,
 	}, nil)
 	env.store.EXPECT().UpsertRating(mock.Anything, mock.MatchedBy(func(rating domain.Rating) bool {
@@ -538,6 +473,39 @@ func TestRateGameReturnsAggregate(t *testing.T) {
 
 	if output.Rating != 5 || output.Aggregate.Average != 4.5 {
 		t.Errorf("output = %+v, want rating 5 and average 4.5", output)
+	}
+}
+
+func TestRateGameRejectsOwnerRating(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	env.expectSession(ownerID)
+	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: ownerID,
+		Status:  domain.StatusReady,
+	}, nil)
+
+	body := strings.NewReader(`{"value":5}`)
+	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rate", body))
+	rec := env.do(req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+
+	var envelope errorBody
+	if err := json.NewDecoder(rec.Body).Decode(&envelope); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
+
+	if envelope.Error.Code != "cannot_rate_own_game" {
+		t.Errorf("code = %q, want cannot_rate_own_game", envelope.Error.Code)
 	}
 }
 

@@ -24,8 +24,8 @@ func (u *UseCase) Rate(ctx context.Context, input dto.RateGameInput) (dto.RateGa
 		return output, fmt.Errorf("store.GetGame: %w", err)
 	}
 
-	if !game.IsOwner(input.UserID) {
-		return output, domain.ErrForbidden
+	if game.IsOwner(input.UserID) {
+		return output, domain.ErrCannotRateOwnGame
 	}
 
 	rating, err := domain.NewRating(input.GameID, input.UserID, domain.RatingValue(input.Value))

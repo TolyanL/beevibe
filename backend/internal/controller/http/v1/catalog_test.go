@@ -22,14 +22,15 @@ func TestCatalogReturnsCards(t *testing.T) {
 	gameID := uuid.New()
 
 	env.store.EXPECT().ListCatalog(mock.Anything, dto.CatalogFilter{
+		Q:      "змей",
 		Sort:   "fresh",
 		Limit:  20,
 		Offset: 0,
 	}).Return([]dto.CatalogCard{
-		{ID: gameID, Prompt: "змейка", Genre: "snake", Rating: dto.RatingAggregate{Average: 5}},
-	}, nil)
+		{ID: gameID, Prompt: "неоновая змейка", Genre: "snake", Rating: dto.RatingAggregate{Average: 5}},
+	}, 1, nil)
 
-	rec := env.do(httptest.NewRequest(http.MethodGet, "/catalog?sort=fresh", nil))
+	rec := env.do(httptest.NewRequest(http.MethodGet, "/catalog?sort=fresh&q=%D0%B7%D0%BC%D0%B5%D0%B9", nil))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
@@ -42,6 +43,10 @@ func TestCatalogReturnsCards(t *testing.T) {
 
 	if len(output.Items) != 1 || output.Items[0].ID != gameID {
 		t.Errorf("items = %+v, want one card of game %s", output.Items, gameID)
+	}
+
+	if output.Total != 1 {
+		t.Errorf("total = %d, want 1", output.Total)
 	}
 }
 
@@ -71,12 +76,12 @@ func TestProfileReturnsBalanceGamesAndOps(t *testing.T) {
 		Email:        domain.Email(testEmail),
 		TokenBalance: 680_000,
 	}, nil)
-	env.store.EXPECT().ListUserGamesWithCost(mock.Anything, userID, 50, 0).Return([]dto.ProfileGame{
+	env.store.EXPECT().ListUserGames(mock.Anything, userID, dto.ListUserGamesInput{Limit: 20}).Return([]dto.ProfileGame{
 		{ID: gameID, Prompt: "змейка", Status: "ready", TokensCost: 320_000},
-	}, nil)
-	env.store.EXPECT().ListTokenOps(mock.Anything, userID, 50).Return([]domain.TokenOp{
+	}, 1, nil)
+	env.store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: 20}).Return([]domain.TokenOp{
 		{UserID: userID, GameID: &gameID, Delta: -320_000, Reason: domain.ReasonGenerate},
-	}, nil)
+	}, 1, nil)
 
 	req := env.authorized(httptest.NewRequest(http.MethodGet, "/profile", nil))
 	rec := env.do(req)
@@ -111,6 +116,7 @@ func TestTopupCreditsBalance(t *testing.T) {
 	userID := uuid.New()
 
 	env.expectSession(userID)
+	env.store.EXPECT().SumTopupsSince(mock.Anything, userID, mock.Anything).Return(int64(0), nil)
 	env.store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
 		ID:           userID,
 		TokenBalance: 100,
@@ -122,7 +128,7 @@ func TestTopupCreditsBalance(t *testing.T) {
 		return op.Delta == 500_000 && op.Reason == domain.ReasonTopup
 	})).Return(nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/profile/topup", strings.NewReader(`{}`)))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, "/profile/topup", strings.NewReader(`{"amount":500000}`)))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {

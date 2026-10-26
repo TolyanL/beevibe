@@ -48,9 +48,14 @@ llm_reasoning:
 
 tokens:
   grant_signup: 1000000
-  grant_topup: 500000
   price_generate: 320000
   price_patch: 40000
+  price_meta: 10000
+  # Демо-пополнение: сумма за раз и суточный лимит на пользователя.
+  topup_min: 10000
+  topup_max: 1000000
+  topup_daily_cap: 5000000
+  demo_topup: true
 
 worker:
   concurrency: 2

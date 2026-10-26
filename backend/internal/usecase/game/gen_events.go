@@ -12,19 +12,34 @@ import (
 	"github.com/TolyanL/beevibe/internal/dto"
 )
 
+const (
+	metaStage          = "meta"
+	stageStatusRunning = "running"
+)
+
 type artifact struct {
 	Kind    string `json:"kind"`
 	Content any    `json:"content"`
 }
 
 func (u *UseCase) emitStageEvent(ctx context.Context, gameID uuid.UUID, stage domain.Status, status string, durationMs int64, issues int) error {
-	payload := dto.Stage{
+	return u.emitStage(ctx, gameID, dto.Stage{
 		Stage:      string(stage),
 		Status:     status,
 		DurationMs: durationMs,
 		Issues:     issues,
-	}
+	})
+}
 
+func (u *UseCase) emitOperationStageEvent(ctx context.Context, gameID uuid.UUID, kind domain.JobKind, status string) error {
+	return u.emitStage(ctx, gameID, dto.Stage{
+		Stage:     string(domain.StatusPatching),
+		Status:    status,
+		Operation: kind.String(),
+	})
+}
+
+func (u *UseCase) emitStage(ctx context.Context, gameID uuid.UUID, payload dto.Stage) error {
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("json.Marshal: %w", err)

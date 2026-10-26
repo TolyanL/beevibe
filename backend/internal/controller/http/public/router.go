@@ -23,14 +23,9 @@ func NewRouter(h *Handlers) http.Handler {
 }
 
 func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
-	gameID, err := parseGameID(r)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "not_found", "game not found")
+	gameID, slug := parseGameRef(r)
 
-		return
-	}
-
-	output, err := h.usecase.Game.GetPublic(r.Context(), dto.GetGamePublicInput{GameID: gameID})
+	output, err := h.usecase.Game.GetPublic(r.Context(), dto.GetGamePublicInput{GameID: gameID, Slug: slug})
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "game not found")
 
@@ -45,14 +40,9 @@ func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) DownloadGame(w http.ResponseWriter, r *http.Request) {
-	gameID, err := parseGameID(r)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "not_found", "game not found")
+	gameID, slug := parseGameRef(r)
 
-		return
-	}
-
-	output, err := h.usecase.Game.GetPublic(r.Context(), dto.GetGamePublicInput{GameID: gameID})
+	output, err := h.usecase.Game.GetPublic(r.Context(), dto.GetGamePublicInput{GameID: gameID, Slug: slug})
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "game not found")
 

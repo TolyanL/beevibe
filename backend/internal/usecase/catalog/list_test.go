@@ -32,7 +32,7 @@ func TestListAppliesDefaultLimit(t *testing.T) {
 		Genre:  "snake",
 		Limit:  20,
 		Offset: 0,
-	}).Return(cards, nil)
+	}).Return(cards, 40, nil)
 
 	output, err := uc.List(context.Background(), dto.ListCatalogInput{
 		Sort:  "rating",
@@ -55,7 +55,7 @@ func TestListKeepsExplicitLimit(t *testing.T) {
 	store.EXPECT().ListCatalog(mock.Anything, dto.CatalogFilter{
 		Limit:  5,
 		Offset: 10,
-	}).Return([]dto.CatalogCard{}, nil)
+	}).Return([]dto.CatalogCard{}, 0, nil)
 
 	if _, err := uc.List(context.Background(), dto.ListCatalogInput{Limit: 5, Offset: 10}); err != nil {
 		t.Fatalf("List() error = %v, want nil", err)
@@ -78,10 +78,28 @@ func TestListFailsWhenStoreFails(t *testing.T) {
 
 	uc, store := newTestUseCase(t)
 
-	store.EXPECT().ListCatalog(mock.Anything, mock.Anything).Return(nil, errors.New("db is down"))
+	store.EXPECT().ListCatalog(mock.Anything, mock.Anything).Return(nil, 0, errors.New("db is down"))
 
 	_, err := uc.List(context.Background(), dto.ListCatalogInput{})
 	if err == nil {
 		t.Fatal("List() error = nil, want error")
+	}
+}
+
+func TestListSearchesAcrossWholeCatalog(t *testing.T) {
+	t.Parallel()
+
+	uc, store := newTestUseCase(t)
+
+	store.EXPECT().ListCatalog(mock.Anything, dto.CatalogFilter{Q: "змей", Limit: 20, Offset: 0}).
+		Return([]dto.CatalogCard{{ID: uuid.New(), Prompt: "неоновая змейка", Genre: "snake"}}, 2, nil)
+
+	output, err := uc.List(context.Background(), dto.ListCatalogInput{Q: "  змей  "})
+	if err != nil {
+		t.Fatalf("List() error = %v, want nil", err)
+	}
+
+	if len(output.Items) != 1 || output.Total != 2 {
+		t.Errorf("output = %+v, want one item with total 2", output)
 	}
 }

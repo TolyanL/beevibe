@@ -16,7 +16,7 @@ func (p *Postgres) ClaimQueuedGame(ctx context.Context) (domain.Game, error) {
 
 	const sql = `WITH claimed AS (
 	                 SELECT id FROM games
-	                 WHERE status = 'queued'
+	                 WHERE status = 'queued' AND deleted_at IS NULL
 	                 ORDER BY created_at
 	                 FOR UPDATE SKIP LOCKED
 	                 LIMIT 1
@@ -26,7 +26,8 @@ func (p *Postgres) ClaimQueuedGame(ctx context.Context) (domain.Game, error) {
 	             FROM claimed
 	             WHERE g.id = claimed.id
 	             RETURNING g.id, g.owner_id, g.prompt, g.params_json, g.spec_json, g.config_json,
-	                       g.status, g.fail_reason, g.created_at, g.updated_at`
+	                       g.status, g.fail_reason, g.visibility, g.deleted_at,
+	                       g.title, g.description, g.cover_json, g.slug, g.created_at, g.updated_at`
 
 	row := gameRow{}
 

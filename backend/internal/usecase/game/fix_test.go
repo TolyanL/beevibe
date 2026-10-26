@@ -13,31 +13,24 @@ import (
 	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
-func TestFixRepairsBrokenGame(t *testing.T) {
+func TestFixEnqueuesJob(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llmMock, validator, _ := newTestUseCase(t)
+	uc, store, _, _, _ := newTestUseCase(t)
 
 	userID := uuid.New()
 	gameID := uuid.New()
 
-	game := domain.Game{ID: gameID, OwnerID: userID, Status: domain.StatusReady}
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 2, HTML: gameHTML}
-
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(game, nil)
-	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
-
-	llmMock.EXPECT().Prompt("repair").Return("system prompt", nil)
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{
-		Text:  gameHTML,
-		Usage: llm.Usage{PromptTokens: 5, CompletionTokens: 10},
-	}, nil).Once()
-
-	validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil)
-
-	store.EXPECT().CreateVersion(mock.Anything, mock.MatchedBy(func(version domain.Version) bool {
-		return version.Source == domain.VersionSourceRepair && version.Number == 3
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusReady,
+	}, nil)
+	store.EXPECT().InsertGameJob(mock.Anything, mock.MatchedBy(func(job domain.GameJob) bool {
+		return job.GameID == gameID && job.Kind == domain.JobKindFix && job.Instruction == "не работает прыжок"
 	})).Return(nil)
+	store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusPatching, "").Return(nil)
+	store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 
 	output, err := uc.Fix(context.Background(), dto.FixGameInput{
 		UserID: userID,
@@ -48,8 +41,8 @@ func TestFixRepairsBrokenGame(t *testing.T) {
 		t.Fatalf("Fix() error = %v, want nil", err)
 	}
 
-	if output.VersionID == uuid.Nil {
-		t.Error("version id = nil, want uuid")
+	if output.Status != string(domain.StatusPatching) {
+		t.Errorf("status = %q, want %q", output.Status, domain.StatusPatching)
 	}
 }
 
@@ -98,19 +91,22 @@ func TestFixRejectsGameInProgress(t *testing.T) {
 	}
 }
 
-func TestFixStopsAfterFixLimit(t *testing.T) {
+func TestRunFixJobStopsAfterFixLimit(t *testing.T) {
 	t.Parallel()
 
 	uc, store, llmMock, validator, _ := newTestUseCase(t)
 
-	userID := uuid.New()
+	ownerID := uuid.New()
 	gameID := uuid.New()
 
-	game := domain.Game{ID: gameID, OwnerID: userID, Status: domain.StatusReady}
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML}
-
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(game, nil)
-	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: ownerID,
+		Status:  domain.StatusPatching,
+	}, nil)
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
+	}, nil)
 
 	llmMock.EXPECT().Prompt("repair").Return("system prompt", nil).Times(2)
 	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Times(2)
@@ -119,12 +115,13 @@ func TestFixStopsAfterFixLimit(t *testing.T) {
 		{Code: "js_syntax", Message: "syntax error"},
 	}, nil).Times(3)
 
-	_, err := uc.Fix(context.Background(), dto.FixGameInput{
-		UserID: userID,
-		GameID: gameID,
-		Error:  "игра падает",
-	})
+	store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusReady, "").Return(nil)
+	store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
+
+	job := domain.GameJob{ID: uuid.New(), GameID: gameID, OwnerID: ownerID, Kind: domain.JobKindFix}
+
+	err := uc.RunJob(context.Background(), job)
 	if !errors.Is(err, domain.ErrFixLimitReached) {
-		t.Fatalf("Fix() error = %v, want ErrFixLimitReached", err)
+		t.Fatalf("RunJob() error = %v, want ErrFixLimitReached", err)
 	}
 }

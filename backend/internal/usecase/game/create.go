@@ -12,8 +12,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
 
-const operationCreateGame = "create_game"
-
 func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.CreateGameOutput, error) {
 	ctx, span := tracer.Start(ctx, "usecase game Create")
 	defer span.End()
@@ -38,6 +36,12 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 	game, err := domain.NewGame(input.UserID, input.Prompt, buildParams(input))
 	if err != nil {
 		return output, fmt.Errorf("domain.NewGame: %w", err)
+	}
+
+	if input.Title != "" {
+		if err := game.SetMeta(input.Title, "", nil); err != nil {
+			return output, fmt.Errorf("game.SetMeta: %w", err)
+		}
 	}
 
 	err = transaction.Wrap(ctx, func(ctx context.Context) error {
@@ -74,7 +78,7 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 		return nil
 	})
 	if err != nil {
-		u.releaseIdempotencyKey(ctx, input)
+		u.releaseIdempotencyKey(ctx, input.IdempotencyKey, operationCreateGame)
 
 		return output, fmt.Errorf("transaction.Wrap: %w", err)
 	}
@@ -120,21 +124,19 @@ func (u *UseCase) replayCreateGame(ctx context.Context, input dto.CreateGameInpu
 	return &dto.CreateGameOutput{ID: game.ID, Status: string(game.Status)}, nil
 }
 
-func (u *UseCase) releaseIdempotencyKey(ctx context.Context, input dto.CreateGameInput) {
-	if input.IdempotencyKey == "" {
-		return
-	}
-
-	if err := u.store.DeleteIdempotencyKey(ctx, input.IdempotencyKey, operationCreateGame); err != nil {
-		return
-	}
-}
-
 func buildParams(input dto.CreateGameInput) domain.GameParams {
 	params := domain.GameParams{
 		Genre:   domain.Genre(input.Genre),
 		MapSize: domain.MapSize(input.MapSize),
 		Style:   domain.Style(input.Style),
+	}
+
+	if label, err := domain.NewCustomLabel(input.CustomGenre); err == nil {
+		params.CustomGenre = label
+	}
+
+	if label, err := domain.NewCustomLabel(input.CustomStyle); err == nil {
+		params.CustomStyle = label
 	}
 
 	if input.Tempo != nil {

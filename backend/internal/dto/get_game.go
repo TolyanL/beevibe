@@ -13,6 +13,12 @@ type Stage struct {
 	Status     string `json:"status"`
 	DurationMs int64  `json:"durationMs"`
 	Issues     int    `json:"issues,omitempty"`
+	Operation  string `json:"operation,omitempty"`
+}
+
+type ActiveOperation struct {
+	Kind      string    `json:"kind"`
+	StartedAt time.Time `json:"started_at"`
 }
 
 type Version struct {
@@ -38,12 +44,24 @@ type GetGameInput struct {
 }
 
 type GetGameOutput struct {
-	Status   string             `json:"status"`
-	Stages   []Stage            `json:"stages"`
-	Spec     *domain.GameSpec   `json:"spec,omitempty"`
-	Config   *domain.GameConfig `json:"config,omitempty"`
-	Versions []Version          `json:"versions"`
-	Cost     GameCost           `json:"cost"`
-	Rating   RatingAggregate    `json:"rating"`
-	MyRating int                `json:"my_rating"`
+	ID         uuid.UUID          `json:"id"`
+	Prompt     string             `json:"prompt"`
+	Params     domain.GameParams  `json:"params"`
+	Status     string             `json:"status"`
+	FailReason string             `json:"fail_reason,omitempty"`
+	Visibility  string            `json:"visibility"`
+	Title       string            `json:"title"`
+	Slug        string            `json:"slug"`
+	Description string            `json:"description"`
+	Cover       *domain.GameCover `json:"cover,omitempty"`
+	CreatedAt  time.Time          `json:"created_at"`
+	Stages     []Stage            `json:"stages"`
+	Spec       *domain.GameSpec   `json:"spec,omitempty"`
+	Config     *domain.GameConfig `json:"config,omitempty"`
+	Versions   []Version          `json:"versions"`
+	Cost       GameCost           `json:"cost"`
+	Rating     RatingAggregate    `json:"rating"`
+	MyRating   int                `json:"my_rating"`
+	Operation  *ActiveOperation   `json:"operation,omitempty"`
+	Cursor     int64              `json:"cursor"`
 }

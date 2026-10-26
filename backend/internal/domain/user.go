@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -14,9 +15,12 @@ type Email string
 
 type PasswordHash string
 
+const DisplayNameMaxLength = 40
+
 type User struct {
 	ID           uuid.UUID    `json:"id"`
 	Email        Email        `json:"email"          validate:"required,email"`
+	DisplayName  string       `json:"display_name"   validate:"max=40"`
 	PasswordHash PasswordHash `json:"-"               validate:"required"`
 	TokenBalance int64        `json:"token_balance"`
 	CreatedAt    time.Time    `json:"created_at"`
@@ -40,6 +44,36 @@ func NewUser(email, passwordHash string, balance int64) (User, error) {
 	}
 
 	return u, nil
+}
+
+func (u *User) SetDisplayName(name string) error {
+	name = strings.TrimSpace(name)
+
+	if len([]rune(name)) > DisplayNameMaxLength {
+		return fmt.Errorf("%w: display name is longer than %d characters", ErrInvalidInput, DisplayNameMaxLength)
+	}
+
+	if hasControlRunes(name) {
+		return fmt.Errorf("%w: display name must not contain control characters", ErrInvalidInput)
+	}
+
+	u.DisplayName = name
+
+	return nil
+}
+
+func (u User) PublicName() string {
+	if name := strings.TrimSpace(u.DisplayName); name != "" {
+		return name
+	}
+
+	local := string(u.Email)
+
+	if at := strings.Index(local, "@"); at > 0 {
+		local = local[:at]
+	}
+
+	return local
 }
 
 func (u User) Validate() error {

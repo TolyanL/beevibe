@@ -26,7 +26,7 @@ var statusTransitions = map[Status][]Status{
 	StatusAssembling: {StatusChecking, StatusFailed},
 	StatusChecking:   {StatusReady, StatusFailed, StatusPatching},
 	StatusReady:      {StatusPatching, StatusFailed},
-	StatusPatching:   {StatusChecking, StatusFailed},
+	StatusPatching:   {StatusChecking, StatusFailed, StatusReady},
 	StatusFailed:     {},
 }
 

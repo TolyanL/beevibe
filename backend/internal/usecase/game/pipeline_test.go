@@ -67,7 +67,7 @@ func TestRunPipelineReachesReady(t *testing.T) {
 	}
 }
 
-func TestRunPipelineFailsAndRefundsWhenValidationFails(t *testing.T) {
+func TestRunPipelineFailsWithoutRefundAfterLLMReply(t *testing.T) {
 	t.Parallel()
 
 	uc, store, llmMock, validator, outbox := newTestUseCase(t)
@@ -100,13 +100,7 @@ func TestRunPipelineFailsAndRefundsWhenValidationFails(t *testing.T) {
 	store.EXPECT().UpdateGameStatus(mock.Anything, game.ID, mock.Anything, mock.Anything).Return(nil)
 	store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 	outbox.EXPECT().InsertOutboxEvent(mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().GetUserByIDForUpdate(mock.Anything, game.OwnerID).Return(user, nil)
-	store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(updated domain.User) bool {
-		return updated.TokenBalance == 320
-	})).Return(nil)
-	store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
-		return op.Delta == 320 && op.Reason == domain.ReasonRefund
-	})).Return(nil)
+	store.EXPECT().GetUserByIDForUpdate(mock.Anything, game.OwnerID).Return(user, nil).Maybe()
 
 	err := uc.RunPipeline(context.Background(), game)
 	if !errors.Is(err, domain.ErrValidationFailed) {

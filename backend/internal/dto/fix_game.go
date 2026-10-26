@@ -10,7 +10,8 @@ type FixGameInput struct {
 	UserID uuid.UUID
 	GameID uuid.UUID
 
-	Error string `json:"error" validate:"omitempty,max=2000"`
+	Error          string `json:"error" validate:"omitempty,max=2000"`
+	IdempotencyKey string `json:"-"`
 }
 
 func (i FixGameInput) Validate() error {
@@ -22,5 +23,5 @@ func (i FixGameInput) Validate() error {
 }
 
 type FixGameOutput struct {
-	VersionID uuid.UUID `json:"versionId"`
+	Status string `json:"status"`
 }

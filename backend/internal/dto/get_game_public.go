@@ -6,6 +6,7 @@ import (
 
 type GetGamePublicInput struct {
 	GameID uuid.UUID
+	Slug   string
 }
 
 type GetGamePublicOutput struct {

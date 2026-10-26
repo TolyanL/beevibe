@@ -21,13 +21,18 @@ func TestListCatalogBuildsRatingAndPlaytime(t *testing.T) {
 	gameID := uuid.New()
 	createdAt := time.Now().UTC()
 
-	db.EXPECT().Query(mock.Anything, mock.Anything, pgtest.Args("snake", 20, 0)).Return(pgtest.Rows(t,
-		[]any{gameID, "змейка", "snake", "medium", "neon", createdAt, 4.5, 4, []int32{0, 0, 1, 2, 1}, 2, 1800, 320, 6},
+	db.EXPECT().Query(mock.Anything, mock.Anything, pgtest.Args("snake", "", 20, 0)).Return(pgtest.Rows(t,
+		[]any{1, gameID, "змейка", "Змейка", "описание", nil, "zmeyka-1a2b", "bee", uuid.New(),
+			"snake", "", "", "medium", "neon", createdAt, 4.5, 4, []int32{0, 0, 1, 2, 1}, 2, 1800, 320, 6},
 	), nil)
 
-	cards, err := postgres.ListCatalog(ctx, dto.CatalogFilter{Genre: "snake", Limit: 20})
+	cards, total, err := postgres.ListCatalog(ctx, dto.CatalogFilter{Genre: "snake", Limit: 20})
 	if err != nil {
 		t.Fatalf("ListCatalog() error = %v, want nil", err)
+	}
+
+	if total != 1 {
+		t.Errorf("total = %d, want 1", total)
 	}
 
 	if len(cards) != 1 {
@@ -64,10 +69,11 @@ func TestListCatalogKeepsRatingEmptyWithoutVotes(t *testing.T) {
 	postgres := New(nil)
 
 	db.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything).Return(pgtest.Rows(t,
-		[]any{uuid.New(), "змейка", "", "", "", time.Now().UTC(), 0.0, 0, []int32{0, 0, 0, 0, 0}, 0, 0, 0, 0},
+		[]any{1, uuid.New(), "змейка", "", "", nil, "zmeyka-1a2b", "bee", uuid.New(),
+			"", "", "", "", "", time.Now().UTC(), 0.0, 0, []int32{0, 0, 0, 0, 0}, 0, 0, 0, 0},
 	), nil)
 
-	cards, err := postgres.ListCatalog(ctx, dto.CatalogFilter{Limit: 20})
+	cards, _, err := postgres.ListCatalog(ctx, dto.CatalogFilter{Limit: 20})
 	if err != nil {
 		t.Fatalf("ListCatalog() error = %v, want nil", err)
 	}
@@ -86,7 +92,7 @@ func TestListCatalogWrapsQueryError(t *testing.T) {
 	db.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, errors.New("connection reset"))
 
-	if _, err := postgres.ListCatalog(ctx, dto.CatalogFilter{}); err == nil {
+	if _, _, err := postgres.ListCatalog(ctx, dto.CatalogFilter{}); err == nil {
 		t.Fatal("ListCatalog() error = nil, want error")
 	}
 }
@@ -109,5 +115,30 @@ func TestCatalogOrderBy(t *testing.T) {
 		if got := catalogOrderBy(tt.sort); got != tt.want {
 			t.Errorf("catalogOrderBy(%q) = %q, want %q", tt.sort, got, tt.want)
 		}
+	}
+}
+
+func TestListCatalogFiltersByPromptSubstring(t *testing.T) {
+	t.Parallel()
+
+	db, ctx := pgtest.DB(t)
+	postgres := New(nil)
+
+	db.EXPECT().Query(mock.Anything, mock.Anything, pgtest.Args("", "змей", 20, 0)).Return(pgtest.Rows(t,
+		[]any{2, uuid.New(), "неоновая змейка", "", "", nil, "neon-snake-1a2b", "bee", uuid.New(),
+			"snake", "", "", "small", "neon", time.Now().UTC(), 0.0, 0, []int32{0, 0, 0, 0, 0}, 0, 0, 0, 0},
+	), nil)
+
+	cards, total, err := postgres.ListCatalog(ctx, dto.CatalogFilter{Q: "змей", Limit: 20})
+	if err != nil {
+		t.Fatalf("ListCatalog() error = %v, want nil", err)
+	}
+
+	if total != 2 {
+		t.Errorf("total = %d, want 2", total)
+	}
+
+	if len(cards) != 1 || cards[0].Prompt != "неоновая змейка" {
+		t.Errorf("cards = %+v, want one змейка card", cards)
 	}
 }

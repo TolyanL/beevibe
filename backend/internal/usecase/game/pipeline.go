@@ -75,6 +75,9 @@ func (u *UseCase) RunPipeline(ctx context.Context, game domain.Game) error {
 	ctx, cancel := context.WithTimeout(ctx, u.worker.Timeout)
 	defer cancel()
 
+	ctx, release := u.trackTask(game.ID, cancel, ctx)
+	defer release()
+
 	p := &pipeline{game: game}
 
 	if err := u.stepAnalyze(ctx, p); err != nil {
@@ -442,6 +445,7 @@ func (u *UseCase) complete(
 
 	p.calls++
 	p.tokens += resp.TotalTokens()
+	u.markReplied(ctx)
 
 	return resp.Text, nil
 }
@@ -480,26 +484,10 @@ func (u *UseCase) failGame(ctx context.Context, p *pipeline, cause error) error 
 			return fmt.Errorf("store.UpdateGameStatus: %w", err)
 		}
 
-		user, err := u.store.GetUserByIDForUpdate(ctx, p.game.OwnerID)
-		if err != nil {
-			return fmt.Errorf("store.GetUserByIDForUpdate: %w", err)
-		}
-
-		if err := user.Credit(u.tokens.PriceGenerate); err != nil {
-			return fmt.Errorf("user.Credit: %w", err)
-		}
-
-		if err := u.store.UpdateUser(ctx, user); err != nil {
-			return fmt.Errorf("store.UpdateUser: %w", err)
-		}
-
-		op, err := domain.NewTokenOp(user.ID, &p.game.ID, u.tokens.PriceGenerate, domain.ReasonRefund)
-		if err != nil {
-			return fmt.Errorf("domain.NewTokenOp: %w", err)
-		}
-
-		if err := u.store.InsertTokenOp(ctx, op); err != nil {
-			return fmt.Errorf("store.InsertTokenOp: %w", err)
+		if !u.replied(p.game.ID) {
+			if err := u.refundInTx(ctx, p.game.OwnerID, p.game.ID, u.tokens.PriceGenerate); err != nil {
+				return fmt.Errorf("u.refundInTx: %w", err)
+			}
 		}
 
 		if err := u.publishEvent(ctx, p.game, domain.EventGameFailed, nil, p.tokens, reason); err != nil {

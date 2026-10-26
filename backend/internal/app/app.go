@@ -43,9 +43,13 @@ func Run(ctx context.Context, c config.Config) error {
 	uc := usecase.New(store, llmClient, validatorAdapter, authAdapter, producer, usecase.Config{
 		Tokens: usecase.Tokens{
 			GrantSignup:   c.Tokens.GrantSignup,
-			GrantTopup:    c.Tokens.GrantTopup,
 			PriceGenerate: c.Tokens.PriceGenerate,
 			PricePatch:    c.Tokens.PricePatch,
+			PriceMeta:     c.Tokens.PriceMeta,
+			TopupMin:      c.Tokens.TopupMin,
+			TopupMax:      c.Tokens.TopupMax,
+			TopupDailyCap: c.Tokens.TopupDailyCap,
+			DemoTopup:     c.Tokens.DemoTopup,
 		},
 		Reasoning: usecase.LLMReasoning{
 			Analyze:  c.LLMReasoning.Analyzer,
@@ -56,6 +60,7 @@ func Run(ctx context.Context, c config.Config) error {
 			Assemble: c.LLMReasoning.Assembler,
 			Patch:    c.LLMReasoning.Patch,
 			Repair:   c.LLMReasoning.Repair,
+			Meta:     c.LLMReasoning.Meta,
 		},
 		Worker: usecase.Worker{
 			Timeout:         c.Worker.Timeout,

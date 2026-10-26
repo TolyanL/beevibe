@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,9 +18,13 @@ import (
 type Store interface {
 	CreateGame(ctx context.Context, game domain.Game) error
 	GetGame(ctx context.Context, gameID uuid.UUID) (domain.Game, error)
+	GetGameBySlug(ctx context.Context, slug string) (domain.Game, error)
+	DeleteGame(ctx context.Context, game domain.Game) error
+	UpdateGameVisibility(ctx context.Context, game domain.Game) error
+	UpdateGameMeta(ctx context.Context, game domain.Game) error
 	UpdateGame(ctx context.Context, game domain.Game) error
 	UpdateGameStatus(ctx context.Context, gameID uuid.UUID, status domain.Status, failReason string) error
-	ListUserGamesWithCost(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.ProfileGame, error)
+	ListUserGames(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput) ([]dto.ProfileGame, int, error)
 	ClaimQueuedGame(ctx context.Context) (domain.Game, error)
 
 	CreateVersion(ctx context.Context, version domain.Version) error
@@ -36,9 +42,13 @@ type Store interface {
 	InsertGenEvent(ctx context.Context, event domain.GenEvent) error
 	ListGenEvents(ctx context.Context, gameID uuid.UUID, afterSeq int64) ([]domain.GenEvent, error)
 
+	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
 	GetUserByIDForUpdate(ctx context.Context, userID uuid.UUID) (domain.User, error)
 	UpdateUser(ctx context.Context, user domain.User) error
 	InsertTokenOp(ctx context.Context, op domain.TokenOp) error
+
+	InsertGameJob(ctx context.Context, job domain.GameJob) error
+	ClaimGameJob(ctx context.Context) (domain.GameJob, error)
 
 	InsertIdempotencyKey(ctx context.Context, key, operation string, userID uuid.UUID) (bool, error)
 	GetIdempotencyResult(ctx context.Context, key, operation string) (string, bool, error)
@@ -59,6 +69,7 @@ type Outbox interface {
 type Tokens struct {
 	PriceGenerate int64
 	PricePatch    int64
+	PriceMeta     int64
 }
 
 type Reasoning struct {
@@ -70,6 +81,7 @@ type Reasoning struct {
 	Assemble llm.Effort
 	Patch    llm.Effort
 	Repair   llm.Effort
+	Meta     llm.Effort
 }
 
 type Worker struct {
@@ -78,7 +90,17 @@ type Worker struct {
 	MaxFixAttempts  int
 }
 
+type runningTask struct {
+	cancel  context.CancelFunc
+	replied atomic.Bool
+}
+
+type taskKey struct{}
+
 type UseCase struct {
+	mu      sync.Mutex
+	running map[uuid.UUID]*runningTask
+
 	store     Store
 	outbox    Outbox
 	llm       llm.LLM
@@ -98,6 +120,7 @@ func New(
 	worker Worker,
 ) *UseCase {
 	return &UseCase{
+		running:   make(map[uuid.UUID]*runningTask),
 		store:     store,
 		outbox:    outbox,
 		llm:       llmClient,

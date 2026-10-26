@@ -13,6 +13,7 @@ const (
 	ReasonSignupGrant TokenReason = "signup_grant"
 	ReasonGenerate    TokenReason = "generate"
 	ReasonPatch       TokenReason = "patch"
+	ReasonMeta        TokenReason = "meta"
 	ReasonTopup       TokenReason = "topup"
 	ReasonRefund      TokenReason = "refund"
 )

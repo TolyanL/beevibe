@@ -85,21 +85,50 @@ func TestTopupTokensCreditsBalance(t *testing.T) {
 	userID := uuid.New()
 	user := domain.User{ID: userID, Email: domain.Email(testEmail), TokenBalance: 100}
 
+	store.EXPECT().SumTopupsSince(mock.Anything, userID, mock.Anything).Return(int64(0), nil)
 	store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(user, nil)
 	store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(updated domain.User) bool {
-		return updated.TokenBalance == 100+500_000
+		return updated.TokenBalance == 100+250_000
 	})).Return(nil)
 	store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
-		return op.Delta == 500_000 && op.Reason == domain.ReasonTopup
+		return op.Delta == 250_000 && op.Reason == domain.ReasonTopup
 	})).Return(nil)
 
-	output, err := uc.TopupTokens(context.Background(), dto.TopupTokensInput{UserID: userID})
+	output, err := uc.TopupTokens(context.Background(), dto.TopupTokensInput{UserID: userID, Amount: 250_000})
 	if err != nil {
 		t.Fatalf("TopupTokens() error = %v, want nil", err)
 	}
 
-	if output.Balance != 100+500_000 {
-		t.Errorf("balance = %d, want %d", output.Balance, int64(100+500_000))
+	if output.Balance != 100+250_000 {
+		t.Errorf("balance = %d, want %d", output.Balance, int64(100+250_000))
+	}
+}
+
+func TestTopupTokensRejectsAmountOutsideLimits(t *testing.T) {
+	t.Parallel()
+
+	uc, _, _ := newTestUseCase(t)
+
+	for _, amount := range []int64{0, 9_999, 1_000_001} {
+		_, err := uc.TopupTokens(context.Background(), dto.TopupTokensInput{UserID: uuid.New(), Amount: amount})
+		if err == nil {
+			t.Fatalf("TopupTokens(%d) error = nil, want a limit error", amount)
+		}
+	}
+}
+
+func TestTopupTokensRejectsWhenDailyLimitReached(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _ := newTestUseCase(t)
+
+	userID := uuid.New()
+
+	store.EXPECT().SumTopupsSince(mock.Anything, userID, mock.Anything).Return(int64(4_900_000), nil)
+
+	_, err := uc.TopupTokens(context.Background(), dto.TopupTokensInput{UserID: userID, Amount: 200_000})
+	if !errors.Is(err, domain.ErrTopupLimitReached) {
+		t.Fatalf("TopupTokens() error = %v, want ErrTopupLimitReached", err)
 	}
 }
 
@@ -116,12 +145,12 @@ func TestGetProfileReturnsBalanceGamesAndOps(t *testing.T) {
 		Email:        domain.Email(testEmail),
 		TokenBalance: 777,
 	}, nil)
-	store.EXPECT().ListUserGamesWithCost(mock.Anything, userID, profileGamesLimit, 0).Return([]dto.ProfileGame{
+	store.EXPECT().ListUserGames(mock.Anything, userID, dto.ListUserGamesInput{Limit: profileGamesLimit}).Return([]dto.ProfileGame{
 		{ID: gameID, Prompt: "змейка", Status: "ready", TokensCost: 320},
-	}, nil)
-	store.EXPECT().ListTokenOps(mock.Anything, userID, profileGamesLimit).Return([]domain.TokenOp{
+	}, 1, nil)
+	store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: profileGamesLimit}).Return([]domain.TokenOp{
 		{UserID: userID, GameID: &gameID, Delta: -320, Reason: domain.ReasonGenerate},
-	}, nil)
+	}, 1, nil)
 
 	output, err := uc.GetProfile(context.Background(), dto.GetProfileInput{UserID: userID})
 	if err != nil {

@@ -14,11 +14,11 @@ func (p *Postgres) CreateUser(ctx context.Context, user domain.User) error {
 	ctx, span := tracer.Start(ctx, "adapter postgres CreateUser")
 	defer span.End()
 
-	const sql = `INSERT INTO users (id, email, password_hash, token_balance, created_at)
-	             VALUES ($1, $2, $3, $4, $5)`
+	const sql = `INSERT INTO users (id, email, display_name, password_hash, token_balance, created_at)
+	             VALUES ($1, $2, $3, $4, $5, $6)`
 
 	tag, err := transaction.TryExtractTX(ctx).Exec(ctx, sql,
-		user.ID, string(user.Email), string(user.PasswordHash), user.TokenBalance, user.CreatedAt)
+		user.ID, string(user.Email), user.DisplayName, string(user.PasswordHash), user.TokenBalance, user.CreatedAt)
 	if err != nil {
 		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrEmailTaken

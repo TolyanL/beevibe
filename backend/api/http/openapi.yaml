@@ -111,6 +111,32 @@ paths:
           $ref: "#/components/responses/Unauthorized"
 
   /profile:
+    patch:
+      tags: [profile]
+      summary: Обновить публичное имя автора
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                  maxLength: 40
+      responses:
+        "200":
+          description: Обновлённый пользователь
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     get:
       tags: [profile]
       summary: "Профиль: баланс, мои игры, история операций, цены"
@@ -129,9 +155,31 @@ paths:
   /profile/topup:
     post:
       tags: [profile]
-      summary: Пополнить баланс (демо-грант)
+      summary: Демо-пополнение баланса (без реальной оплаты)
+      description: >
+        Сумма ограничена `tokens.topup_min`/`tokens.topup_max`, суточный лимит —
+        `tokens.topup_daily_cap`. Выключается флагом `tokens.demo_topup`.
+        Заголовок `Idempotency-Key` защищает от двойного начисления при ретрае.
       security:
         - sessionCookie: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: integer
+                  format: int64
+                  minimum: 1
       responses:
         "200":
           description: Новый баланс
@@ -143,10 +191,74 @@ paths:
                   balance:
                     type: integer
                     format: int64
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Демо-пополнение выключено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Суточный лимит пополнений исчерпан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games:
+    get:
+      tags: [games]
+      summary: Список игр текущего пользователя с пагинацией
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [queued, analyzing, planning, coding, assets, reviewing, assembling, checking, patching, ready, failed]
+        - name: sort
+          in: query
+          description: Порядок выдачи
+          schema:
+            type: string
+            enum: [created_at, tokens_cost]
+            default: created_at
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Игры и общий счёт по фильтрам без учёта limit/offset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProfileGame"
+                  total:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /games:
     post:
       tags: [games]
       summary: Запустить генерацию игры
@@ -189,6 +301,33 @@ paths:
   /games/{id}:
     parameters:
       - $ref: "#/components/parameters/GameId"
+    delete:
+      tags: [games]
+      summary: Мягко удалить игру (deleted_at; пропадает из каталога и профиля)
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Игра помечена удалённой
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Игра сейчас правится
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     get:
       tags: [games]
       summary: "Полный профиль игры: статус, этапы, spec, конфиг, версии, цена"
@@ -208,6 +347,121 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /games/{id}/visibility:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    patch:
+      tags: [games]
+      summary: Опубликовать игру в каталоге или скрыть её
+      description: Публиковать можно только готовую игру; каталог показывает лишь `public`-игры.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visibility]
+              properties:
+                visibility:
+                  type: string
+                  enum: [public, private]
+      responses:
+        "200":
+          description: Новое значение видимости
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visibility:
+                    type: string
+                    enum: [public, private]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Игра не готова или уже правится
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}/meta:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    patch:
+      tags: [games]
+      summary: Название, описание и обложка игры (без LLM, бесплатно)
+      description: Частичное обновление — незаданные поля остаются как были.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameMetaRequest"
+      responses:
+        "200":
+          description: Сохранённая мета
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameMeta"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{id}/meta/generate:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Сгенерировать название, описание и обложку за токены
+      description: >
+        Списывает `tokens.price_meta` и ставит задачу в воркер: клиент получает `202`,
+        а результат приходит в SSE-поток событием `artifact{kind:"meta"}`.
+        При ошибке до первого ответа модели токены возвращаются.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Генерация поставлена в очередь
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [queued]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Не хватает токенов или игра сейчас правится
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /games/{id}/stream:
     parameters:
       - $ref: "#/components/parameters/GameId"
@@ -215,9 +469,12 @@ paths:
       tags: [games]
       summary: SSE-поток событий генерации
       description: >
-        События: `stage` (этап конвейера), `artifact` (spec/config),
-        `done` (финальная версия и цена), `error`. Поддерживается реконнект:
+        События: `stage` (этап конвейера, статусы `running`/`done`/`error`),
+        `artifact` (spec, config, version), `done` (финальная версия и цена),
+        `error` (код и текст ошибки). Событие приходит как `event: <type>` с JSON
+        в `data` и порядковым номером в `id`. Поддерживается реконнект:
         клиент шлёт `Last-Event-ID`, сервер доигрывает пропущенные события.
+        Патч и починка идут тем же потоком: этапы `patching` и `checking`.
       security:
         - sessionCookie: []
       parameters:
@@ -244,9 +501,20 @@ paths:
       - $ref: "#/components/parameters/GameId"
     post:
       tags: [games]
-      summary: Правка игры текстом (через LLM)
+      summary: Поставить правку игры текстом в очередь (LLM работает в воркере)
+      description: >
+        Запрос принимает правку, списывает токены и возвращает `202` со статусом `patching`.
+        Новая версия собирается асинхронно: прогресс и результат приходят в SSE-поток
+        `/games/{id}/stream` событиями `stage`, `artifact`, `done`, `error`.
+        Заголовок `Idempotency-Key` защищает от повторного списания при ретрае.
       security:
         - sessionCookie: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -259,24 +527,87 @@ paths:
                   type: string
                   maxLength: 4000
       responses:
-        "200":
-          description: Новая версия
+        "202":
+          description: Правка принята, версия появится в SSE-потоке
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameJobAccepted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Нет токенов, игра уже правится или запрос уже выполняется
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}/retry:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Перезапустить упавшую генерацию без нового списания
+      description: >
+        Доступно только для игры в статусе `failed`; игра возвращается в очередь с теми же
+        `prompt` и `params`, клиент получает `202 {status:"queued"}` и обычный SSE-поток.
+      security:
+        - sessionCookie: []
+      responses:
+        "202":
+          description: Игра снова в очереди конвейера
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  versionId:
+                  status:
                     type: string
-                    format: uuid
-                  tokensSpent:
-                    type: integer
-        "400":
-          $ref: "#/components/responses/BadRequest"
+                    enum: [queued]
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
-          description: Нет токенов или игра генерируется
+          description: Игра не в статусе failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Отменить идущую генерацию или правку
+      description: >
+        Отменяет задачу воркера и дожидается её остановки. Токены возвращаются, только если
+        модель ещё не ответила ни на один запрос; после первого ответа списание сохраняется.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Итоговый статус игры после отмены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Отменять нечего — задача не запущена или уже завершена
           content:
             application/json:
               schema:
@@ -344,9 +675,19 @@ paths:
       - $ref: "#/components/parameters/GameId"
     post:
       tags: [games]
-      summary: Починить упавшую игру (repair-агент)
+      summary: Поставить починку игры в очередь (repair-агент работает в воркере)
+      description: >
+        Запрос принимает починку и возвращает `202` со статусом `patching`.
+        Прогресс и результат приходят в SSE-поток `/games/{id}/stream`.
+        Заголовок `Idempotency-Key` защищает от повторной постановки задачи.
       security:
         - sessionCookie: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       requestBody:
         required: false
         content:
@@ -358,16 +699,18 @@ paths:
                   type: string
                   description: Текст ошибки из оверлея превью
       responses:
-        "200":
-          description: Новая версия
+        "202":
+          description: Починка принята, версия появится в SSE-потоке
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VersionResponse"
+                $ref: "#/components/schemas/GameJobAccepted"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
-          description: Игра генерируется или исчерпан лимит починок
+          description: Игра правится/генерируется или исчерпан лимит починок
           content:
             application/json:
               schema:
@@ -379,6 +722,7 @@ paths:
     post:
       tags: [games]
       summary: Оценка игры по пятибалльной шкале (одна на пользователя, изменяемая)
+      description: Автор игры не может оценивать собственную игру — такой запрос отклоняется с `403 cannot_rate_own_game`.
       security:
         - sessionCookie: []
       requestBody:
@@ -411,6 +755,12 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Запрос от автора игры — оценивать свою игру нельзя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /games/{id}/playtime:
     parameters:
@@ -447,11 +797,62 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /me/token-ops:
+    get:
+      tags: [profile]
+      summary: История операций с токенами (пагинация)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Операции и общий счёт без учёта limit/offset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProfileTokenOp"
+                  total:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /catalog:
     get:
       tags: [catalog]
       summary: Каталог игр со статистикой
       parameters:
+        - name: q
+          in: query
+          description: Полнотекстовый поиск по промпту игры (подстрока)
+          schema:
+            type: string
+            maxLength: 200
+        - name: q
+          in: query
+          description: Поиск по промпту игры (подстрока)
+          schema:
+            type: string
+            maxLength: 200
         - name: sort
           in: query
           schema:
@@ -488,6 +889,30 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/CatalogCard"
+                  total:
+                    description: Общее число карточек по фильтрам без учёта limit/offset
+                    type: integer
+
+  /games/{id}/public:
+    get:
+      tags: [public]
+      summary: Публичная карточка игры (метаданные и агрегаты, без HTML)
+      security:
+        - sessionCookie: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: Карточка игры; для авторизованного зрителя заполняется my_rating
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GamePublicCard"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /g/{id}:
     servers:
@@ -642,10 +1067,17 @@ components:
           format: uuid
         prompt:
           type: string
+        title:
+          type: string
+        slug:
+          type: string
         genre:
           type: string
         status:
           type: string
+        visibility:
+          type: string
+          enum: [public, private]
         tokens_cost:
           type: integer
         model_calls:
@@ -668,7 +1100,7 @@ components:
           format: int64
         reason:
           type: string
-          enum: [signup_grant, generate, patch, topup, refund]
+          enum: [signup_grant, generate, patch, meta, topup, refund]
         created_at:
           type: string
           format: date-time
@@ -705,6 +1137,10 @@ components:
           type: string
           minLength: 3
           maxLength: 2000
+        title:
+          type: string
+          maxLength: 80
+          description: Необязательное название игры
         genre:
           type: string
           enum: [arcade, snake, clicker, platformer, puzzle, custom]
@@ -717,7 +1153,15 @@ components:
           enum: [small, medium, large]
         style:
           type: string
-          enum: [pixel, cartoon, neon, minimal]
+          enum: [pixel, cartoon, neon, minimal, custom]
+        customGenre:
+          type: string
+          maxLength: 32
+          description: Своя механика, обязательна при genre=custom
+        customStyle:
+          type: string
+          maxLength: 32
+          description: Свой стиль, обязателен при style=custom
 
     CreateGameResponse:
       type: object
@@ -789,6 +1233,9 @@ components:
           format: int64
         issues:
           type: integer
+        operation:
+          type: string
+          description: Тип операции для этапа patching (patch/fix)
 
     Version:
       type: object
@@ -823,9 +1270,49 @@ components:
     Game:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        title:
+          type: string
+          description: Название игры; пустое, пока автор его не задал
+        description:
+          type: string
+        slug:
+          type: string
+          description: Читаемый идентификатор для публичных ссылок
+        cover:
+          $ref: "#/components/schemas/GameCover"
+        params:
+          type: object
+          properties:
+            genre:
+              type: string
+            custom_genre:
+              type: string
+            tempo:
+              type: integer
+            map_size:
+              type: string
+            style:
+              type: string
+            custom_style:
+              type: string
         status:
           type: string
           enum: [queued, analyzing, planning, coding, assets, reviewing, assembling, checking, ready, failed]
+        fail_reason:
+          type: string
+          description: Причина остановки конвейера, заполнен только в статусе failed
+        visibility:
+          type: string
+          enum: [public, private]
+          description: Видимость игры в каталоге; новые игры создаются private
+        created_at:
+          type: string
+          format: date-time
         stages:
           type: array
           items:
@@ -853,6 +1340,21 @@ components:
           type: integer
           minimum: 0
           maximum: 5
+        cursor:
+          type: integer
+          format: int64
+          description: Последний порядковый номер события генерации на момент ответа
+        operation:
+          nullable: true
+          description: Активная операция (патч/починка); null, когда игра не меняется
+          type: object
+          properties:
+            kind:
+              type: string
+              enum: [patch, fix, config, meta]
+            started_at:
+              type: string
+              format: date-time
 
     RatingAggregate:
       type: object
@@ -894,6 +1396,21 @@ components:
           type: string
         style:
           type: string
+        title:
+          type: string
+        description:
+          type: string
+        cover:
+          $ref: "#/components/schemas/GameCover"
+        author:
+          type: string
+          description: Публичное имя автора
+        slug:
+          type: string
+        custom_genre:
+          type: string
+        custom_style:
+          type: string
         created_at:
           type: string
           format: date-time
@@ -905,6 +1422,95 @@ components:
           type: integer
         model_calls:
           type: integer
+
+    GameCover:
+      type: object
+      properties:
+        palette:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: string
+            example: "#ffcc00"
+        style:
+          type: string
+        seed:
+          type: string
+
+    GameMeta:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 500
+        cover:
+          $ref: "#/components/schemas/GameCover"
+
+    GameMetaRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 500
+        cover:
+          $ref: "#/components/schemas/GameCover"
+
+    GameJobAccepted:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [patching]
+
+    GamePublicCard:
+      type: object
+      properties:
+        custom_genre:
+          type: string
+        custom_style:
+          type: string
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        author:
+          type: string
+        cover:
+          $ref: "#/components/schemas/GameCover"
+        genre:
+          type: string
+        style:
+          type: string
+        map_size:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        rating:
+          $ref: "#/components/schemas/RatingAggregate"
+        playtime:
+          $ref: "#/components/schemas/PlaytimeAggregate"
+        my_rating:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Оценка текущего зрителя, 0 если гость
+        is_owner:
+          type: boolean
+          description: true, если смотрит автор игры (автор не может оценивать свою игру)
 
     UpdateConfigRequest:
       type: object

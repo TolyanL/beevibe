@@ -46,6 +46,10 @@ func (w *Worker) loop(ctx context.Context) {
 		case <-w.stop:
 			return
 		case <-ticker.C:
+			if _, err := w.usecase.Game.RunNextGameJob(ctx); err != nil {
+				log.Error().Err(err).Msg("game job failed")
+			}
+
 			if _, err := w.usecase.Game.RunNextQueuedGame(ctx); err != nil {
 				log.Error().Err(err).Msg("generation failed")
 			}
