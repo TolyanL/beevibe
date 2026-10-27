@@ -99,7 +99,7 @@ async function submit(): Promise<void> {
 <template>
   <div class="pb-10 pt-8 sm:pt-12">
     <div class="app-container">
-      <div class="grid overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 shadow-panel lg:grid-cols-[.92fr_1.08fr]">
+      <div class="grid overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 shadow-panel lg:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]">
         <aside class="relative hidden overflow-hidden bg-[#10100d] p-8 text-white lg:flex lg:flex-col lg:justify-between">
           <div class="dot-grid absolute inset-0 opacity-20" />
           <div class="absolute -left-20 top-1/3 size-72 rounded-full bg-bee/10 blur-3xl" />

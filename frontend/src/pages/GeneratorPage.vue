@@ -234,7 +234,7 @@ onMounted(() => {
       <div class="app-container">
 
         <div class="panel overflow-hidden">
-          <div class="grid lg:grid-cols-[1.35fr_.65fr]">
+          <div class="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,.65fr)]">
             <form class="p-5 sm:p-7 lg:p-8" @submit.prevent="submit">
               <div class="flex items-center justify-between gap-3">
                 <label for="prompt" class="mono-label">Промпт игры</label>
@@ -285,13 +285,18 @@ onMounted(() => {
                 <div>
                   <label class="mono-label mb-2 block">Стиль</label>
                   <Select v-model="style" :options="styleOptions" option-label="label" option-value="value" />
-                  <InputText
+                  <Textarea
                     v-if="style === 'custom'"
                     v-model="customStyle"
-                    maxlength="32"
-                    class="mt-2 w-full"
-                    placeholder="Например: аниме-нуар, бумажный коллаж"
+                    rows="2"
+                    auto-resize
+                    maxlength="160"
+                    class="mt-2 w-full text-[13px] leading-6"
+                    placeholder="Например: аниме-нуар с бумажным коллажем, приглушённые цвета и мягкие тени"
                   />
+                  <p v-if="style === 'custom'" class="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                    {{ customStyle.length }} / 160
+                  </p>
                 </div>
               </div>
 

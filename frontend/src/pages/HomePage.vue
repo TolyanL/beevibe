@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { getCatalog } from '@/api/catalog'
 import type { CatalogCard } from '@/api/types'
 import { formatNumber, formatRelative } from '@/lib/format'
+import { shortGameTitle } from '@/lib/game'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import GameCard from '@/components/catalog/GameCard.vue'
@@ -60,7 +61,7 @@ onMounted(async () => {
         <div class="absolute -right-24 -top-28 size-72 rounded-full bg-bee/15 blur-3xl" />
         <div class="absolute -bottom-32 -left-20 size-72 rounded-full bg-bee/[0.07] blur-3xl" />
 
-        <div class="relative grid items-center gap-8 lg:grid-cols-[1.15fr_.85fr]">
+        <div class="relative grid items-center gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
           <div>
             <div class="eyebrow">BeeVibe game lab</div>
             <h1 class="display-title mt-3 text-[2.6rem] leading-[0.95] sm:text-[3.4rem] lg:text-[3.9rem]">
@@ -93,18 +94,24 @@ onMounted(async () => {
               </span>
             </div>
 
-            <div v-if="activeGame" class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-bee-deep/25 bg-bee/[0.06] px-4 py-3 text-xs">
-              <span class="size-2 animate-pulse-soft rounded-full bg-bee-deep" />
-              <span class="font-bold">Идёт сборка:</span>
-              <RouterLink :to="{ name: 'game', params: { id: activeGame.id } }" class="truncate text-bee-deep hover-link dark:text-bee">
-                {{ activeGame.title?.trim() || activeGame.prompt }}
+            <div v-if="activeGame" class="mt-4 flex items-center gap-2 rounded-2xl border border-bee-deep/25 bg-bee/[0.06] px-4 py-3 text-xs">
+              <span class="size-2 shrink-0 animate-pulse-soft rounded-full bg-bee-deep" />
+              <span class="shrink-0 font-bold">Идёт сборка:</span>
+              <RouterLink
+                :to="{ name: 'game', params: { id: activeGame.id } }"
+                class="min-w-0 truncate text-bee-deep hover-link dark:text-bee"
+              >
+                {{ shortGameTitle(activeGame.title, activeGame.prompt) }}
               </RouterLink>
             </div>
 
-            <div v-else-if="lastGame" class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-canvas/40 px-4 py-3 text-xs">
-              <span class="text-faint">Последняя игра:</span>
-              <RouterLink :to="{ name: 'game', params: { id: lastGame.id } }" class="truncate font-bold hover-link">
-                {{ lastGame.title?.trim() || lastGame.prompt }}
+            <div v-else-if="lastGame" class="mt-4 flex items-center gap-2 rounded-2xl border border-line bg-canvas/40 px-4 py-3 text-xs">
+              <span class="shrink-0 text-faint">Последняя игра:</span>
+              <RouterLink
+                :to="{ name: 'game', params: { id: lastGame.id } }"
+                class="min-w-0 truncate font-bold hover-link"
+              >
+                {{ shortGameTitle(lastGame.title, lastGame.prompt) }}
               </RouterLink>
             </div>
           </div>

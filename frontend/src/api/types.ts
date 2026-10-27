@@ -115,6 +115,7 @@ export interface GamePublicCard {
   custom_genre?: string
   custom_style?: string
   title: string
+  description: string
   slug: string
   author: string
   cover?: GameCover

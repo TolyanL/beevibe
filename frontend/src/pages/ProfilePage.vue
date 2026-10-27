@@ -227,7 +227,7 @@ onMounted(() => {
         </div>
       </section>
 
-      <div v-if="loading && !profile" class="mt-6 grid gap-5 lg:grid-cols-[1.4fr_.6fr]">
+      <div v-if="loading && !profile" class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]">
         <div class="h-80 animate-pulse rounded-[1.35rem] bg-surface/70" />
         <div class="h-80 animate-pulse rounded-[1.35rem] bg-surface/70" />
       </div>
@@ -238,8 +238,8 @@ onMounted(() => {
         </EmptyState>
       </div>
 
-      <div v-else class="mt-6 grid items-start gap-5 lg:grid-cols-[1.4fr_.6fr]">
-        <div class="space-y-5">
+      <div v-else class="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]">
+        <div class="min-w-0 space-y-5">
         <section class="panel overflow-hidden">
           <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
             <div>
@@ -344,7 +344,7 @@ onMounted(() => {
         </section>
         </div>
 
-        <div class="space-y-5">
+        <div class="min-w-0 space-y-5">
           <section class="panel p-5">
             <div class="flex items-start justify-between gap-3">
               <div>

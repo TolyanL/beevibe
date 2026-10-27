@@ -8,7 +8,7 @@ import { messageFromError } from '@/api/client'
 import { rateGame } from '@/api/games'
 import type { CatalogCard, GamePublicCard } from '@/api/types'
 import { formatDate, formatHours, plural } from '@/lib/format'
-import { genreLabel, styleLabel } from '@/lib/game'
+import { gameDescription as gameDescriptionOf, genreLabel, shortGameTitle, styleLabel } from '@/lib/game'
 import { ratingTone } from '@/lib/rating'
 import { usePlaytime } from '@/composables/usePlaytime'
 import { useAuthStore } from '@/stores/auth'
@@ -33,7 +33,10 @@ const voteError = ref('')
 const session = usePlaytime(() => id.value, () => frameLoaded.value)
 const sessionSeconds = session.seconds
 const more = computed(() => related.value.slice(0, 3))
-const title = computed(() => card.value?.title?.trim() || card.value?.prompt || 'Игра BeeVibe')
+const title = computed(() => shortGameTitle(card.value?.title, card.value?.prompt ?? 'Игра BeeVibe'))
+const description = computed(() =>
+  gameDescriptionOf(card.value?.description, card.value?.prompt ?? ''),
+)
 const author = computed(() => card.value?.author ?? '')
 const genre = computed(() => genreLabel(card.value?.genre ?? '', card.value?.custom_genre))
 const styleName = computed(() => styleLabel(card.value?.style ?? '', card.value?.custom_style))
@@ -171,7 +174,7 @@ onMounted(async () => {
         />
       </div>
 
-      <div class="mt-5 grid gap-5 lg:grid-cols-[1.4fr_.6fr]">
+      <div class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]">
         <section class="panel p-5 sm:p-6">
           <div class="flex items-start justify-between gap-3">
             <div>
@@ -182,7 +185,7 @@ onMounted(async () => {
           </div>
 
           <p class="mt-4 text-[14px] leading-7 text-muted">
-            {{ card?.prompt ?? 'Игра сгенерирована BeeVibe и доступна по публичной ссылке. Запускайте прямо в браузере, оценка и история — в каталоге.' }}
+            {{ description || 'Игра сгенерирована BeeVibe и доступна по публичной ссылке. Запускайте прямо в браузере, оценка и история — в каталоге.' }}
           </p>
 
           <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">

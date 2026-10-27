@@ -150,10 +150,12 @@ const shortTitleWords = 5
 // Каталог показывает короткое имя: название автора, иначе первые слова промпта.
 export function shortGameTitle(title: string | undefined, prompt: string, words = shortTitleWords): string {
   const clean = (title ?? '').trim()
+  const promptText = prompt.trim()
 
-  if (clean) return clean
+  // Сервер может подставить промпт вместо пустого названия — тогда его и сокращаем.
+  if (clean && clean !== promptText) return clean
 
-  const parts = prompt.trim().split(/\s+/).filter(Boolean)
+  const parts = promptText.split(/\s+/).filter(Boolean)
 
   if (parts.length === 0) return 'Игра'
 

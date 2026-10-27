@@ -1482,7 +1482,7 @@ export interface components {
             style?: "pixel" | "cartoon" | "neon" | "minimal" | "custom";
             /** @description Своя механика, обязательна при genre=custom */
             customGenre?: string;
-            /** @description Свой стиль, обязателен при style=custom */
+            /** @description Свободный текст стиля (например «аниме-нуар, бумажный коллаж»), обязателен при style=custom */
             customStyle?: string;
         };
         CreateGameResponse: {
@@ -1652,6 +1652,7 @@ export interface components {
             id?: string;
             prompt?: string;
             title?: string;
+            description?: string;
             slug?: string;
             author?: string;
             cover?: components["schemas"]["GameCover"];

@@ -11,8 +11,10 @@ import { messageFromError } from '@/api/client'
 import type { GameVersion } from '@/api/types'
 import { formatDate, formatTokens, plural } from '@/lib/format'
 import {
+  gameDescription as gameDescriptionOf,
   genreLabel,
   mapSizeLabel,
+  shortGameTitle,
   stageLabel,
   statusMeta,
   styleLabel,
@@ -42,6 +44,8 @@ const promptText = computed(
   () => auth.profile?.games.find((item) => item.id === id.value)?.prompt ?? `Игра ${id.value.slice(0, 8)}`,
 )
 const profileGame = computed(() => auth.profile?.games.find((item) => item.id === id.value))
+const gameTitle = computed(() => shortGameTitle(game.game?.title, promptText.value))
+const gameDescription = computed(() => gameDescriptionOf(game.game?.description, promptText.value))
 const versions = computed(() =>
   [...(game.game?.versions ?? [])].sort((a, b) => b.number - a.number),
 )
@@ -505,8 +509,14 @@ onBeforeUnmount(() => {
               </span>
             </div>
             <h1 class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]">
-              {{ promptText }}
+              {{ gameTitle }}
             </h1>
+            <p
+              v-if="gameDescription && gameDescription !== gameTitle"
+              class="mt-2 max-w-3xl text-[13px] leading-6 text-muted"
+            >
+              {{ gameDescription }}
+            </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
@@ -633,7 +643,7 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <div class="grid gap-0 md:grid-cols-[.9fr_1.1fr]">
+              <div class="grid gap-0 md:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
                 <div class="border-b border-line p-5 md:border-b-0 md:border-r">
                   <p class="mono-label">{{ game.isGenerating ? 'Этапы' : 'Операция' }}</p>
                   <p class="mt-2 text-sm leading-6 text-muted">{{ meta.description }}</p>
