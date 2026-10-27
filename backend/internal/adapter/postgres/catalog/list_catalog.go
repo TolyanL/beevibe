@@ -52,7 +52,8 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	           COALESCE(pa.sessions, 0) AS sessions,
 	           COALESCE(pa.seconds, 0) AS seconds,
 	           COALESCE(va.tokens_cost, 0) AS tokens_cost,
-	           COALESCE(va.model_calls, 0) AS model_calls
+	           COALESCE(va.model_calls, 0) AS model_calls,
+	           COALESCE(g.spec_json->'palette', '[]'::jsonb) AS spec_palette
 	    FROM games g
 	    LEFT JOIN users u ON u.id = g.owner_id
 	    LEFT JOIN (
@@ -87,7 +88,8 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	       COALESCE(params_json->>'custom_style', ''),
 	       COALESCE(params_json->>'map_size', ''),
 	       COALESCE(params_json->>'style', ''),
-	       created_at, rating_average, rating_total, rating_counts, sessions, seconds, tokens_cost, model_calls
+	       created_at, rating_average, rating_total, rating_counts, sessions, seconds, tokens_cost, model_calls,
+	       spec_palette
 	FROM catalog
 	ORDER BY `
 
@@ -106,6 +108,7 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 		var (
 			card          dto.CatalogCard
 			coverRaw      []byte
+			specPalette   []byte
 			ownerID       uuid.UUID
 			ratingAverage float64
 			ratingTotal   int
@@ -129,6 +132,10 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 			if err := json.Unmarshal(coverRaw, &cover); err == nil {
 				card.Cover = &cover
 			}
+		}
+
+		if card.Cover == nil {
+			card.Cover = coverFromSpecPalette(specPalette, card.Style, card.Slug)
 		}
 
 		card.Author = authorName(card.Author, ownerID)
@@ -159,4 +166,18 @@ func authorName(name string, ownerID uuid.UUID) string {
 	}
 
 	return "bee-" + ownerID.String()[:8]
+}
+
+func coverFromSpecPalette(raw []byte, style, seed string) *domain.GameCover {
+	if len(raw) == 0 {
+		return nil
+	}
+
+	var palette []string
+
+	if err := json.Unmarshal(raw, &palette); err != nil {
+		return nil
+	}
+
+	return domain.CoverFromPalette(palette, style, seed)
 }

@@ -17,7 +17,7 @@ type CreateGameInput struct {
 	Style   string `json:"style"   validate:"omitempty,oneof=pixel cartoon neon minimal custom"`
 
 	CustomGenre string `json:"customGenre" validate:"required_if=Genre custom,omitempty,min=2,max=32"`
-	CustomStyle string `json:"customStyle" validate:"required_if=Style custom,omitempty,min=2,max=32"`
+	CustomStyle string `json:"customStyle" validate:"required_if=Style custom,omitempty,min=2,max=160"`
 
 	IdempotencyKey string `json:"-"`
 }

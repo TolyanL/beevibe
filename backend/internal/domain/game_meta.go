@@ -18,6 +18,56 @@ type GameCover struct {
 	Seed    string   `json:"seed"`
 }
 
+// CoverFromPalette строит обложку из палитры самой игры: агент уже выбрал
+// цвета под настроение, поэтому каталогу не нужны случайные градиенты.
+func CoverFromPalette(palette []string, style, seed string) *GameCover {
+	colors := make([]string, 0, coverPaletteSize)
+
+	for _, color := range palette {
+		if !isHexColor(color) {
+			continue
+		}
+
+		colors = append(colors, color)
+
+		if len(colors) == coverPaletteSize {
+			break
+		}
+	}
+
+	if len(colors) < 2 {
+		return nil
+	}
+
+	base := len(colors)
+
+	for len(colors) < coverPaletteSize {
+		colors = append(colors, colors[len(colors)%base])
+	}
+
+	cover := &GameCover{
+		Palette: colors[:coverPaletteSize],
+		Style:   truncateRunes(style, 32),
+		Seed:    truncateRunes(seed, 32),
+	}
+
+	if err := cover.Validate(); err != nil {
+		return nil
+	}
+
+	return cover
+}
+
+func truncateRunes(value string, limit int) string {
+	runes := []rune(value)
+
+	if len(runes) <= limit {
+		return value
+	}
+
+	return string(runes[:limit])
+}
+
 func (m GameMeta) Validate() error {
 	if len([]rune(m.Title)) > TitleMaxLength {
 		return fmt.Errorf("%w: title is longer than %d characters", ErrInvalidInput, TitleMaxLength)

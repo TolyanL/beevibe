@@ -33,7 +33,12 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 		}
 	}
 
-	game, err := domain.NewGame(input.UserID, input.Prompt, buildParams(input))
+	params, err := buildParams(input)
+	if err != nil {
+		return output, fmt.Errorf("buildParams: %w", err)
+	}
+
+	game, err := domain.NewGame(input.UserID, input.Prompt, params)
 	if err != nil {
 		return output, fmt.Errorf("domain.NewGame: %w", err)
 	}
@@ -124,24 +129,30 @@ func (u *UseCase) replayCreateGame(ctx context.Context, input dto.CreateGameInpu
 	return &dto.CreateGameOutput{ID: game.ID, Status: string(game.Status)}, nil
 }
 
-func buildParams(input dto.CreateGameInput) domain.GameParams {
+func buildParams(input dto.CreateGameInput) (domain.GameParams, error) {
 	params := domain.GameParams{
 		Genre:   domain.Genre(input.Genre),
 		MapSize: domain.MapSize(input.MapSize),
 		Style:   domain.Style(input.Style),
 	}
 
-	if label, err := domain.NewCustomLabel(input.CustomGenre); err == nil {
-		params.CustomGenre = label
+	customGenre, err := domain.NewCustomGenre(input.CustomGenre)
+	if err != nil {
+		return params, fmt.Errorf("domain.NewCustomGenre: %w", err)
 	}
 
-	if label, err := domain.NewCustomLabel(input.CustomStyle); err == nil {
-		params.CustomStyle = label
+	params.CustomGenre = customGenre
+
+	customStyle, err := domain.NewCustomStyle(input.CustomStyle)
+	if err != nil {
+		return params, fmt.Errorf("domain.NewCustomStyle: %w", err)
 	}
+
+	params.CustomStyle = customStyle
 
 	if input.Tempo != nil {
 		params.Tempo = domain.Tempo(*input.Tempo)
 	}
 
-	return params
+	return params, nil
 }

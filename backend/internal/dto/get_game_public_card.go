@@ -16,7 +16,8 @@ type GetGamePublicCardInput struct {
 
 type GetGamePublicCardOutput struct {
 	ID        uuid.UUID         `json:"id"`
-	Prompt    string            `json:"prompt"`
+	Prompt      string            `json:"prompt"`
+	Description string            `json:"description"`
 	Title     string            `json:"title"`
 	Slug      string            `json:"slug"`
 	Author    string            `json:"author"`

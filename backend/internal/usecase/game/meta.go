@@ -260,3 +260,32 @@ func (u *UseCase) requestMeta(ctx context.Context, game domain.Game) (domain.Gam
 
 	return meta, p.tokens, p.calls, nil
 }
+
+func coverOf(game domain.Game) *domain.GameCover {
+	if game.Cover != nil {
+		return game.Cover
+	}
+
+	if game.Spec == nil {
+		return nil
+	}
+
+	return domain.CoverFromPalette(game.Spec.Palette, string(game.Params.Style), game.DisplaySlug())
+}
+
+// applyCoverFromSpec даёт игре обложку из палитры, которую выбрал агент:
+// каталогу не нужны случайные градиенты по хешу id.
+func (u *UseCase) applyCoverFromSpec(ctx context.Context, game *domain.Game) error {
+	if game.Cover != nil || game.Spec == nil {
+		return nil
+	}
+
+	cover := domain.CoverFromPalette(game.Spec.Palette, string(game.Params.Style), game.DisplaySlug())
+	if cover == nil {
+		return nil
+	}
+
+	game.Cover = cover
+
+	return nil
+}

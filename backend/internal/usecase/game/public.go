@@ -65,10 +65,11 @@ func (u *UseCase) GetPublicCard(ctx context.Context, input dto.GetGamePublicCard
 
 	output.ID = game.ID
 	output.Prompt = game.Prompt
-	output.Title = game.DisplayTitle()
+	output.Description = game.Description
+	output.Title = game.Title
 	output.Slug = game.DisplaySlug()
 	output.Author = owner.PublicName()
-	output.Cover = game.Cover
+	output.Cover = coverOf(game)
 	output.Genre = string(game.Params.Genre)
 	output.Style = string(game.Params.Style)
 	output.CustomGenre = string(game.Params.CustomGenre)

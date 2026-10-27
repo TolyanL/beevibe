@@ -319,3 +319,57 @@ func TestGameParamsValidateCustomLabels(t *testing.T) {
 		}
 	}
 }
+
+func TestCoverFromPalettePadsAndRejectsGarbage(t *testing.T) {
+	t.Parallel()
+
+	cover := CoverFromPalette([]string{"#111111", "#ffcc00", "not-a-color"}, "neon", "snake")
+
+	if cover == nil {
+		t.Fatal("CoverFromPalette() = nil, want a cover")
+	}
+
+	if len(cover.Palette) != 5 {
+		t.Errorf("palette = %v, want 5 colors", cover.Palette)
+	}
+
+	for _, color := range cover.Palette {
+		if !isHexColor(color) {
+			t.Errorf("color %q is not a hex color", color)
+		}
+	}
+
+	if CoverFromPalette([]string{"#111111"}, "neon", "") != nil {
+		t.Error("CoverFromPalette() with one color = non-nil, want nil")
+	}
+
+	if CoverFromPalette(nil, "neon", "") != nil {
+		t.Error("CoverFromPalette(nil) = non-nil, want nil")
+	}
+}
+
+func TestGameParamsAllowLongCustomStyle(t *testing.T) {
+	t.Parallel()
+
+	long := "аниме-нуар с бумажным коллажем, приглушённые цвета и мягкие тени"
+
+	if err := (GameParams{Style: StyleCustom, CustomStyle: CustomLabel(long)}).Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil for a multi-word style", err)
+	}
+
+	withSymbols := "неон, глитч: 80-е / VHS"
+
+	if err := (GameParams{Style: StyleCustom, CustomStyle: CustomLabel(withSymbols)}).Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want punctuation to be allowed in a style", err)
+	}
+
+	tooLong := strings.Repeat("а", CustomStyleMaxLength+1)
+
+	if err := (GameParams{Style: StyleCustom, CustomStyle: CustomLabel(tooLong)}).Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want an error for an oversized style")
+	}
+
+	if err := (GameParams{Genre: GenreCustom, CustomGenre: CustomLabel(long)}).Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want the genre to stay short")
+	}
+}

@@ -1160,8 +1160,8 @@ components:
           description: Своя механика, обязательна при genre=custom
         customStyle:
           type: string
-          maxLength: 32
-          description: Свой стиль, обязателен при style=custom
+          maxLength: 160
+          description: Свободный текст стиля (например «аниме-нуар, бумажный коллаж»), обязателен при style=custom
 
     CreateGameResponse:
       type: object
@@ -1483,6 +1483,8 @@ components:
         prompt:
           type: string
         title:
+          type: string
+        description:
           type: string
         slug:
           type: string

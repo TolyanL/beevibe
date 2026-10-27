@@ -147,6 +147,10 @@ func (u *UseCase) stepAnalyze(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("game.ApplySpec: %w", err)
 	}
 
+	if err := u.applyCoverFromSpec(ctx, &p.game); err != nil {
+		return fmt.Errorf("u.applyCoverFromSpec: %w", err)
+	}
+
 	if err := u.store.UpdateGame(ctx, p.game); err != nil {
 		return fmt.Errorf("store.UpdateGame: %w", err)
 	}

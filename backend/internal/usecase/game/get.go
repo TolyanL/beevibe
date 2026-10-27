@@ -61,7 +61,7 @@ func (u *UseCase) Get(ctx context.Context, input dto.GetGameInput) (dto.GetGameO
 	output.Title = game.Title
 	output.Slug = game.DisplaySlug()
 	output.Description = game.Description
-	output.Cover = game.Cover
+	output.Cover = coverOf(game)
 	output.CreatedAt = game.CreatedAt
 	output.Stages = buildStages(events)
 	output.Operation = activeOperation(game.Status, events)

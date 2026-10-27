@@ -40,9 +40,13 @@ const (
 )
 
 const (
-	CustomLabelMaxLength = 32
+	CustomGenreMaxLength = 32
+	CustomStyleMaxLength = 160
+	CustomLabelMaxLength = CustomStyleMaxLength
 	customLabelMinLength = 2
 )
+
+var styleLabelRunes = map[rune]bool{'-': true, ' ': true, ',': true, '.': true, ':': true, '/': true, '\'': true}
 
 type CustomLabel string
 
@@ -57,13 +61,13 @@ type GameParams struct {
 
 func (p GameParams) Validate() error {
 	if p.Genre == GenreCustom {
-		if err := p.CustomGenre.validate(); err != nil {
+		if err := p.CustomGenre.validate(CustomGenreMaxLength, false); err != nil {
 			return fmt.Errorf("custom genre: %w", err)
 		}
 	}
 
 	if p.Style == StyleCustom {
-		if err := p.CustomStyle.validate(); err != nil {
+		if err := p.CustomStyle.validate(CustomStyleMaxLength, true); err != nil {
 			return fmt.Errorf("custom style: %w", err)
 		}
 	}
@@ -71,34 +75,47 @@ func (p GameParams) Validate() error {
 	return nil
 }
 
-func (l CustomLabel) validate() error {
+func (l CustomLabel) validate(maxLength int, allowPunctuation bool) error {
 	value := strings.TrimSpace(string(l))
 
 	length := len([]rune(value))
-	if length < customLabelMinLength || length > CustomLabelMaxLength {
-		return fmt.Errorf("%w: label must be %d..%d characters", ErrInvalidInput, customLabelMinLength, CustomLabelMaxLength)
+	if length < customLabelMinLength || length > maxLength {
+		return fmt.Errorf("%w: label must be %d..%d characters", ErrInvalidInput, customLabelMinLength, maxLength)
 	}
 
 	for _, r := range value {
 		isLetter := unicode.IsLetter(r)
 		isDigit := unicode.IsDigit(r)
+		isAllowed := isLetter || isDigit || r == ' ' || r == '-'
 
-		if !isLetter && !isDigit && r != ' ' && r != '-' {
-			return fmt.Errorf("%w: label may contain letters, digits, spaces and hyphens only", ErrInvalidInput)
+		if allowPunctuation && styleLabelRunes[r] {
+			isAllowed = true
+		}
+
+		if !isAllowed {
+			return fmt.Errorf("%w: label contains a forbidden character", ErrInvalidInput)
 		}
 	}
 
 	return nil
 }
 
-func NewCustomLabel(value string) (CustomLabel, error) {
+func NewCustomGenre(value string) (CustomLabel, error) {
+	return newCustomLabel(value, CustomGenreMaxLength, false)
+}
+
+func NewCustomStyle(value string) (CustomLabel, error) {
+	return newCustomLabel(value, CustomStyleMaxLength, true)
+}
+
+func newCustomLabel(value string, maxLength int, allowPunctuation bool) (CustomLabel, error) {
 	label := CustomLabel(strings.TrimSpace(value))
 
-	if strings.TrimSpace(value) == "" {
+	if label == "" {
 		return "", nil
 	}
 
-	if err := label.validate(); err != nil {
+	if err := label.validate(maxLength, allowPunctuation); err != nil {
 		return "", fmt.Errorf("label.validate: %w", err)
 	}
 
