@@ -44,14 +44,28 @@ const previewCover = computed(() => {
 })
 const hasPreview = computed(() => prompt.value.trim().length >= 3)
 const activeGame = computed(() => {
-  const busy = ['queued', 'analyzing', 'planning', 'coding', 'assets', 'reviewing', 'assembling', 'checking', 'patching']
+  const busy = [
+    'queued',
+    'analyzing',
+    'planning',
+    'coding',
+    'assets',
+    'reviewing',
+    'assembling',
+    'checking',
+    'patching',
+  ]
   const games = auth.profile?.games ?? []
 
   return games.find((item) => busy.includes(item.status)) ?? null
 })
 const enoughTokens = computed(() => !auth.isAuthenticated || auth.balance >= currentPrice.value)
-const customGenreReady = computed(() => genre.value !== 'custom' || customGenre.value.trim().length >= 2)
-const customStyleReady = computed(() => style.value !== 'custom' || customStyle.value.trim().length >= 2)
+const customGenreReady = computed(
+  () => genre.value !== 'custom' || customGenre.value.trim().length >= 2,
+)
+const customStyleReady = computed(
+  () => style.value !== 'custom' || customStyle.value.trim().length >= 2,
+)
 const canSubmit = computed(
   () =>
     prompt.value.trim().length >= 3 &&
@@ -63,7 +77,8 @@ const canSubmit = computed(
 const examples = [
   {
     label: 'Неоновая змейка',
-    prompt: 'Неоновая змейка в киберпанк-городе: чем длиннее хвост, тем быстрее темп, на карте появляются стены.',
+    prompt:
+      'Неоновая змейка в киберпанк-городе: чем длиннее хвост, тем быстрее темп, на карте появляются стены.',
     genre: 'snake' as Genre,
     style: 'neon' as GameStyle,
     map: 'medium' as MapSize,
@@ -71,7 +86,8 @@ const examples = [
   },
   {
     label: 'Пиксельный кликер',
-    prompt: 'Пиксельный кликер про космическую пекарню: печенье заменяют астероиды, есть апгрейды и редкие бонусы.',
+    prompt:
+      'Пиксельный кликер про космическую пекарню: печенье заменяют астероиды, есть апгрейды и редкие бонусы.',
     genre: 'clicker' as Genre,
     style: 'pixel' as GameStyle,
     map: 'small' as MapSize,
@@ -79,7 +95,8 @@ const examples = [
   },
   {
     label: 'Платформер-побег',
-    prompt: 'Мультяшный платформер: лягушка убегает от дождя, прыгает по листьям и собирает светлячков.',
+    prompt:
+      'Мультяшный платформер: лягушка убегает от дождя, прыгает по листьям и собирает светлячков.',
     genre: 'platformer' as Genre,
     style: 'cartoon' as GameStyle,
     map: 'large' as MapSize,
@@ -87,7 +104,8 @@ const examples = [
   },
   {
     label: 'Головоломка',
-    prompt: 'Минималистичная головоломка с перемещением кристаллов: нужно собрать три одинаковых цвета в ряд за 30 ходов.',
+    prompt:
+      'Минималистичная головоломка с перемещением кристаллов: нужно собрать три одинаковых цвета в ряд за 30 ходов.',
     genre: 'puzzle' as Genre,
     style: 'minimal' as GameStyle,
     map: 'small' as MapSize,
@@ -205,11 +223,16 @@ onMounted(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3.5 py-2 text-[11px] font-bold">
+            <span
+              class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3.5 py-2 text-[11px] font-bold"
+            >
               <AppIcon name="coin" :size="13" class="text-bee-deep dark:text-bee" />
               Генерация · {{ formatTokens(currentPrice) }}
             </span>
-            <span v-if="auth.isAuthenticated" class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3.5 py-2 font-mono text-[11px]">
+            <span
+              v-if="auth.isAuthenticated"
+              class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3.5 py-2 font-mono text-[11px]"
+            >
               <AppIcon name="bolt" :size="13" />
               {{ formatNumber(auth.balance) }}
             </span>
@@ -222,7 +245,10 @@ onMounted(() => {
         >
           <span class="size-2 animate-pulse-soft rounded-full bg-bee-deep" />
           <span class="font-bold">У вас уже идёт сборка:</span>
-          <RouterLink :to="{ name: 'game', params: { id: activeGame.id } }" class="truncate text-bee-deep hover-link dark:text-bee">
+          <RouterLink
+            :to="{ name: 'game', params: { id: activeGame.id } }"
+            class="truncate text-bee-deep hover-link dark:text-bee"
+          >
             {{ activeGame.title?.trim() || activeGame.prompt }}
           </RouterLink>
           <span class="text-faint">· новая игра встанет в очередь после неё</span>
@@ -232,13 +258,14 @@ onMounted(() => {
 
     <section class="py-7 sm:py-9">
       <div class="app-container">
-
         <div class="panel overflow-hidden">
           <div class="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,.65fr)]">
             <form class="p-5 sm:p-7 lg:p-8" @submit.prevent="submit">
               <div class="flex items-center justify-between gap-3">
                 <label for="prompt" class="mono-label">Промпт игры</label>
-                <span class="font-mono text-[10px] tabular-nums text-faint">{{ prompt.length }} / {{ maxPrompt }}</span>
+                <span class="font-mono text-[10px] tabular-nums text-faint"
+                  >{{ prompt.length }} / {{ maxPrompt }}</span
+                >
               </div>
 
               <Textarea
@@ -267,13 +294,23 @@ onMounted(() => {
 
               <div class="mt-6">
                 <label class="mono-label mb-2 block">Название (необязательно)</label>
-                <InputText v-model="title" maxlength="80" class="w-full" placeholder="Например: Кристаллы" />
+                <InputText
+                  v-model="title"
+                  maxlength="80"
+                  class="w-full"
+                  placeholder="Например: Кристаллы"
+                />
               </div>
 
               <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label class="mono-label mb-2 block">Жанр</label>
-                  <Select v-model="genre" :options="genreOptions" option-label="label" option-value="value" />
+                  <Select
+                    v-model="genre"
+                    :options="genreOptions"
+                    option-label="label"
+                    option-value="value"
+                  />
                   <InputText
                     v-if="genre === 'custom'"
                     v-model="customGenre"
@@ -284,7 +321,12 @@ onMounted(() => {
                 </div>
                 <div>
                   <label class="mono-label mb-2 block">Стиль</label>
-                  <Select v-model="style" :options="styleOptions" option-label="label" option-value="value" />
+                  <Select
+                    v-model="style"
+                    :options="styleOptions"
+                    option-label="label"
+                    option-value="value"
+                  />
                   <Textarea
                     v-if="style === 'custom'"
                     v-model="customStyle"
@@ -294,13 +336,18 @@ onMounted(() => {
                     class="mt-2 w-full text-[13px] leading-6"
                     placeholder="Например: аниме-нуар с бумажным коллажем, приглушённые цвета и мягкие тени"
                   />
-                  <p v-if="style === 'custom'" class="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                  <p
+                    v-if="style === 'custom'"
+                    class="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint"
+                  >
                     {{ customStyle.length }} / 160
                   </p>
                 </div>
               </div>
 
-              <div class="mt-4 flex items-center justify-between rounded-2xl border border-line bg-canvas/40 px-4 py-3">
+              <div
+                class="mt-4 flex items-center justify-between rounded-2xl border border-line bg-canvas/40 px-4 py-3"
+              >
                 <div>
                   <p class="text-sm font-bold">Расширенные настройки</p>
                   <p class="mt-0.5 text-[11px] text-muted">Размер карты и темп</p>
@@ -321,15 +368,25 @@ onMounted(() => {
               </div>
 
               <Transition name="expand">
-                <div v-if="advanced" class="mt-3 grid gap-4 rounded-2xl border border-line bg-canvas/30 p-4 sm:grid-cols-2">
+                <div
+                  v-if="advanced"
+                  class="mt-3 grid gap-4 rounded-2xl border border-line bg-canvas/30 p-4 sm:grid-cols-2"
+                >
                   <div>
                     <label class="mono-label mb-2 block">Размер карты</label>
-                    <Select v-model="mapSize" :options="mapOptions" option-label="label" option-value="value" />
+                    <Select
+                      v-model="mapSize"
+                      :options="mapOptions"
+                      option-label="label"
+                      option-value="value"
+                    />
                   </div>
                   <div>
                     <div class="mb-2 flex items-center justify-between">
                       <label class="mono-label">Темп</label>
-                      <span class="font-mono text-[10px] font-bold text-bee-deep dark:text-bee">{{ tempo }} / 10</span>
+                      <span class="font-mono text-[10px] font-bold text-bee-deep dark:text-bee"
+                        >{{ tempo }} / 10</span
+                      >
                     </div>
                     <input
                       v-model.number="tempo"
@@ -365,7 +422,10 @@ onMounted(() => {
                 <p class="mono-label">Так игра появится в каталоге</p>
 
                 <div class="mt-2.5 overflow-hidden rounded-xl border border-line bg-surface/80">
-                  <div class="relative flex aspect-[16/6] max-h-56 items-end p-3" :style="previewCover">
+                  <div
+                    class="relative flex aspect-[16/6] max-h-56 items-end p-3"
+                    :style="previewCover"
+                  >
                     <div class="dot-grid absolute inset-0 opacity-40" />
                     <span
                       v-if="previewGenre"
@@ -376,13 +436,18 @@ onMounted(() => {
                   </div>
 
                   <div class="p-3">
-                    <p class="line-clamp-1 text-[14px] font-bold leading-snug" :title="previewTitle">
+                    <p
+                      class="line-clamp-1 text-[14px] font-bold leading-snug"
+                      :title="previewTitle"
+                    >
                       {{ previewTitle }}
                     </p>
                     <p class="mt-1 line-clamp-2 text-[11px] leading-5 text-muted">
                       {{ previewDescription }}
                     </p>
-                    <p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                    <p
+                      class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint"
+                    >
                       <span v-if="previewStyle">{{ previewStyle }}</span>
                       <span v-if="previewStyle" class="size-0.5 rounded-full bg-faint" />
                       <span>черновик · не опубликована</span>
@@ -396,7 +461,9 @@ onMounted(() => {
                 </p>
               </div>
 
-              <div class="mt-6 flex flex-col justify-between gap-4 border-t border-line pt-5 sm:flex-row sm:items-center">
+              <div
+                class="mt-6 flex flex-col justify-between gap-4 border-t border-line pt-5 sm:flex-row sm:items-center"
+              >
                 <div class="flex items-center gap-2 text-xs text-muted">
                   <AppIcon name="coin" :size="16" class="text-bee-deep" />
                   <span>
@@ -410,34 +477,64 @@ onMounted(() => {
                   </span>
                 </div>
 
-                <Button type="submit" class="bee-button w-full sm:w-auto" size="large" :loading="submitting" :disabled="!canSubmit">
+                <Button
+                  type="submit"
+                  class="bee-button w-full sm:w-auto"
+                  size="large"
+                  :loading="submitting"
+                  :disabled="!canSubmit"
+                >
                   <AppIcon name="spark" :size="17" />
                   <span class="ml-2">{{ submitting ? 'Запускаем…' : 'Запустить конвейер' }}</span>
                   <AppIcon name="arrow-right" :size="16" class="ml-2" />
                 </Button>
               </div>
 
-              <p v-if="!auth.isAuthenticated" class="mt-3 text-center text-[11px] text-faint sm:text-right">
-                <RouterLink to="/login" class="font-bold text-ink underline decoration-bee decoration-2 underline-offset-2">
+              <p
+                v-if="!auth.isAuthenticated"
+                class="mt-3 text-center text-[11px] text-faint sm:text-right"
+              >
+                <RouterLink
+                  to="/login"
+                  class="font-bold text-ink underline decoration-bee decoration-2 underline-offset-2"
+                >
                   Войдите
                 </RouterLink>
                 или зарегистрируйтесь — при старте начислим токены.
               </p>
             </form>
 
-            <aside class="relative overflow-hidden border-t border-line bg-[#11110e] p-5 text-white sm:p-7 lg:border-l lg:border-t-0 lg:p-8">
+            <aside
+              class="relative overflow-hidden border-t border-line bg-[#11110e] p-5 text-white sm:p-7 lg:border-l lg:border-t-0 lg:p-8"
+            >
               <div class="dot-grid absolute inset-0 opacity-15" />
               <div class="relative">
-                <p class="flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">
+                <p
+                  class="flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white/40"
+                >
                   <span class="size-1.5 animate-pulse-soft rounded-full bg-bee" />
                   внутри конвейера
                 </p>
-                <h3 class="mt-5 font-display text-2xl font-bold leading-tight">От идеи до playable за один проход</h3>
+                <h3 class="mt-5 font-display text-2xl font-bold leading-tight">
+                  От идеи до playable за один проход
+                </h3>
 
                 <div class="mt-7 space-y-0">
-                  <div v-for="(step, index) in ['Анализ промпта', 'План и механика', 'Генерация HTML', 'Ревью и сборка', 'Playable-релиз']" :key="step" class="flex gap-3">
+                  <div
+                    v-for="(step, index) in [
+                      'Анализ промпта',
+                      'План и механика',
+                      'Генерация HTML',
+                      'Ревью и сборка',
+                      'Playable-релиз',
+                    ]"
+                    :key="step"
+                    class="flex gap-3"
+                  >
                     <div class="flex flex-col items-center">
-                      <span class="grid size-6 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 font-mono text-[9px] text-white/55">
+                      <span
+                        class="grid size-6 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 font-mono text-[9px] text-white/55"
+                      >
                         {{ String(index + 1).padStart(2, '0') }}
                       </span>
                       <span v-if="index < 4" class="my-1 h-7 w-px bg-white/10" />
@@ -452,9 +549,18 @@ onMounted(() => {
                     <AppIcon name="shield" :size="15" class="text-bee" />
                   </div>
                   <ul class="mt-3 space-y-2 text-[11px] leading-4 text-white/45">
-                    <li class="flex gap-2"><AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> готовую игру без сборки</li>
-                    <li class="flex gap-2"><AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> правки промптом и настройками</li>
-                    <li class="flex gap-2"><AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> версии, откат и публичную ссылку</li>
+                    <li class="flex gap-2">
+                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> готовую игру без
+                      сборки
+                    </li>
+                    <li class="flex gap-2">
+                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> правки промптом и
+                      настройками
+                    </li>
+                    <li class="flex gap-2">
+                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> версии, откат и
+                      публичную ссылку
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -463,14 +569,15 @@ onMounted(() => {
         </div>
       </div>
     </section>
-
   </div>
 </template>
 
 <style scoped>
 .expand-enter-active,
 .expand-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
 .expand-enter-from,

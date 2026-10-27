@@ -154,7 +154,11 @@ export function styleLabel(style: string, custom?: string): string {
 const shortTitleWords = 5
 
 // Каталог показывает короткое имя: название автора, иначе первые слова промпта.
-export function shortGameTitle(title: string | undefined, prompt: string, words = shortTitleWords): string {
+export function shortGameTitle(
+  title: string | undefined,
+  prompt: string,
+  words = shortTitleWords,
+): string {
   const clean = (title ?? '').trim()
   const promptText = prompt.trim()
 
@@ -166,7 +170,10 @@ export function shortGameTitle(title: string | undefined, prompt: string, words 
   if (parts.length === 0) return 'Игра'
 
   const truncated = parts.length > words
-  const head = parts.slice(0, words).join(' ').replace(/[,:;.\-—]+$/, '')
+  const head = parts
+    .slice(0, words)
+    .join(' ')
+    .replace(/[,:;.\-—]+$/, '')
 
   return truncated ? `${head}…` : head
 }

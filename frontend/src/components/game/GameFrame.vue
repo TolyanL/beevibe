@@ -15,7 +15,7 @@ const props = withDefaults(
   { versionToken: 0 },
 )
 
-defineEmits<{ loaded: [] }>()
+const emit = defineEmits<{ loaded: [] }>()
 
 const toast = useToast()
 const frame = ref<HTMLIFrameElement | null>(null)
@@ -24,12 +24,19 @@ const isFullscreen = ref(false)
 const loading = ref(true)
 const manualReload = ref(0)
 
-const gameBase = (import.meta.env.VITE_GAME_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+const gameBase =
+  (import.meta.env.VITE_GAME_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 const src = computed(
-  () => `${gameBase}/g/${encodeURIComponent(props.gameId)}?v=${props.versionToken}-${manualReload.value}`,
+  () =>
+    `${gameBase}/g/${encodeURIComponent(props.gameId)}?v=${props.versionToken}-${manualReload.value}`,
 )
 const downloadUrl = computed(() => `${gameBase}/g/${encodeURIComponent(props.gameId)}/download`)
 const publicUrl = computed(() => `${window.location.origin}/play/${props.slug || props.gameId}`)
+function onFrameLoad(): void {
+  loading.value = false
+  emit('loaded')
+}
+
 const ready = computed(() => props.status === 'ready')
 const meta = computed(() => statusMeta(props.status))
 
@@ -73,7 +80,11 @@ async function share(): Promise<void> {
   const url = publicUrl.value
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'BeeVibe — игра', text: 'Сыграй в игру, собранную BeeVibe', url })
+      await navigator.share({
+        title: 'BeeVibe — игра',
+        text: 'Сыграй в игру, собранную BeeVibe',
+        url,
+      })
     } else {
       await navigator.clipboard.writeText(url)
       toast.add({ severity: 'success', summary: 'Ссылка скопирована', life: 2200 })
@@ -86,14 +97,18 @@ async function share(): Promise<void> {
 
 <template>
   <div ref="shell" class="stage-shell">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3.5 py-2.5 sm:px-4">
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3.5 py-2.5 sm:px-4"
+    >
       <div class="flex items-center gap-2.5">
         <span class="flex gap-1.5" aria-hidden="true">
           <span class="size-2 rounded-full bg-white/20" />
           <span class="size-2 rounded-full bg-white/20" />
           <span class="size-2 rounded-full bg-white/20" />
         </span>
-        <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">playable stage</span>
+        <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40"
+          >playable stage</span
+        >
       </div>
 
       <div class="flex items-center gap-1">
@@ -148,15 +163,17 @@ async function share(): Promise<void> {
         sandbox="allow-scripts allow-pointer-lock allow-modals"
         allow="fullscreen; gamepad; autoplay; clipboard-write"
         referrerpolicy="no-referrer"
-        @load="loading = false; $emit('loaded')"
+        @load="onFrameLoad"
       />
 
-      <div
-        v-else
-        class="stage-frame flex flex-col items-center justify-center px-6 text-center"
-      >
-        <span class="relative grid size-16 place-items-center rounded-2xl border border-bee/25 bg-bee/10 text-bee">
-          <span v-if="meta.tone === 'live'" class="absolute inset-0 animate-scan rounded-2xl bg-gradient-to-b from-transparent via-bee/10 to-transparent" />
+      <div v-else class="stage-frame flex flex-col items-center justify-center px-6 text-center">
+        <span
+          class="relative grid size-16 place-items-center rounded-2xl border border-bee/25 bg-bee/10 text-bee"
+        >
+          <span
+            v-if="meta.tone === 'live'"
+            class="absolute inset-0 animate-scan rounded-2xl bg-gradient-to-b from-transparent via-bee/10 to-transparent"
+          />
           <AppIcon :name="meta.tone === 'bad' ? 'alert' : 'wand'" :size="28" />
         </span>
         <p class="mt-5 font-display text-lg font-bold text-white">{{ meta.label }}</p>
@@ -172,7 +189,9 @@ async function share(): Promise<void> {
           <span class="size-2 animate-pulse-soft rounded-full bg-bee [animation-delay:140ms]" />
           <span class="size-2 animate-pulse-soft rounded-full bg-bee [animation-delay:280ms]" />
         </div>
-        <p class="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Загружаем игру</p>
+        <p class="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">
+          Загружаем игру
+        </p>
       </div>
     </div>
   </div>

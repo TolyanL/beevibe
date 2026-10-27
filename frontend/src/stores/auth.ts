@@ -21,7 +21,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => user.value !== null)
   const balance = computed(() => user.value?.balance ?? 0)
-  const prices = computed(() => profile.value?.prices ?? { generate: 320_000, patch: 40_000, meta: 10_000 })
+  const prices = computed(
+    () => profile.value?.prices ?? { generate: 320_000, patch: 40_000, meta: 10_000 },
+  )
 
   function setUser(next: User | null): void {
     user.value = next

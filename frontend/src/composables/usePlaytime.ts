@@ -54,10 +54,14 @@ export function usePlaytime(gameId: () => string | undefined, active: () => bool
     void flush()
   }
 
-  watch(active, (value) => {
-    if (value) start()
-    else stop()
-  }, { immediate: true })
+  watch(
+    active,
+    (value) => {
+      if (value) start()
+      else stop()
+    },
+    { immediate: true },
+  )
 
   onBeforeUnmount(stop)
 

@@ -41,7 +41,9 @@ const game = useGameStore()
 
 const id = computed(() => String(route.params.id ?? ''))
 const promptText = computed(
-  () => auth.profile?.games.find((item) => item.id === id.value)?.prompt ?? `Игра ${id.value.slice(0, 8)}`,
+  () =>
+    auth.profile?.games.find((item) => item.id === id.value)?.prompt ??
+    `Игра ${id.value.slice(0, 8)}`,
 )
 const profileGame = computed(() => auth.profile?.games.find((item) => item.id === id.value))
 const gameTitle = computed(() => shortGameTitle(game.game?.title, promptText.value))
@@ -118,7 +120,12 @@ async function acceptReview(): Promise<void> {
       life: 3400,
     })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Не удалось продолжить', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Не удалось продолжить',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   }
 }
 
@@ -139,7 +146,12 @@ function regenerateCode(): void {
           life: 3400,
         })
       } catch (err) {
-        toast.add({ severity: 'error', summary: 'Не удалось запустить', detail: messageFromError(err), life: 3200 })
+        toast.add({
+          severity: 'error',
+          summary: 'Не удалось запустить',
+          detail: messageFromError(err),
+          life: 3200,
+        })
       }
     },
   })
@@ -153,7 +165,10 @@ const fixText = ref('')
 const savingConfig = ref(false)
 const copied = ref(false)
 const editTab = ref<EditTab>('patch')
-const session = usePlaytime(() => id.value, () => game.isReady)
+const session = usePlaytime(
+  () => id.value,
+  () => game.isReady,
+)
 const sessionSeconds = session.seconds
 
 const configForm = reactive({
@@ -197,9 +212,13 @@ const canPatch = computed(
   () => patchText.value.trim().length >= 3 && !game.actionPending && !game.operation,
 )
 const showMaintenance = computed(() => game.isReady && !game.loading)
-const editTabs = computed<{ value: EditTab; label: string; icon: 'wand' | 'settings' | 'refresh' }[]>(() => [
+const editTabs = computed<
+  { value: EditTab; label: string; icon: 'wand' | 'settings' | 'refresh' }[]
+>(() => [
   { value: 'patch', label: 'Патч', icon: 'wand' },
-  ...(game.config ? [{ value: 'config' as const, label: 'Настройки', icon: 'settings' as const }] : []),
+  ...(game.config
+    ? [{ value: 'config' as const, label: 'Настройки', icon: 'settings' as const }]
+    : []),
   { value: 'fix', label: 'Починка', icon: 'refresh' },
 ])
 
@@ -237,7 +256,12 @@ function sessionLabel(seconds: number): string {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
-function logLine(stage: { stage: string; status: string; durationMs: number; operation?: string }): string {
+function logLine(stage: {
+  stage: string
+  status: string
+  durationMs: number
+  operation?: string
+}): string {
   const time = stage.durationMs ? ` ${(stage.durationMs / 1000).toFixed(1)}s` : ''
   const mark = stage.status === 'done' ? 'ok' : stage.status === 'error' ? '!!' : '..'
 
@@ -291,7 +315,12 @@ async function saveConfig(): Promise<void> {
     })
     toast.add({ severity: 'success', summary: 'Настройки сохранены', life: 2400 })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Не удалось сохранить', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Не удалось сохранить',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   } finally {
     savingConfig.value = false
   }
@@ -308,7 +337,12 @@ function rollback(version: GameVersion): void {
         await game.rollback(version.number)
         toast.add({ severity: 'success', summary: `Версия #${version.number} активна`, life: 2400 })
       } catch (err) {
-        toast.add({ severity: 'error', summary: 'Откат не удался', detail: messageFromError(err), life: 3200 })
+        toast.add({
+          severity: 'error',
+          summary: 'Откат не удался',
+          detail: messageFromError(err),
+          life: 3200,
+        })
       }
     },
   })
@@ -326,7 +360,12 @@ function cancelRun(): void {
         await game.cancel()
         toast.add({ severity: 'info', summary: 'Задача отменена', life: 2400 })
       } catch (err) {
-        toast.add({ severity: 'error', summary: 'Не удалось отменить', detail: messageFromError(err), life: 3200 })
+        toast.add({
+          severity: 'error',
+          summary: 'Не удалось отменить',
+          detail: messageFromError(err),
+          life: 3200,
+        })
       }
     },
   })
@@ -338,7 +377,12 @@ async function saveMeta(): Promise<void> {
     await game.saveMeta({ title: metaForm.title, description: metaForm.description })
     toast.add({ severity: 'success', summary: 'Название и описание сохранены', life: 2400 })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Не удалось сохранить', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Не удалось сохранить',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   } finally {
     metaSaving.value = false
   }
@@ -361,7 +405,12 @@ function generateMeta(): void {
           life: 2800,
         })
       } catch (err) {
-        toast.add({ severity: 'error', summary: 'Не удалось запустить', detail: messageFromError(err), life: 3200 })
+        toast.add({
+          severity: 'error',
+          summary: 'Не удалось запустить',
+          detail: messageFromError(err),
+          life: 3200,
+        })
       } finally {
         metaGenerating.value = false
       }
@@ -389,7 +438,12 @@ function toggleVisibility(): void {
           life: 2400,
         })
       } catch (err) {
-        toast.add({ severity: 'error', summary: 'Не удалось изменить видимость', detail: messageFromError(err), life: 3200 })
+        toast.add({
+          severity: 'error',
+          summary: 'Не удалось изменить видимость',
+          detail: messageFromError(err),
+          life: 3200,
+        })
       }
     },
   })
@@ -407,7 +461,12 @@ function removeGame(): void {
         toast.add({ severity: 'success', summary: 'Игра удалена', life: 2400 })
         await router.push({ name: 'profile' })
       } catch (err) {
-        toast.add({ severity: 'error', summary: 'Не удалось удалить', detail: messageFromError(err), life: 3200 })
+        toast.add({
+          severity: 'error',
+          summary: 'Не удалось удалить',
+          detail: messageFromError(err),
+          life: 3200,
+        })
       }
     },
   })
@@ -427,7 +486,12 @@ async function retryGame(): Promise<void> {
       life: 3200,
     })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Не удалось перезапустить', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Не удалось перезапустить',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   }
 }
 
@@ -445,9 +509,19 @@ async function repair(): Promise<void> {
   try {
     await game.repair(fixText.value.trim() || undefined)
     fixText.value = ''
-    toast.add({ severity: 'success', summary: 'Починка принята', detail: 'Собираем новую версию — прогресс в блоке сборки.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Починка принята',
+      detail: 'Собираем новую версию — прогресс в блоке сборки.',
+      life: 3000,
+    })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Починка не запустилась', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Починка не запустилась',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   }
 }
 
@@ -521,9 +595,15 @@ onBeforeUnmount(() => {
           Мои игры
         </RouterLink>
         <div class="flex items-center gap-2">
-          <span class="font-mono text-[9px] uppercase tracking-[0.13em] text-faint">owner workspace</span>
+          <span class="font-mono text-[9px] uppercase tracking-[0.13em] text-faint"
+            >owner workspace</span
+          >
           <span class="size-0.5 rounded-full bg-faint" />
-          <button type="button" class="font-mono text-[9px] text-faint transition hover:text-ink" @click="copyId">
+          <button
+            type="button"
+            class="font-mono text-[9px] text-faint transition hover:text-ink"
+            @click="copyId"
+          >
             {{ copied ? 'id скопирован' : `id · ${id.slice(0, 8)}` }}
           </button>
         </div>
@@ -541,11 +621,16 @@ onBeforeUnmount(() => {
         <EmptyState
           icon="alert"
           title="Игра недоступна"
-          :text="game.error || 'Возможно, игра удалена или у вас нет доступа к рабочему пространству.'"
+          :text="
+            game.error || 'Возможно, игра удалена или у вас нет доступа к рабочему пространству.'
+          "
         >
           <div class="flex flex-wrap justify-center gap-2">
             <Button class="bee-button" @click="load">Повторить</Button>
-            <RouterLink to="/profile" class="rounded-full border border-line-strong px-5 py-2.5 text-xs font-bold">
+            <RouterLink
+              to="/profile"
+              class="rounded-full border border-line-strong px-5 py-2.5 text-xs font-bold"
+            >
               В профиль
             </RouterLink>
           </div>
@@ -566,10 +651,14 @@ onBeforeUnmount(() => {
               </span>
               <span class="font-mono text-[9px] uppercase tracking-[0.12em] text-faint">
                 {{ genreLabel(profileGame?.genre ?? game.spec?.genre ?? '') }}
-                <span v-if="profileGame?.created_at"> · {{ formatDate(profileGame.created_at) }}</span>
+                <span v-if="profileGame?.created_at">
+                  · {{ formatDate(profileGame.created_at) }}</span
+                >
               </span>
             </div>
-            <h1 class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]">
+            <h1
+              class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]"
+            >
               {{ gameTitle }}
             </h1>
             <p
@@ -581,7 +670,10 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <div v-if="game.isReady" class="flex items-center gap-1.5 rounded-full border border-line bg-surface/70 px-3 py-2 font-mono text-[10px] text-muted">
+            <div
+              v-if="game.isReady"
+              class="flex items-center gap-1.5 rounded-full border border-line bg-surface/70 px-3 py-2 font-mono text-[10px] text-muted"
+            >
               <AppIcon name="clock" :size="13" />
               сессия {{ sessionLabel(sessionSeconds) }}
             </div>
@@ -609,7 +701,12 @@ onBeforeUnmount(() => {
               <AppIcon :name="isPublic ? 'external' : 'shield'" :size="13" />
               {{ isPublic ? 'В каталоге' : 'Скрыта' }}
             </button>
-            <Button v-if="game.isReady" class="p-button-secondary" :loading="game.actionPending === 'fix'" @click="openFix">
+            <Button
+              v-if="game.isReady"
+              class="p-button-secondary"
+              :loading="game.actionPending === 'fix'"
+              @click="openFix"
+            >
               <AppIcon name="refresh" :size="14" />
               <span class="ml-1.5">Починить</span>
             </Button>
@@ -623,13 +720,17 @@ onBeforeUnmount(() => {
                 :game-id="id"
                 :slug="game.game?.slug"
                 :status="game.status"
-                :version-token="game.refreshKey" @loaded="session.flush()" />
+                :version-token="game.refreshKey"
+                @loaded="session.flush()"
+              />
 
               <div
                 v-if="operation && !isMetaOperation"
                 class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3"
               >
-                <span class="inline-flex items-center gap-2 rounded-full border border-bee-deep/30 bg-canvas/95 px-3.5 py-2 text-[11px] font-bold text-ink shadow-lift backdrop-blur">
+                <span
+                  class="inline-flex items-center gap-2 rounded-full border border-bee-deep/30 bg-canvas/95 px-3.5 py-2 text-[11px] font-bold text-ink shadow-lift backdrop-blur"
+                >
                   <span class="size-2.5 animate-pulse-soft rounded-full bg-bee-deep" />
                   {{ operationLabel }} — собираем новую версию
                 </span>
@@ -646,14 +747,17 @@ onBeforeUnmount(() => {
 
             <div v-if="needsDecision" class="panel border-orange-500/25 p-5 sm:p-6">
               <div class="flex items-start gap-3">
-                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-orange-500">
+                <span
+                  class="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-orange-500"
+                >
                   <AppIcon name="alert" :size="20" />
                 </span>
                 <div class="flex-1">
                   <h2 class="font-display text-lg font-bold">Ревью нашло замечания</h2>
                   <p class="mt-1.5 text-xs leading-5 text-muted">
-                    Конвейер остановился, чтобы не тратить время на перегенерацию без вашего согласия.
-                    Оставьте код как есть — соберём версию из него, — или перегенерируйте только код.
+                    Конвейер остановился, чтобы не тратить время на перегенерацию без вашего
+                    согласия. Оставьте код как есть — соберём версию из него, — или перегенерируйте
+                    только код.
                   </p>
 
                   <ul v-if="reviewIssues.length" class="mt-3 space-y-1.5">
@@ -662,26 +766,38 @@ onBeforeUnmount(() => {
                       :key="`${issue.code}-${index}`"
                       class="flex gap-2 rounded-xl border border-line bg-canvas/40 px-3 py-2 text-[11px] leading-5 text-muted"
                     >
-                      <span class="font-mono text-[9px] uppercase tracking-[0.08em] text-faint">{{ issue.code }}</span>
+                      <span class="font-mono text-[9px] uppercase tracking-[0.08em] text-faint">{{
+                        issue.code
+                      }}</span>
                       <span class="flex-1">{{ issue.message }}</span>
-                      <span v-if="issue.line" class="font-mono text-[9px] text-faint">:{{ issue.line }}</span>
+                      <span v-if="issue.line" class="font-mono text-[9px] text-faint"
+                        >:{{ issue.line }}</span
+                      >
                     </li>
                   </ul>
 
                   <div class="mt-4 flex flex-wrap gap-2">
-                    <Button class="bee-button" :loading="game.actionPending === 'review'" @click="acceptReview">
+                    <Button
+                      class="bee-button"
+                      :loading="game.actionPending === 'review'"
+                      @click="acceptReview"
+                    >
                       <AppIcon name="check" :size="14" />
                       <span class="ml-1.5">Оставить как есть</span>
                     </Button>
-                    <Button class="p-button-secondary" :disabled="Boolean(game.actionPending)" @click="regenerateCode">
+                    <Button
+                      class="p-button-secondary"
+                      :disabled="Boolean(game.actionPending)"
+                      @click="regenerateCode"
+                    >
                       <AppIcon name="refresh" :size="14" />
                       <span class="ml-1.5">Сгенерировать код заново</span>
                     </Button>
                   </div>
 
                   <p class="mt-3 text-[10px] leading-4 text-faint">
-                    «Оставить как есть» продолжает с этапа {{ stageTitle('assembling') }} — быстро и без новых
-                    вызовов модели. Перегенерация начинается с этапа кода.
+                    «Оставить как есть» продолжает с этапа {{ stageTitle('assembling') }} — быстро и
+                    без новых вызовов модели. Перегенерация начинается с этапа кода.
                   </p>
                 </div>
               </div>
@@ -689,25 +805,38 @@ onBeforeUnmount(() => {
 
             <div v-if="game.isFailed" class="panel border-red-500/20 p-5 sm:p-6">
               <div class="flex items-start gap-3">
-                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-red-500/10 text-red-500">
+                <span
+                  class="grid size-10 shrink-0 place-items-center rounded-xl bg-red-500/10 text-red-500"
+                >
                   <AppIcon name="alert" :size="20" />
                 </span>
                 <div class="flex-1">
                   <h2 class="font-display text-lg font-bold">Конвейер остановился</h2>
                   <p class="mt-1.5 text-xs leading-5 text-muted">
-                    Игра не собралась. Запустите починку — агент получит контекст ошибки и
-                    попробует собрать новую версию.
+                    Игра не собралась. Запустите починку — агент получит контекст ошибки и попробует
+                    собрать новую версию.
                   </p>
                   <div class="mt-4 flex flex-wrap gap-2">
-                    <Button class="bee-button" :loading="game.actionPending === 'fix'" @click="openFix">
+                    <Button
+                      class="bee-button"
+                      :loading="game.actionPending === 'fix'"
+                      @click="openFix"
+                    >
                       <AppIcon name="refresh" :size="14" />
                       <span class="ml-1.5">Починить игру</span>
                     </Button>
-                    <Button class="p-button-secondary" :loading="game.actionPending === 'retry'" @click="retryGame">
+                    <Button
+                      class="p-button-secondary"
+                      :loading="game.actionPending === 'retry'"
+                      @click="retryGame"
+                    >
                       <AppIcon name="refresh" :size="14" />
                       <span class="ml-1.5">Перезапустить сборку</span>
                     </Button>
-                    <RouterLink :to="{ name: 'create' }" class="rounded-full border border-line-strong px-4 py-2.5 text-xs font-bold">
+                    <RouterLink
+                      :to="{ name: 'create' }"
+                      class="rounded-full border border-line-strong px-4 py-2.5 text-xs font-bold"
+                    >
                       Начать заново
                     </RouterLink>
                   </div>
@@ -732,7 +861,9 @@ onBeforeUnmount(() => {
                   </h2>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-bee-deep dark:text-bee">
+                  <span
+                    class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-bee-deep dark:text-bee"
+                  >
                     <span class="size-1.5 animate-pulse-soft rounded-full bg-bee" />
                     {{ game.streaming ? 'stream' : 'poll' }}
                   </span>
@@ -755,28 +886,40 @@ onBeforeUnmount(() => {
                   <div v-if="game.isGenerating" class="mt-4 grid grid-cols-3 gap-2">
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">{{ game.stageProgress }}%</p>
-                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">прогресс</p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+                        прогресс
+                      </p>
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">
                         {{ game.pipelineStages.filter((item) => item.status === 'done').length }}/8
                       </p>
-                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">этапов</p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+                        этапов
+                      </p>
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
-                      <p class="font-display text-lg font-bold">{{ game.stages.filter((item) => item.issues).length }}</p>
-                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">issues</p>
+                      <p class="font-display text-lg font-bold">
+                        {{ game.stages.filter((item) => item.issues).length }}
+                      </p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+                        issues
+                      </p>
                     </div>
                   </div>
 
                   <div v-else class="mt-4 grid grid-cols-3 gap-2">
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">{{ operationLabel }}</p>
-                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">операция</p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+                        операция
+                      </p>
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">{{ versions.length }}</p>
-                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">версий</p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+                        версий
+                      </p>
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">
@@ -802,8 +945,19 @@ onBeforeUnmount(() => {
 
                   <div class="terminal h-[210px] p-4">
                     <p><span class="tok-comment">// beevibe pipeline</span></p>
-                    <p v-for="stage in game.stages" :key="`${stage.stage}-${stage.operation ?? ''}`">
-                      <span :class="stage.status === 'done' ? 'tok-string' : stage.status === 'error' ? 'tok-key' : 'tok-key'">
+                    <p
+                      v-for="stage in game.stages"
+                      :key="`${stage.stage}-${stage.operation ?? ''}`"
+                    >
+                      <span
+                        :class="
+                          stage.status === 'done'
+                            ? 'tok-string'
+                            : stage.status === 'error'
+                              ? 'tok-key'
+                              : 'tok-key'
+                        "
+                      >
                         {{ logLine(stage) }}
                       </span>
                     </p>
@@ -818,13 +972,17 @@ onBeforeUnmount(() => {
 
             <div v-if="game.isGenerating && !game.spec" class="panel p-5">
               <div class="flex items-center gap-3">
-                <span class="size-4 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
+                <span
+                  class="size-4 animate-spin rounded-full border-2 border-line border-t-bee-deep"
+                />
                 <p class="text-xs text-muted">Спецификация появится после этапа планирования.</p>
               </div>
             </div>
 
             <div v-if="showMaintenance" id="edits" class="panel overflow-hidden">
-              <div class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+              <div
+                class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4"
+              >
                 <div>
                   <p class="mono-label">Правки</p>
                   <h2 class="mt-1 font-display text-xl font-bold">Изменить игру</h2>
@@ -840,7 +998,11 @@ onBeforeUnmount(() => {
                   :key="tab.value"
                   type="button"
                   class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition"
-                  :class="editTab === tab.value ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:bg-hover-surface hover:text-ink'"
+                  :class="
+                    editTab === tab.value
+                      ? 'bg-ink text-canvas shadow-sm'
+                      : 'text-muted hover:bg-hover-surface hover:text-ink'
+                  "
                   @click="editTab = tab.value"
                 >
                   <AppIcon :name="tab.icon" :size="13" />
@@ -909,12 +1071,22 @@ onBeforeUnmount(() => {
 
                   <div>
                     <label class="mono-label mb-2 block">Размер карты</label>
-                    <Select v-model="configForm.mapSize" :options="mapOptions" option-label="label" option-value="value" />
+                    <Select
+                      v-model="configForm.mapSize"
+                      :options="mapOptions"
+                      option-label="label"
+                      option-value="value"
+                    />
                   </div>
 
                   <div>
                     <label class="mono-label mb-2 block">Сложность</label>
-                    <Select v-model="configForm.difficulty" :options="difficultyOptions" option-label="label" option-value="value" />
+                    <Select
+                      v-model="configForm.difficulty"
+                      :options="difficultyOptions"
+                      option-label="label"
+                      option-value="value"
+                    />
                   </div>
 
                   <div class="sm:col-span-2">
@@ -927,17 +1099,28 @@ onBeforeUnmount(() => {
                         :style="{ backgroundColor: configForm.palette[index] }"
                         :title="configForm.palette[index]"
                       >
-                        <input v-model="configForm.palette[index]" type="color" class="absolute inset-0 cursor-pointer opacity-0" />
+                        <input
+                          v-model="configForm.palette[index]"
+                          type="color"
+                          class="absolute inset-0 cursor-pointer opacity-0"
+                        />
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                <div
+                  class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4"
+                >
                   <p class="text-[10px] leading-4 text-faint">
                     Тюнинг применяется к игре без вызова LLM и создаёт новую версию.
                   </p>
-                  <Button class="p-button-secondary" :loading="savingConfig" :disabled="!game.config" @click="saveConfig">
+                  <Button
+                    class="p-button-secondary"
+                    :loading="savingConfig"
+                    :disabled="!game.config"
+                    @click="saveConfig"
+                  >
                     Сохранить настройки
                   </Button>
                 </div>
@@ -945,8 +1128,8 @@ onBeforeUnmount(() => {
 
               <div v-show="editTab === 'fix'" class="p-4 sm:p-5">
                 <p class="text-xs leading-5 text-muted">
-                  Опишите, что сломалось. Если оставить поле пустым, агент попробует восстановить игру по
-                  коду и последним ошибкам.
+                  Опишите, что сломалось. Если оставить поле пустым, агент попробует восстановить
+                  игру по коду и последним ошибкам.
                 </p>
                 <Textarea
                   v-model="fixText"
@@ -957,7 +1140,12 @@ onBeforeUnmount(() => {
                 />
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <p class="text-[10px] leading-4 text-faint">Починка тоже создаёт новую версию.</p>
-                  <Button class="bee-button" :loading="Boolean(operation) || game.actionPending === 'fix'" :disabled="Boolean(operation)" @click="repair">
+                  <Button
+                    class="bee-button"
+                    :loading="Boolean(operation) || game.actionPending === 'fix'"
+                    :disabled="Boolean(operation)"
+                    @click="repair"
+                  >
                     <AppIcon name="refresh" :size="14" />
                     <span class="ml-1.5">Запустить починку</span>
                   </Button>
@@ -966,7 +1154,9 @@ onBeforeUnmount(() => {
             </div>
 
             <div v-if="showMaintenance" class="panel overflow-hidden">
-              <div class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+              <div
+                class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4"
+              >
                 <div>
                   <p class="mono-label">Публикация</p>
                   <h2 class="mt-1 font-display text-xl font-bold">Название и обложка</h2>
@@ -989,7 +1179,9 @@ onBeforeUnmount(() => {
               <div class="grid gap-4 p-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:p-5">
                 <div class="overflow-hidden rounded-2xl border border-line">
                   <div class="aspect-square" :style="coverGradient" />
-                  <p class="px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
+                  <p
+                    class="px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-faint"
+                  >
                     {{ game.game?.cover?.style ?? game.spec?.style ?? 'градиент' }}
                   </p>
                 </div>
@@ -997,16 +1189,28 @@ onBeforeUnmount(() => {
                 <div class="space-y-3">
                   <div>
                     <label class="mono-label mb-1.5 block">Название</label>
-                    <InputText v-model="metaForm.title" maxlength="80" class="w-full" placeholder="Например: Кристаллы" />
+                    <InputText
+                      v-model="metaForm.title"
+                      maxlength="80"
+                      class="w-full"
+                      placeholder="Например: Кристаллы"
+                    />
                   </div>
                   <div>
                     <label class="mono-label mb-1.5 block">Описание</label>
-                    <Textarea v-model="metaForm.description" rows="3" maxlength="500" class="text-[13px]" />
+                    <Textarea
+                      v-model="metaForm.description"
+                      rows="3"
+                      maxlength="500"
+                      class="text-[13px]"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5"
+              >
                 <p class="text-[10px] leading-4 text-faint">
                   Ручная правка бесплатна. В каталоге и на публичной странице показывается название,
                   пока его нет — промпт.
@@ -1021,7 +1225,9 @@ onBeforeUnmount(() => {
                     <AppIcon name="spark" :size="14" />
                     <span class="ml-1.5">Сгенерировать</span>
                   </Button>
-                  <Button class="bee-button" :loading="metaSaving" @click="saveMeta">Сохранить</Button>
+                  <Button class="bee-button" :loading="metaSaving" @click="saveMeta"
+                    >Сохранить</Button
+                  >
                 </div>
               </div>
             </div>
@@ -1036,23 +1242,37 @@ onBeforeUnmount(() => {
               </div>
 
               <div v-if="versions.length" class="divide-y divide-line">
-                <div v-for="version in versions" :key="version.id" class="flex items-center gap-3 px-5 py-3.5">
+                <div
+                  v-for="version in versions"
+                  :key="version.id"
+                  class="flex items-center gap-3 px-5 py-3.5"
+                >
                   <span
                     class="grid size-8 shrink-0 place-items-center rounded-lg border font-mono text-[10px] font-bold"
-                    :class="version.number === latestVersion?.number ? 'border-bee-deep/30 bg-bee/10 text-bee-deep dark:text-bee' : 'border-line bg-canvas/40 text-faint'"
+                    :class="
+                      version.number === latestVersion?.number
+                        ? 'border-bee-deep/30 bg-bee/10 text-bee-deep dark:text-bee'
+                        : 'border-line bg-canvas/40 text-faint'
+                    "
                   >
                     #{{ version.number }}
                   </span>
                   <div class="min-w-0 flex-1">
                     <p class="text-xs font-bold">
                       {{ versionSourceLabel(version.source) }}
-                      <span v-if="version.note" class="font-normal text-muted">— {{ version.note }}</span>
+                      <span v-if="version.note" class="font-normal text-muted"
+                        >— {{ version.note }}</span
+                      >
                     </p>
                     <p class="mt-0.5 font-mono text-[9px] text-faint">
-                      {{ formatDate(version.created_at) }} · {{ formatTokens(version.tokens_cost) }} токенов
+                      {{ formatDate(version.created_at) }} ·
+                      {{ formatTokens(version.tokens_cost) }} токенов
                     </p>
                   </div>
-                  <span v-if="version.number === latestVersion?.number" class="rounded-full bg-emerald-500/10 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.08em] text-emerald-500">
+                  <span
+                    v-if="version.number === latestVersion?.number"
+                    class="rounded-full bg-emerald-500/10 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.08em] text-emerald-500"
+                  >
                     active
                   </span>
                   <button
@@ -1075,7 +1295,9 @@ onBeforeUnmount(() => {
                   <p class="mono-label">Game spec</p>
                   <h2 class="mt-1 font-display text-xl font-bold">Что за игра</h2>
                 </div>
-                <span class="rounded-full border border-line bg-canvas/50 px-3 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
+                <span
+                  class="rounded-full border border-line bg-canvas/50 px-3 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted"
+                >
                   {{ genreLabel(game.spec.genre) }} · {{ styleLabel(game.spec.style) }}
                 </span>
               </div>
@@ -1122,7 +1344,9 @@ onBeforeUnmount(() => {
                   <p class="mono-label">Сейчас</p>
                   <h2 class="mt-1 font-display text-lg font-bold">{{ operationLabel }}</h2>
                 </div>
-                <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee">
+                <span
+                  class="grid size-9 shrink-0 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee"
+                >
                   <AppIcon name="spark" :size="17" />
                 </span>
               </div>
@@ -1156,7 +1380,9 @@ onBeforeUnmount(() => {
               <div class="mt-5 grid grid-cols-2 gap-2 border-t border-line pt-4">
                 <div class="rounded-xl border border-line bg-canvas/35 p-3">
                   <p class="mono-label">Стоимость</p>
-                  <p class="mt-1.5 font-mono text-sm font-bold">{{ formatTokens(game.game.cost.tokens) }}</p>
+                  <p class="mt-1.5 font-mono text-sm font-bold">
+                    {{ formatTokens(game.game.cost.tokens) }}
+                  </p>
                 </div>
                 <div class="rounded-xl border border-line bg-canvas/35 p-3">
                   <p class="mono-label">Вызовы</p>
@@ -1174,7 +1400,9 @@ onBeforeUnmount(() => {
                 <RatingBadge :average="game.rating.average" :total="game.rating.total" />
               </div>
 
-              <div class="mt-4 flex items-end gap-3 rounded-2xl border border-line bg-canvas/35 p-4">
+              <div
+                class="mt-4 flex items-end gap-3 rounded-2xl border border-line bg-canvas/35 p-4"
+              >
                 <p class="font-display text-4xl font-bold leading-none">
                   {{ game.rating.total ? game.rating.average.toFixed(1).replace('.', ',') : '—' }}
                 </p>
@@ -1184,7 +1412,11 @@ onBeforeUnmount(() => {
                       v-for="star in 5"
                       :key="star"
                       class="size-2 rounded-full"
-                      :class="star <= Math.round(game.rating.average) ? averageTone.solid : 'bg-line-strong'"
+                      :class="
+                        star <= Math.round(game.rating.average)
+                          ? averageTone.solid
+                          : 'bg-line-strong'
+                      "
                     />
                   </div>
                   <p class="mt-1.5 font-mono text-[9px] uppercase tracking-[0.09em] text-faint">
@@ -1204,7 +1436,9 @@ onBeforeUnmount(() => {
                       :style="{ width: `${(row.count / maxRatingCount) * 100}%` }"
                     />
                   </div>
-                  <span class="w-5 text-right font-mono text-[9px] tabular-nums text-faint">{{ row.count }}</span>
+                  <span class="w-5 text-right font-mono text-[9px] tabular-nums text-faint">{{
+                    row.count
+                  }}</span>
                 </div>
               </div>
 
@@ -1216,7 +1450,9 @@ onBeforeUnmount(() => {
 
             <section class="panel p-5">
               <div class="flex items-center gap-2.5">
-                <span class="grid size-9 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee">
+                <span
+                  class="grid size-9 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee"
+                >
                   <AppIcon name="shield" :size="17" />
                 </span>
                 <div>
@@ -1253,6 +1489,5 @@ onBeforeUnmount(() => {
         </div>
       </template>
     </div>
-
   </div>
 </template>

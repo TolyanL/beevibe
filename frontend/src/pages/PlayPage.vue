@@ -8,7 +8,12 @@ import { messageFromError } from '@/api/client'
 import { rateGame } from '@/api/games'
 import type { CatalogCard, GamePublicCard } from '@/api/types'
 import { formatDate, formatHours, plural } from '@/lib/format'
-import { gameDescription as gameDescriptionOf, genreLabel, shortGameTitle, styleLabel } from '@/lib/game'
+import {
+  gameDescription as gameDescriptionOf,
+  genreLabel,
+  shortGameTitle,
+  styleLabel,
+} from '@/lib/game'
 import { ratingTone } from '@/lib/rating'
 import { usePlaytime } from '@/composables/usePlaytime'
 import { useAuthStore } from '@/stores/auth'
@@ -30,10 +35,15 @@ const ratingKey = ref(0)
 const votePending = ref(false)
 const voteError = ref('')
 
-const session = usePlaytime(() => id.value, () => frameLoaded.value)
+const session = usePlaytime(
+  () => id.value,
+  () => frameLoaded.value,
+)
 const sessionSeconds = session.seconds
 const more = computed(() => related.value.slice(0, 3))
-const title = computed(() => shortGameTitle(card.value?.title, card.value?.prompt ?? 'Игра BeeVibe'))
+const title = computed(() =>
+  shortGameTitle(card.value?.title, card.value?.prompt ?? 'Игра BeeVibe'),
+)
 const description = computed(() =>
   gameDescriptionOf(card.value?.description, card.value?.prompt ?? ''),
 )
@@ -63,7 +73,12 @@ async function rate(value: number): Promise<void> {
     vote.value = response.rating
     card.value.my_rating = response.rating
     card.value.rating = response.aggregate
-    toast.add({ severity: 'success', summary: 'Оценка сохранена', detail: 'Спасибо — рейтинг обновлён.', life: 2200 })
+    toast.add({
+      severity: 'success',
+      summary: 'Оценка сохранена',
+      detail: 'Спасибо — рейтинг обновлён.',
+      life: 2200,
+    })
   } catch (err) {
     vote.value = card.value.my_rating
     voteError.value = messageFromError(err)
@@ -122,17 +137,25 @@ onMounted(async () => {
             <AppIcon name="clock" :size="12" />
             {{ sessionLabel(sessionSeconds) }}
           </span>
-          <span class="font-mono text-[9px] uppercase tracking-[0.13em] text-faint">public play</span>
+          <span class="font-mono text-[9px] uppercase tracking-[0.13em] text-faint"
+            >public play</span
+          >
         </div>
       </div>
 
       <header class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
-            <span v-if="genre" class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted">
+            <span
+              v-if="genre"
+              class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted"
+            >
               {{ genre }}
             </span>
-            <span v-if="styleName" class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted">
+            <span
+              v-if="styleName"
+              class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted"
+            >
               {{ styleName }}
             </span>
             <RatingBadge
@@ -148,7 +171,9 @@ onMounted(async () => {
             </span>
           </div>
 
-          <h1 class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]">
+          <h1
+            class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]"
+          >
             {{ title }}
           </h1>
         </div>
@@ -185,7 +210,10 @@ onMounted(async () => {
           </div>
 
           <p class="mt-4 text-[14px] leading-7 text-muted">
-            {{ description || 'Игра сгенерирована BeeVibe и доступна по публичной ссылке. Запускайте прямо в браузере, оценка и история — в каталоге.' }}
+            {{
+              description ||
+              'Игра сгенерирована BeeVibe и доступна по публичной ссылке. Запускайте прямо в браузере, оценка и история — в каталоге.'
+            }}
           </p>
 
           <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -222,7 +250,10 @@ onMounted(async () => {
               </p>
             </div>
           </div>
-          <div v-else class="mt-4 rounded-xl border border-line bg-canvas/35 px-4 py-3 text-xs text-muted">
+          <div
+            v-else
+            class="mt-4 rounded-xl border border-line bg-canvas/35 px-4 py-3 text-xs text-muted"
+          >
             Оценки доступны из каталога после загрузки карточки игры.
           </div>
 
@@ -238,27 +269,35 @@ onMounted(async () => {
                     @update:model-value="onRatingInput"
                   />
                 </div>
-                <span v-if="card.my_rating" class="font-mono text-[10px] text-muted">{{ card.my_rating }} / 5</span>
+                <span v-if="card.my_rating" class="font-mono text-[10px] text-muted"
+                  >{{ card.my_rating }} / 5</span
+                >
               </div>
               <p v-if="voteError" class="mt-2 text-[10px] text-red-500">{{ voteError }}</p>
-              <p class="mt-2 text-[10px] leading-4 text-faint">Оценку можно изменить в любой момент.</p>
+              <p class="mt-2 text-[10px] leading-4 text-faint">
+                Оценку можно изменить в любой момент.
+              </p>
             </template>
 
             <template v-else-if="!auth.isAuthenticated">
               <p class="text-[11px] leading-5 text-faint">
-                <RouterLink :to="loginLink" class="font-bold text-bee-deep hover-link dark:text-bee">Войдите</RouterLink>,
-                чтобы поставить оценку — она попадёт в рейтинг каталога.
+                <RouterLink :to="loginLink" class="font-bold text-bee-deep hover-link dark:text-bee"
+                  >Войдите</RouterLink
+                >, чтобы поставить оценку — она попадёт в рейтинг каталога.
               </p>
             </template>
           </div>
 
-          <p v-else-if="card?.is_owner" class="mt-4 border-t border-line pt-3 text-[11px] leading-5 text-faint">
+          <p
+            v-else-if="card?.is_owner"
+            class="mt-4 border-t border-line pt-3 text-[11px] leading-5 text-faint"
+          >
             Это ваша игра: оценивать её могут только другие игроки, поэтому здесь только статистика.
           </p>
 
           <p v-if="!card" class="mt-4 text-[11px] leading-5 text-faint">
-            Оценка хранится в аккаунте и меняет средний рейтинг в каталоге. Пять — восторг,
-            один — совсем не зашло.
+            Оценка хранится в аккаунте и меняет средний рейтинг в каталоге. Пять — восторг, один —
+            совсем не зашло.
           </p>
         </aside>
       </div>
@@ -269,7 +308,10 @@ onMounted(async () => {
             <div class="eyebrow">Ещё играть</div>
             <h2 class="display-title mt-2 text-2xl sm:text-3xl">Другие игры</h2>
           </div>
-          <RouterLink to="/catalog" class="group inline-flex items-center gap-2 text-xs font-bold text-muted transition hover:text-ink">
+          <RouterLink
+            to="/catalog"
+            class="group inline-flex items-center gap-2 text-xs font-bold text-muted transition hover:text-ink"
+          >
             Весь каталог
             <AppIcon name="arrow-right" :size="14" class="transition group-hover:translate-x-0.5" />
           </RouterLink>

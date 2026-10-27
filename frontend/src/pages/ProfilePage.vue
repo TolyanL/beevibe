@@ -65,7 +65,12 @@ async function saveDisplayName(): Promise<void> {
     await auth.updateDisplayName(displayName.value)
     toast.add({ severity: 'success', summary: 'Имя сохранено', life: 2200 })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Не удалось сохранить', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Не удалось сохранить',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   } finally {
     savingProfile.value = false
   }
@@ -128,7 +133,12 @@ async function topup(): Promise<void> {
       life: 2800,
     })
   } catch (err) {
-    toast.add({ severity: 'error', summary: 'Не получилось', detail: messageFromError(err), life: 3200 })
+    toast.add({
+      severity: 'error',
+      summary: 'Не получилось',
+      detail: messageFromError(err),
+      life: 3200,
+    })
   } finally {
     toppingUp.value = false
   }
@@ -158,11 +168,15 @@ onMounted(() => {
 <template>
   <div class="pb-8 pt-9 sm:pt-12">
     <div class="app-container">
-      <section class="relative overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 p-5 sm:p-8">
+      <section
+        class="relative overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 p-5 sm:p-8"
+      >
         <div class="absolute -right-24 -top-24 size-64 rounded-full bg-bee/15 blur-3xl" />
         <div class="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-4">
-            <span class="grid size-14 shrink-0 place-items-center rounded-2xl bg-ink font-display text-xl font-bold text-canvas">
+            <span
+              class="grid size-14 shrink-0 place-items-center rounded-2xl bg-ink font-display text-xl font-bold text-canvas"
+            >
               {{ emailInitial }}
             </span>
             <div class="min-w-0">
@@ -177,12 +191,16 @@ onMounted(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="flex items-center gap-2 rounded-full border border-line bg-canvas/50 py-1.5 pl-2 pr-4">
+            <div
+              class="flex items-center gap-2 rounded-full border border-line bg-canvas/50 py-1.5 pl-2 pr-4"
+            >
               <span class="grid size-7 place-items-center rounded-full bg-bee text-graphite">
                 <AppIcon name="bolt" :size="14" :stroke="2.3" />
               </span>
               <div>
-                <p class="font-mono text-sm font-bold leading-none tabular-nums">{{ formatNumber(auth.balance) }}</p>
+                <p class="font-mono text-sm font-bold leading-none tabular-nums">
+                  {{ formatNumber(auth.balance) }}
+                </p>
                 <p class="mt-1 text-[9px] uppercase tracking-[0.1em] text-faint">токенов</p>
               </div>
             </div>
@@ -193,10 +211,14 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="relative mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
+        <div
+          class="relative mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4"
+        >
           <div class="bg-canvas/45 p-4">
             <p class="mono-label">Всего игр</p>
-            <p class="mt-2 font-display text-2xl font-bold">{{ formatNumber(gamesTotal || games.length) }}</p>
+            <p class="mt-2 font-display text-2xl font-bold">
+              {{ formatNumber(gamesTotal || games.length) }}
+            </p>
           </div>
           <div class="bg-canvas/45 p-4">
             <p class="mono-label">Готовы</p>
@@ -218,16 +240,28 @@ onMounted(() => {
           <div>
             <p class="mono-label">Профиль</p>
             <h2 class="mt-1 font-display text-lg font-bold">Публичное имя автора</h2>
-            <p class="mt-1 text-[11px] text-muted">Его видят в каталоге и на странице игры вместо email.</p>
+            <p class="mt-1 text-[11px] text-muted">
+              Его видят в каталоге и на странице игры вместо email.
+            </p>
           </div>
           <div class="flex w-full gap-2 sm:w-auto">
-            <InputText v-model="displayName" maxlength="40" class="w-full sm:w-64" placeholder="Например: Мастер кристаллов" />
-            <Button class="bee-button" :loading="savingProfile" @click="saveDisplayName">Сохранить</Button>
+            <InputText
+              v-model="displayName"
+              maxlength="40"
+              class="w-full sm:w-64"
+              placeholder="Например: Мастер кристаллов"
+            />
+            <Button class="bee-button" :loading="savingProfile" @click="saveDisplayName"
+              >Сохранить</Button
+            >
           </div>
         </div>
       </section>
 
-      <div v-if="loading && !profile" class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]">
+      <div
+        v-if="loading && !profile"
+        class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]"
+      >
         <div class="h-80 animate-pulse rounded-[1.35rem] bg-surface/70" />
         <div class="h-80 animate-pulse rounded-[1.35rem] bg-surface/70" />
       </div>
@@ -240,108 +274,148 @@ onMounted(() => {
 
       <div v-else class="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]">
         <div class="min-w-0 space-y-5">
-        <section class="panel overflow-hidden">
-          <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
-            <div>
-              <p class="mono-label">Библиотека</p>
-              <h2 class="mt-1 font-display text-xl font-bold">Мои игры</h2>
-            </div>
-            <RouterLink
-              :to="{ name: 'create' }"
-              class="inline-flex items-center gap-1.5 rounded-full bg-bee px-3.5 py-2 text-[11px] font-extrabold text-graphite transition hover:bg-bee-deep"
+          <section class="panel overflow-hidden">
+            <div
+              class="flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6"
             >
-              <AppIcon name="plus" :size="13" :stroke="2.4" />
-              Новая
-            </RouterLink>
-          </div>
-
-          <div v-if="gamesLoading && !games.length" class="divide-y divide-line">
-            <div v-for="index in 4" :key="index" class="flex items-center gap-3 px-4 py-4 sm:px-6">
-              <span class="size-10 shrink-0 animate-pulse rounded-xl bg-line/50" />
-              <div class="flex-1 space-y-2">
-                <div class="h-3 w-2/5 animate-pulse rounded bg-line/70" />
-                <div class="h-2.5 w-1/4 animate-pulse rounded bg-line/50" />
+              <div>
+                <p class="mono-label">Библиотека</p>
+                <h2 class="mt-1 font-display text-xl font-bold">Мои игры</h2>
               </div>
-            </div>
-          </div>
-
-          <div v-else-if="games.length" class="divide-y divide-line">
-            <RouterLink
-              v-for="item in games"
-              :key="item.id"
-              :to="{ name: 'game', params: { id: item.id } }"
-              class="group hover-row flex items-center gap-3 px-4 py-4 sm:px-6"
-            >
-              <span class="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-canvas/60 text-bee-deep transition group-hover:border-bee-deep/40 group-hover:bg-bee/10 dark:text-bee">
-                <AppIcon name="gamepad" :size="18" />
-              </span>
-
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-[13px] font-bold">{{ item.prompt }}</p>
-                <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
-                  <span>{{ genreLabel(item.genre) }}</span>
-                  <span>·</span>
-                  <span>{{ formatDate(item.created_at) }}</span>
-                  <span>·</span>
-                  <span>{{ formatTokens(item.tokens_cost) }} токенов</span>
-                </p>
-              </div>
-
-              <StatusPill :status="item.status" compact class="hidden sm:inline-flex" />
-              <AppIcon name="arrow-right" :size="15" class="text-faint transition group-hover:translate-x-0.5 group-hover:text-ink" />
-            </RouterLink>
-          </div>
-
-          <button
-            v-if="moreGames"
-            type="button"
-            class="flex w-full items-center justify-center gap-2 border-t border-line px-5 py-3.5 text-[11px] font-bold text-muted transition hover:bg-hover-surface hover:text-ink"
-            :disabled="gamesLoading"
-            @click="loadGames(false)"
-          >
-            <span v-if="gamesLoading" class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
-            {{ gamesLoading ? 'Загружаем…' : `Показать ещё · осталось ${gamesTotal - games.length}` }}
-          </button>
-
-          <div v-else-if="!gamesLoading" class="p-5">
-            <EmptyState icon="wand" title="Пока ни одной игры" text="Опишите идею на главной — первая игра появится здесь.">
-              <RouterLink :to="{ name: 'create' }" class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-2.5 text-xs font-extrabold text-graphite">
-                <AppIcon name="spark" :size="14" />
-                Создать игру
+              <RouterLink
+                :to="{ name: 'create' }"
+                class="inline-flex items-center gap-1.5 rounded-full bg-bee px-3.5 py-2 text-[11px] font-extrabold text-graphite transition hover:bg-bee-deep"
+              >
+                <AppIcon name="plus" :size="13" :stroke="2.4" />
+                Новая
               </RouterLink>
-            </EmptyState>
-          </div>
-        </section>
-
-        <section class="panel p-5">
-          <div class="flex items-start gap-3">
-            <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee">
-              <AppIcon name="bolt" :size="18" />
-            </span>
-            <div>
-              <p class="mono-label">Совет</p>
-              <h2 class="mt-1 font-display text-lg font-bold">Больше деталей — точнее игра</h2>
             </div>
-          </div>
-          <p class="mt-3 text-xs leading-5 text-muted">
-            Добавьте в промпт героя, цель, управление и стиль. Чем конкретнее идея, тем меньше
-            правок понадобится после первой сборки.
-          </p>
-          <div class="mt-4 flex flex-wrap gap-1.5">
-            <span class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">герой</span>
-            <span class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">цель</span>
-            <span class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">управление</span>
-            <span class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">стиль</span>
-          </div>
-          <RouterLink
-            to="/#create"
-            class="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold text-bee-deep transition hover:text-ink dark:text-bee"
-          >
-            <AppIcon name="wand" :size="13" />
-            Собрать новую игру
-            <AppIcon name="arrow-right" :size="13" />
-          </RouterLink>
-        </section>
+
+            <div v-if="gamesLoading && !games.length" class="divide-y divide-line">
+              <div
+                v-for="index in 4"
+                :key="index"
+                class="flex items-center gap-3 px-4 py-4 sm:px-6"
+              >
+                <span class="size-10 shrink-0 animate-pulse rounded-xl bg-line/50" />
+                <div class="flex-1 space-y-2">
+                  <div class="h-3 w-2/5 animate-pulse rounded bg-line/70" />
+                  <div class="h-2.5 w-1/4 animate-pulse rounded bg-line/50" />
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="games.length" class="divide-y divide-line">
+              <RouterLink
+                v-for="item in games"
+                :key="item.id"
+                :to="{ name: 'game', params: { id: item.id } }"
+                class="group hover-row flex items-center gap-3 px-4 py-4 sm:px-6"
+              >
+                <span
+                  class="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-canvas/60 text-bee-deep transition group-hover:border-bee-deep/40 group-hover:bg-bee/10 dark:text-bee"
+                >
+                  <AppIcon name="gamepad" :size="18" />
+                </span>
+
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-bold">{{ item.prompt }}</p>
+                  <p
+                    class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.08em] text-faint"
+                  >
+                    <span>{{ genreLabel(item.genre) }}</span>
+                    <span>·</span>
+                    <span>{{ formatDate(item.created_at) }}</span>
+                    <span>·</span>
+                    <span>{{ formatTokens(item.tokens_cost) }} токенов</span>
+                  </p>
+                </div>
+
+                <StatusPill :status="item.status" compact class="hidden sm:inline-flex" />
+                <AppIcon
+                  name="arrow-right"
+                  :size="15"
+                  class="text-faint transition group-hover:translate-x-0.5 group-hover:text-ink"
+                />
+              </RouterLink>
+            </div>
+
+            <button
+              v-if="moreGames"
+              type="button"
+              class="flex w-full items-center justify-center gap-2 border-t border-line px-5 py-3.5 text-[11px] font-bold text-muted transition hover:bg-hover-surface hover:text-ink"
+              :disabled="gamesLoading"
+              @click="loadGames(false)"
+            >
+              <span
+                v-if="gamesLoading"
+                class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep"
+              />
+              {{
+                gamesLoading ? 'Загружаем…' : `Показать ещё · осталось ${gamesTotal - games.length}`
+              }}
+            </button>
+
+            <div v-else-if="!gamesLoading" class="p-5">
+              <EmptyState
+                icon="wand"
+                title="Пока ни одной игры"
+                text="Опишите идею на главной — первая игра появится здесь."
+              >
+                <RouterLink
+                  :to="{ name: 'create' }"
+                  class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-2.5 text-xs font-extrabold text-graphite"
+                >
+                  <AppIcon name="spark" :size="14" />
+                  Создать игру
+                </RouterLink>
+              </EmptyState>
+            </div>
+          </section>
+
+          <section class="panel p-5">
+            <div class="flex items-start gap-3">
+              <span
+                class="grid size-9 shrink-0 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee"
+              >
+                <AppIcon name="bolt" :size="18" />
+              </span>
+              <div>
+                <p class="mono-label">Совет</p>
+                <h2 class="mt-1 font-display text-lg font-bold">Больше деталей — точнее игра</h2>
+              </div>
+            </div>
+            <p class="mt-3 text-xs leading-5 text-muted">
+              Добавьте в промпт героя, цель, управление и стиль. Чем конкретнее идея, тем меньше
+              правок понадобится после первой сборки.
+            </p>
+            <div class="mt-4 flex flex-wrap gap-1.5">
+              <span
+                class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint"
+                >герой</span
+              >
+              <span
+                class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint"
+                >цель</span
+              >
+              <span
+                class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint"
+                >управление</span
+              >
+              <span
+                class="rounded-full border border-line bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-faint"
+                >стиль</span
+              >
+            </div>
+            <RouterLink
+              to="/#create"
+              class="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold text-bee-deep transition hover:text-ink dark:text-bee"
+            >
+              <AppIcon name="wand" :size="13" />
+              Собрать новую игру
+              <AppIcon name="arrow-right" :size="13" />
+            </RouterLink>
+          </section>
         </div>
 
         <div class="min-w-0 space-y-5">
@@ -351,29 +425,43 @@ onMounted(() => {
                 <p class="mono-label">Тарифы</p>
                 <h2 class="mt-1 font-display text-lg font-bold">Стоимость действий</h2>
               </div>
-              <span class="grid size-9 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee">
+              <span
+                class="grid size-9 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee"
+              >
                 <AppIcon name="coin" :size="18" />
               </span>
             </div>
 
             <div class="mt-4 space-y-2.5">
-              <div class="flex items-center justify-between rounded-xl border border-line bg-canvas/35 px-3.5 py-3">
+              <div
+                class="flex items-center justify-between rounded-xl border border-line bg-canvas/35 px-3.5 py-3"
+              >
                 <div>
                   <p class="text-xs font-bold">Новая игра</p>
                   <p class="mt-0.5 text-[10px] text-faint">полный проход конвейера</p>
                 </div>
-                <span class="font-mono text-xs font-bold">{{ formatTokens(profile?.prices.generate ?? 0) }}</span>
+                <span class="font-mono text-xs font-bold">{{
+                  formatTokens(profile?.prices.generate ?? 0)
+                }}</span>
               </div>
-              <div class="flex items-center justify-between rounded-xl border border-line bg-canvas/35 px-3.5 py-3">
+              <div
+                class="flex items-center justify-between rounded-xl border border-line bg-canvas/35 px-3.5 py-3"
+              >
                 <div>
                   <p class="text-xs font-bold">Патч</p>
                   <p class="mt-0.5 text-[10px] text-faint">правка существующей игры</p>
                 </div>
-                <span class="font-mono text-xs font-bold">{{ formatTokens(profile?.prices.patch ?? 0) }}</span>
+                <span class="font-mono text-xs font-bold">{{
+                  formatTokens(profile?.prices.patch ?? 0)
+                }}</span>
               </div>
             </div>
 
-            <Button class="p-button-secondary mt-4 w-full" :loading="toppingUp" @click="topupOpen = true">
+            <Button
+              class="p-button-secondary mt-4 w-full"
+              :loading="toppingUp"
+              @click="topupOpen = true"
+            >
               <AppIcon name="plus" :size="14" />
               <span class="ml-1.5">Пополнить баланс</span>
             </Button>
@@ -399,10 +487,18 @@ onMounted(() => {
             </div>
 
             <template v-else-if="tokenOps.length">
-              <div v-for="(op, index) in tokenOps" :key="`${op.created_at}-${index}`" class="flex items-center gap-3 px-5 py-3.5">
+              <div
+                v-for="(op, index) in tokenOps"
+                :key="`${op.created_at}-${index}`"
+                class="flex items-center gap-3 px-5 py-3.5"
+              >
                 <span
                   class="grid size-8 shrink-0 place-items-center rounded-full border"
-                  :class="op.delta >= 0 ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500' : 'border-line bg-canvas/50 text-faint'"
+                  :class="
+                    op.delta >= 0
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
+                      : 'border-line bg-canvas/50 text-faint'
+                  "
                 >
                   <AppIcon :name="op.delta >= 0 ? 'plus' : 'arrow-right'" :size="13" />
                 </span>
@@ -425,7 +521,11 @@ onMounted(() => {
                 :disabled="tokenOpsLoading"
                 @click="loadTokenOps(false)"
               >
-                {{ tokenOpsLoading ? 'Загружаем…' : `Показать ещё · осталось ${tokenOpsTotal - tokenOps.length}` }}
+                {{
+                  tokenOpsLoading
+                    ? 'Загружаем…'
+                    : `Показать ещё · осталось ${tokenOpsTotal - tokenOps.length}`
+                }}
               </button>
             </template>
 
@@ -435,30 +535,36 @@ onMounted(() => {
       </div>
     </div>
 
-        <Dialog v-model:visible="topupOpen" modal header="Пополнить баланс" :style="{ width: 'min(92vw, 420px)' }" :draggable="false">
-          <p class="text-xs leading-5 text-muted">
-            Демо-пополнение без реальной оплаты: сумма ограничена сервером, действует суточный лимит.
-          </p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <button
-              v-for="option in topupOptions"
-              :key="option.value"
-              type="button"
-              class="rounded-full border px-3.5 py-2 text-[11px] font-bold transition"
-              :class="
-                topupAmount === option.value
-                  ? 'border-transparent bg-bee text-graphite'
-                  : 'border-line-strong text-muted hover:border-bee-deep hover:text-ink'
-              "
-              @click="topupAmount = option.value"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-          <Button class="bee-button mt-5 w-full" :loading="toppingUp" @click="topup">
-            <AppIcon name="plus" :size="14" />
-            <span class="ml-1.5">Пополнить на {{ formatTokens(topupAmount) }}</span>
-          </Button>
-        </Dialog>
+    <Dialog
+      v-model:visible="topupOpen"
+      modal
+      header="Пополнить баланс"
+      :style="{ width: 'min(92vw, 420px)' }"
+      :draggable="false"
+    >
+      <p class="text-xs leading-5 text-muted">
+        Демо-пополнение без реальной оплаты: сумма ограничена сервером, действует суточный лимит.
+      </p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          v-for="option in topupOptions"
+          :key="option.value"
+          type="button"
+          class="rounded-full border px-3.5 py-2 text-[11px] font-bold transition"
+          :class="
+            topupAmount === option.value
+              ? 'border-transparent bg-bee text-graphite'
+              : 'border-line-strong text-muted hover:border-bee-deep hover:text-ink'
+          "
+          @click="topupAmount = option.value"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+      <Button class="bee-button mt-5 w-full" :loading="toppingUp" @click="topup">
+        <AppIcon name="plus" :size="14" />
+        <span class="ml-1.5">Пополнить на {{ formatTokens(topupAmount) }}</span>
+      </Button>
+    </Dialog>
   </div>
 </template>

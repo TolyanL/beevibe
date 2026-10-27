@@ -69,13 +69,19 @@ onBeforeUnmount(() => {
         <BrandMark />
       </RouterLink>
 
-      <nav class="hidden items-center gap-1 rounded-full border border-line bg-surface/60 p-1 md:flex">
+      <nav
+        class="hidden items-center gap-1 rounded-full border border-line bg-surface/60 p-1 md:flex"
+      >
         <RouterLink
           v-for="item in nav"
           :key="item.name"
           :to="{ name: item.name }"
           class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition hover:text-ink"
-          :class="route.name === item.name ? 'bg-ink text-canvas shadow-sm hover:text-canvas' : 'text-muted'"
+          :class="
+            route.name === item.name
+              ? 'bg-ink text-canvas shadow-sm hover:text-canvas'
+              : 'text-muted'
+          "
         >
           <AppIcon :name="item.icon" :size="15" />
           {{ item.label }}
@@ -84,7 +90,11 @@ onBeforeUnmount(() => {
           v-if="auth.isAuthenticated"
           :to="{ name: 'profile' }"
           class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition hover:text-ink"
-          :class="route.name === 'profile' ? 'bg-ink text-canvas shadow-sm hover:text-canvas' : 'text-muted'"
+          :class="
+            route.name === 'profile'
+              ? 'bg-ink text-canvas shadow-sm hover:text-canvas'
+              : 'text-muted'
+          "
         >
           <AppIcon name="chart" :size="15" />
           Профиль
@@ -186,7 +196,11 @@ onBeforeUnmount(() => {
             :key="item.name"
             :to="{ name: item.name }"
             class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
-            :class="route.name === item.name ? 'bg-bee text-graphite' : 'text-muted hover:bg-hover-surface'"
+            :class="
+              route.name === item.name
+                ? 'bg-bee text-graphite'
+                : 'text-muted hover:bg-hover-surface'
+            "
           >
             <AppIcon :name="item.icon" :size="18" />
             {{ item.label }}
@@ -195,19 +209,33 @@ onBeforeUnmount(() => {
             v-if="auth.isAuthenticated"
             :to="{ name: 'profile' }"
             class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
-            :class="route.name === 'profile' ? 'bg-bee text-graphite' : 'text-muted hover:bg-hover-surface'"
+            :class="
+              route.name === 'profile'
+                ? 'bg-bee text-graphite'
+                : 'text-muted hover:bg-hover-surface'
+            "
           >
             <AppIcon name="chart" :size="18" />
             Профиль
           </RouterLink>
         </div>
 
-        <div v-if="auth.isAuthenticated" class="mt-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3">
+        <div
+          v-if="auth.isAuthenticated"
+          class="mt-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3"
+        >
           <div class="min-w-0">
             <p class="truncate text-xs font-bold">{{ auth.user?.email }}</p>
-            <p class="mt-0.5 font-mono text-[11px] text-muted">{{ formatTokens(auth.balance) }} токенов</p>
+            <p class="mt-0.5 font-mono text-[11px] text-muted">
+              {{ formatTokens(auth.balance) }} токенов
+            </p>
           </div>
-          <button type="button" class="text-xs font-bold text-bad" :disabled="loggingOut" @click="logout">
+          <button
+            type="button"
+            class="text-xs font-bold text-bad"
+            :disabled="loggingOut"
+            @click="logout"
+          >
             Выйти
           </button>
         </div>
@@ -226,7 +254,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .menu-enter-active,
 .menu-leave-active {
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
 }
 
 .menu-enter-from,

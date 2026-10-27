@@ -1,6 +1,7 @@
 import type { ApiErrorEnvelope } from './types'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
 
 export function apiUrl(path: string): string {
   return `${API_BASE}${path}`

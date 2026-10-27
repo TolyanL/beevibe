@@ -65,11 +65,15 @@ export function fixGame(id: string, error?: string): Promise<GameJobResponse> {
 }
 
 export function acceptReview(id: string): Promise<{ status: string; resume_from?: string }> {
-  return request<{ status: string; resume_from?: string }>(`/games/${id}/review/accept`, { method: 'POST' })
+  return request<{ status: string; resume_from?: string }>(`/games/${id}/review/accept`, {
+    method: 'POST',
+  })
 }
 
 export function regenerateReview(id: string): Promise<{ status: string; resume_from?: string }> {
-  return request<{ status: string; resume_from?: string }>(`/games/${id}/review/regenerate`, { method: 'POST' })
+  return request<{ status: string; resume_from?: string }>(`/games/${id}/review/regenerate`, {
+    method: 'POST',
+  })
 }
 
 export function retryGame(id: string): Promise<{ status: string; resume_from?: string }> {
@@ -84,7 +88,10 @@ export function deleteGame(id: string): Promise<{ deleted: boolean }> {
   return request<{ deleted: boolean }>(`/games/${id}`, { method: 'DELETE' })
 }
 
-export function updateGameVisibility(id: string, visibility: Visibility): Promise<{ visibility: Visibility }> {
+export function updateGameVisibility(
+  id: string,
+  visibility: Visibility,
+): Promise<{ visibility: Visibility }> {
   return request<{ visibility: Visibility }>(`/games/${id}/visibility`, {
     method: 'PATCH',
     body: { visibility },
@@ -136,7 +143,9 @@ export function listUserGames(query: ListUserGamesQuery = {}): Promise<ListUserG
   return request<ListUserGamesPage>(`/games${suffix}`)
 }
 
-export function listTokenOps(query: { limit?: number; offset?: number } = {}): Promise<TokenOpsPage> {
+export function listTokenOps(
+  query: { limit?: number; offset?: number } = {},
+): Promise<TokenOpsPage> {
   const params = new URLSearchParams()
 
   if (query.limit) params.set('limit', String(query.limit))

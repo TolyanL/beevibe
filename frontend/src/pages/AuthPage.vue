@@ -99,8 +99,12 @@ async function submit(): Promise<void> {
 <template>
   <div class="pb-10 pt-8 sm:pt-12">
     <div class="app-container">
-      <div class="grid overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 shadow-panel lg:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]">
-        <aside class="relative hidden overflow-hidden bg-[#10100d] p-8 text-white lg:flex lg:flex-col lg:justify-between">
+      <div
+        class="grid overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 shadow-panel lg:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"
+      >
+        <aside
+          class="relative hidden overflow-hidden bg-[#10100d] p-8 text-white lg:flex lg:flex-col lg:justify-between"
+        >
           <div class="dot-grid absolute inset-0 opacity-20" />
           <div class="absolute -left-20 top-1/3 size-72 rounded-full bg-bee/10 blur-3xl" />
 
@@ -109,7 +113,9 @@ async function submit(): Promise<void> {
           </div>
 
           <div class="relative my-12">
-            <p class="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-bee">game generation, simplified</p>
+            <p class="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-bee">
+              game generation, simplified
+            </p>
             <h2 class="mt-5 font-display text-4xl font-bold leading-[1.06] tracking-[-0.05em]">
               Ваша следующая игра начинается с одного предложения.
             </h2>
@@ -120,13 +126,19 @@ async function submit(): Promise<void> {
           </div>
 
           <div class="relative grid grid-cols-3 gap-3">
-            <div v-for="item in [
-              { value: '9', label: 'этапов' },
-              { value: '1', label: 'HTML-файл' },
-              { value: '5', label: 'баллов' },
-            ]" :key="item.label" class="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div
+              v-for="item in [
+                { value: '9', label: 'этапов' },
+                { value: '1', label: 'HTML-файл' },
+                { value: '5', label: 'баллов' },
+              ]"
+              :key="item.label"
+              class="rounded-2xl border border-white/10 bg-white/5 p-3"
+            >
               <p class="font-display text-xl font-bold text-bee">{{ item.value }}</p>
-              <p class="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-white/35">{{ item.label }}</p>
+              <p class="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-white/35">
+                {{ item.label }}
+              </p>
             </div>
           </div>
 
@@ -139,7 +151,10 @@ async function submit(): Promise<void> {
         <div class="relative p-5 sm:p-8 lg:p-10">
           <div class="mx-auto max-w-md">
             <div class="flex items-center justify-between">
-              <RouterLink to="/" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted transition hover:text-ink">
+              <RouterLink
+                to="/"
+                class="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted transition hover:text-ink"
+              >
                 <AppIcon name="back" :size="14" />
                 На главную
               </RouterLink>
@@ -153,11 +168,15 @@ async function submit(): Promise<void> {
               <p class="mt-3 text-sm leading-6 text-muted">{{ subtitle }}</p>
             </div>
 
-            <div class="mt-6 grid grid-cols-2 gap-1 rounded-full border border-line bg-canvas/60 p-1">
+            <div
+              class="mt-6 grid grid-cols-2 gap-1 rounded-full border border-line bg-canvas/60 p-1"
+            >
               <button
                 type="button"
                 class="rounded-full py-2 text-xs font-bold transition"
-                :class="mode === 'login' ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'"
+                :class="
+                  mode === 'login' ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'
+                "
                 @click="switchMode('login')"
               >
                 Вход
@@ -165,7 +184,9 @@ async function submit(): Promise<void> {
               <button
                 type="button"
                 class="rounded-full py-2 text-xs font-bold transition"
-                :class="mode === 'register' ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'"
+                :class="
+                  mode === 'register' ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'
+                "
                 @click="switchMode('register')"
               >
                 Регистрация
@@ -176,7 +197,11 @@ async function submit(): Promise<void> {
               <div>
                 <label for="email" class="mono-label mb-2 block">Email</label>
                 <div class="relative">
-                  <AppIcon name="user" :size="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
+                  <AppIcon
+                    name="user"
+                    :size="16"
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint"
+                  />
                   <InputText
                     id="email"
                     v-model="email"
@@ -196,7 +221,11 @@ async function submit(): Promise<void> {
                   <span v-if="isRegister" class="text-[10px] text-faint">минимум 8 символов</span>
                 </div>
                 <div class="relative">
-                  <AppIcon name="shield" :size="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
+                  <AppIcon
+                    name="shield"
+                    :size="16"
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint"
+                  />
                   <InputText
                     id="password"
                     v-model="password"
@@ -221,7 +250,11 @@ async function submit(): Promise<void> {
               <div v-if="isRegister">
                 <label for="confirm" class="mono-label mb-2 block">Повторите пароль</label>
                 <div class="relative">
-                  <AppIcon name="check" :size="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
+                  <AppIcon
+                    name="check"
+                    :size="16"
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint"
+                  />
                   <InputText
                     id="confirm"
                     v-model="confirm"
@@ -243,7 +276,13 @@ async function submit(): Promise<void> {
                 {{ formError || auth.error }}
               </div>
 
-              <Button type="submit" class="bee-button mt-2 w-full" size="large" :loading="submitting" :disabled="submitting">
+              <Button
+                type="submit"
+                class="bee-button mt-2 w-full"
+                size="large"
+                :loading="submitting"
+                :disabled="submitting"
+              >
                 {{ isRegister ? 'Создать аккаунт' : 'Войти' }}
                 <AppIcon name="arrow-right" :size="16" class="ml-2" />
               </Button>
@@ -255,7 +294,9 @@ async function submit(): Promise<void> {
 
             <div class="mt-7 flex items-center gap-3">
               <span class="h-px flex-1 bg-line" />
-              <span class="font-mono text-[8px] uppercase tracking-[0.14em] text-faint">BeeVibe</span>
+              <span class="font-mono text-[8px] uppercase tracking-[0.14em] text-faint"
+                >BeeVibe</span
+              >
               <span class="h-px flex-1 bg-line" />
             </div>
 

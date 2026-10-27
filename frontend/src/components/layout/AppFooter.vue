@@ -35,7 +35,9 @@ async function logout(): Promise<void> {
           <div>
             <p class="mono-label">Сервис</p>
             <div class="mt-3 grid gap-2.5 text-muted">
-              <RouterLink :to="{ name: 'create' }" class="transition hover:text-ink">Создать игру</RouterLink>
+              <RouterLink :to="{ name: 'create' }" class="transition hover:text-ink"
+                >Создать игру</RouterLink
+              >
               <RouterLink to="/catalog" class="transition hover:text-ink">Каталог</RouterLink>
               <RouterLink to="/profile" class="transition hover:text-ink">Профиль</RouterLink>
             </div>
@@ -56,14 +58,18 @@ async function logout(): Promise<void> {
               </template>
               <template v-else>
                 <RouterLink to="/login" class="transition hover:text-ink">Войти</RouterLink>
-                <RouterLink to="/register" class="transition hover:text-ink">Регистрация</RouterLink>
+                <RouterLink to="/register" class="transition hover:text-ink"
+                  >Регистрация</RouterLink
+                >
               </template>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-10 flex flex-col gap-2 border-t border-line/60 pt-5 text-[11px] text-faint sm:flex-row sm:items-center sm:justify-between">
+      <div
+        class="mt-10 flex flex-col gap-2 border-t border-line/60 pt-5 text-[11px] text-faint sm:flex-row sm:items-center sm:justify-between"
+      >
         <p>BeeVibe · игры, которые собираются из идеи</p>
         <p class="font-mono uppercase tracking-[0.13em]">Vue · OpenVue · Tailwind</p>
       </div>

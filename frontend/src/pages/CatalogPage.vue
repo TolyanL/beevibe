@@ -32,9 +32,13 @@ const genres: { value: Genre | ''; label: string }[] = [
   { value: 'custom', label: 'Своя механика' },
 ]
 
-const activeGenreLabel = computed(() => genres.find((item) => item.value === catalog.genre)?.label ?? '')
+const activeGenreLabel = computed(
+  () => genres.find((item) => item.value === catalog.genre)?.label ?? '',
+)
 
-const hasFilters = computed(() => Boolean(search.value) || Boolean(catalog.genre) || catalog.sort !== 'fresh')
+const hasFilters = computed(
+  () => Boolean(search.value) || Boolean(catalog.genre) || catalog.sort !== 'fresh',
+)
 
 function syncQuery(): void {
   const query: Record<string, string> = {}
@@ -66,6 +70,11 @@ function chooseGenre(genre: Genre | ''): void {
   void catalog.load(true)
 }
 
+function clearSearch(): void {
+  search.value = ''
+  onSearchInput('')
+}
+
 function reset(): void {
   search.value = ''
   catalog.sort = 'fresh'
@@ -89,7 +98,8 @@ onMounted(() => {
   const routeGenre = route.query.genre
   const routeQuery = route.query.q
 
-  if (routeSort === 'rating' || routeSort === 'hours' || routeSort === 'fresh') catalog.sort = routeSort
+  if (routeSort === 'rating' || routeSort === 'hours' || routeSort === 'fresh')
+    catalog.sort = routeSort
   if (typeof routeGenre === 'string' && genres.some((item) => item.value === routeGenre)) {
     catalog.genre = routeGenre as Genre
   }
@@ -102,7 +112,11 @@ onMounted(() => {
 
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && catalog.hasMore && !catalog.loadingMore) {
+      if (
+        entries.some((entry) => entry.isIntersecting) &&
+        catalog.hasMore &&
+        !catalog.loadingMore
+      ) {
         void catalog.loadMore()
       }
     },
@@ -123,7 +137,9 @@ onBeforeUnmount(() => {
 <template>
   <div class="pb-8 pt-10 sm:pt-14">
     <div class="app-container">
-      <section class="relative overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 px-5 py-8 sm:px-8 sm:py-10">
+      <section
+        class="relative overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 px-5 py-8 sm:px-8 sm:py-10"
+      >
         <div class="absolute -right-20 -top-24 size-64 rounded-full bg-bee/15 blur-3xl" />
         <div class="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -153,7 +169,11 @@ onBeforeUnmount(() => {
         <div class="panel p-3 sm:p-4">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div class="relative flex-1">
-              <AppIcon name="search" :size="17" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
+              <AppIcon
+                name="search"
+                :size="17"
+                class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-faint"
+              />
               <InputText
                 v-model="search"
                 class="h-11 w-full pl-11"
@@ -163,13 +183,19 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <div class="flex flex-wrap items-center gap-1 rounded-full border border-line bg-canvas/60 p-1">
+            <div
+              class="flex flex-wrap items-center gap-1 rounded-full border border-line bg-canvas/60 p-1"
+            >
               <button
                 v-for="option in sortOptions"
                 :key="option.value"
                 type="button"
                 class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition"
-                :class="catalog.sort === option.value ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'"
+                :class="
+                  catalog.sort === option.value
+                    ? 'bg-ink text-canvas shadow-sm'
+                    : 'text-muted hover:text-ink'
+                "
                 @click="chooseSort(option.value)"
               >
                 <AppIcon :name="option.icon" :size="13" />
@@ -184,7 +210,11 @@ onBeforeUnmount(() => {
               :key="item.value"
               type="button"
               class="rounded-full px-3 py-1.5 text-[11px] font-bold transition"
-              :class="catalog.genre === item.value ? 'bg-bee text-graphite' : 'text-muted hover:bg-hover-surface hover:text-ink'"
+              :class="
+                catalog.genre === item.value
+                  ? 'bg-bee text-graphite'
+                  : 'text-muted hover:bg-hover-surface hover:text-ink'
+              "
               @click="chooseGenre(item.value)"
             >
               {{ item.label }}
@@ -204,14 +234,20 @@ onBeforeUnmount(() => {
 
       <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-muted">
-          <span v-if="catalog.loading && !catalog.items.length" class="inline-flex items-center gap-2">
+          <span
+            v-if="catalog.loading && !catalog.items.length"
+            class="inline-flex items-center gap-2"
+          >
             <span class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
             Загружаем игры…
           </span>
           <span v-else>
             <b class="font-bold text-ink">{{ catalog.total }}</b>
             {{ catalog.total === 1 ? 'игра' : catalog.total < 5 ? 'игры' : 'игр' }}
-            <span v-if="catalog.items.length && catalog.items.length < catalog.total" class="text-faint">
+            <span
+              v-if="catalog.items.length && catalog.items.length < catalog.total"
+              class="text-faint"
+            >
               · показано {{ catalog.items.length }}
             </span>
           </span>
@@ -222,7 +258,7 @@ onBeforeUnmount(() => {
             v-if="search"
             type="button"
             class="inline-flex items-center gap-1 rounded-full border border-line bg-canvas/50 px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
-            @click="search = ''; onSearchInput('')"
+            @click="clearSearch"
           >
             «{{ search }}»
             <AppIcon name="x" :size="10" />
@@ -243,8 +279,15 @@ onBeforeUnmount(() => {
         </p>
       </div>
 
-      <div v-if="catalog.loading && !catalog.items.length" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="index in 6" :key="index" class="overflow-hidden rounded-[1.35rem] border border-line bg-surface/60">
+      <div
+        v-if="catalog.loading && !catalog.items.length"
+        class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <div
+          v-for="index in 6"
+          :key="index"
+          class="overflow-hidden rounded-[1.35rem] border border-line bg-surface/60"
+        >
           <div class="aspect-[16/10] animate-pulse bg-line/50" />
           <div class="space-y-3 p-4">
             <div class="h-4 w-4/5 animate-pulse rounded bg-line/70" />
@@ -305,7 +348,10 @@ onBeforeUnmount(() => {
 
       <div ref="sentinel" class="h-4" />
 
-      <div v-if="catalog.loadingMore" class="mt-5 flex items-center justify-center gap-2 text-xs text-muted">
+      <div
+        v-if="catalog.loadingMore"
+        class="mt-5 flex items-center justify-center gap-2 text-xs text-muted"
+      >
         <span class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
         Ещё немного…
       </div>

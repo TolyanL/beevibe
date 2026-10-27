@@ -7,13 +7,15 @@ import AppIcon from '@/components/ui/AppIcon.vue'
   <div class="pb-10 pt-16 sm:pt-24">
     <div class="app-container">
       <div class="mx-auto max-w-2xl text-center">
-        <p class="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-bee-deep dark:text-bee">404 · out of bounds</p>
-        <h1 class="display-title mt-5 text-[clamp(4rem,13vw,8.5rem)] leading-[0.82]">
-          Стена.
-        </h1>
+        <p
+          class="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-bee-deep dark:text-bee"
+        >
+          404 · out of bounds
+        </p>
+        <h1 class="display-title mt-5 text-[clamp(4rem,13vw,8.5rem)] leading-[0.82]">Стена.</h1>
         <p class="mx-auto mt-6 max-w-md text-sm leading-6 text-muted">
-          Эта страница вышла за пределы карты. Вернитесь на главную, создайте новую игру или
-          найдите готовую в каталоге.
+          Эта страница вышла за пределы карты. Вернитесь на главную, создайте новую игру или найдите
+          готовую в каталоге.
         </p>
         <div class="mt-7 flex flex-wrap justify-center gap-2.5">
           <RouterLink

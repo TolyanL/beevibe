@@ -66,15 +66,24 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
             {{ genre }}
           </span>
           <span v-else class="size-0" />
-          <RatingBadge :average="card.rating?.average ?? 0" :total="card.rating?.total ?? 0" size="sm" />
+          <RatingBadge
+            :average="card.rating?.average ?? 0"
+            :total="card.rating?.total ?? 0"
+            size="sm"
+          />
         </div>
 
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p v-if="styleName" class="font-display text-[1.05rem] font-bold leading-tight text-white">
+            <p
+              v-if="styleName"
+              class="font-display text-[1.05rem] font-bold leading-tight text-white"
+            >
               {{ styleName }}
             </p>
-            <p class="mt-1 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">
+            <p
+              class="mt-1 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55"
+            >
               <span v-if="mapSize">{{ mapSize }}</span>
               <span v-if="mapSize" class="size-0.5 rounded-full bg-white/40" />
               <span>{{ playtime }}</span>
@@ -91,17 +100,27 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
     </div>
 
     <div class="flex flex-1 flex-col p-4">
-      <h3 class="line-clamp-1 text-[15px] font-bold leading-snug tracking-[-0.015em]" :title="title">
+      <h3
+        class="line-clamp-1 text-[15px] font-bold leading-snug tracking-[-0.015em]"
+        :title="title"
+      >
         {{ title }}
       </h3>
-      <p v-if="description && description !== title" class="mt-1.5 line-clamp-2 text-[11px] leading-5 text-muted" :title="description">
+      <p
+        v-if="description && description !== title"
+        class="mt-1.5 line-clamp-2 text-[11px] leading-5 text-muted"
+        :title="description"
+      >
         {{ description }}
       </p>
       <div class="mt-auto flex items-center justify-between gap-3 pt-4">
         <span class="text-[11px] text-faint">
-          <span v-if="author" class="text-muted">{{ author }} · </span>{{ formatRelative(card.created_at) }}
+          <span v-if="author" class="text-muted">{{ author }} · </span
+          >{{ formatRelative(card.created_at) }}
         </span>
-        <span class="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+        <span
+          class="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.09em] text-muted"
+        >
           Играть
           <AppIcon name="arrow-right" :size="13" />
         </span>

@@ -67,7 +67,9 @@ const stage = computed(() => {
         <AppIcon name="spark" :size="14" class="text-bee-deep dark:text-bee" />
         {{ label }}
       </p>
-      <span class="font-mono text-[10px] tabular-nums text-muted">{{ elapsedLabel }} · {{ percent }}%</span>
+      <span class="font-mono text-[10px] tabular-nums text-muted"
+        >{{ elapsedLabel }} · {{ percent }}%</span
+      >
     </div>
 
     <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-line">

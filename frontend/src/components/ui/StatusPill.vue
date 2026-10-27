@@ -31,7 +31,15 @@ const toneClass = computed(() => {
     <span
       class="size-1.5 rounded-full"
       :class="[
-        meta.tone === 'good' ? 'bg-emerald-500' : meta.tone === 'bad' ? 'bg-red-500' : meta.tone === 'live' ? 'bg-bee' : meta.tone === 'warn' ? 'bg-orange-500' : 'bg-faint',
+        meta.tone === 'good'
+          ? 'bg-emerald-500'
+          : meta.tone === 'bad'
+            ? 'bg-red-500'
+            : meta.tone === 'live'
+              ? 'bg-bee'
+              : meta.tone === 'warn'
+                ? 'bg-orange-500'
+                : 'bg-faint',
         pulse && meta.tone === 'live' ? 'animate-pulse-soft' : '',
       ]"
     />
