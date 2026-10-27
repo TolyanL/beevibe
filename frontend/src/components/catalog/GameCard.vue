@@ -51,7 +51,7 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
 
 <template>
   <RouterLink
-    :to="{ name: 'play', params: { id: card.slug || card.id } }"
+    :to="{ name: 'play', params: { id: card.slug } }"
     class="group flex flex-col overflow-hidden rounded-[1.35rem] border border-line bg-surface/75 transition duration-300 hover:-translate-y-1 hover:border-bee-deep/50 hover:shadow-lift"
   >
     <div class="game-thumb relative aspect-[16/10]" :style="style">

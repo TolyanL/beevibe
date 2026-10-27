@@ -27,7 +27,7 @@ func TestCancelGameRejectsIdleGame(t *testing.T) {
 		Status:  domain.StatusReady,
 	}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/cancel", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/cancel", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusConflict {

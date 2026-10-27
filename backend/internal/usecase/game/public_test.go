@@ -20,7 +20,7 @@ func TestGetPublicCardReturnsCardWithoutViewer(t *testing.T) {
 	gameID := uuid.New()
 	createdAt := time.Now().UTC()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:        gameID,
 		OwnerID:   uuid.New(),
 		Prompt:    "змейка в неоне",
@@ -36,7 +36,7 @@ func TestGetPublicCardReturnsCardWithoutViewer(t *testing.T) {
 	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{Average: 4.5, Total: 2}, nil)
 	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{Sessions: 3, Seconds: 5400, Hours: 1.5}, nil)
 
-	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{GameID: gameID})
+	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "zmeyka-1a2b"})
 	if err != nil {
 		t.Fatalf("GetPublicCard() error = %v, want nil", err)
 	}
@@ -66,7 +66,7 @@ func TestGetPublicCardIncludesViewerRating(t *testing.T) {
 	viewerID := uuid.New()
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:      gameID,
 		OwnerID: uuid.New(),
 		Prompt:  "змейка",
@@ -81,7 +81,7 @@ func TestGetPublicCardIncludesViewerRating(t *testing.T) {
 	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{}, nil)
 	store.EXPECT().GetRating(mock.Anything, gameID, viewerID).Return(domain.Rating{Value: domain.Rating3}, nil)
 
-	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{GameID: gameID, ViewerID: &viewerID})
+	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "zmeyka-1a2b", ViewerID: &viewerID})
 	if err != nil {
 		t.Fatalf("GetPublicCard() error = %v, want nil", err)
 	}
@@ -103,7 +103,7 @@ func TestGetPublicCardMarksOwner(t *testing.T) {
 	ownerID := uuid.New()
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:      gameID,
 		OwnerID: ownerID,
 		Prompt:  "змейка",
@@ -118,7 +118,7 @@ func TestGetPublicCardMarksOwner(t *testing.T) {
 	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{}, nil)
 	store.EXPECT().GetRating(mock.Anything, gameID, ownerID).Return(domain.Rating{}, domain.ErrNotFound)
 
-	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{GameID: gameID, ViewerID: &ownerID})
+	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "zmeyka-1a2b", ViewerID: &ownerID})
 	if err != nil {
 		t.Fatalf("GetPublicCard() error = %v, want nil", err)
 	}
@@ -136,7 +136,7 @@ func TestGetPublicCardToleratesMissingViewerRating(t *testing.T) {
 	viewerID := uuid.New()
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:      gameID,
 		OwnerID: uuid.New(),
 		Prompt:  "змейка",
@@ -151,7 +151,7 @@ func TestGetPublicCardToleratesMissingViewerRating(t *testing.T) {
 	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{}, nil)
 	store.EXPECT().GetRating(mock.Anything, gameID, viewerID).Return(domain.Rating{}, domain.ErrNotFound)
 
-	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{GameID: gameID, ViewerID: &viewerID})
+	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "zmeyka-1a2b", ViewerID: &viewerID})
 	if err != nil {
 		t.Fatalf("GetPublicCard() error = %v, want nil", err)
 	}

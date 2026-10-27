@@ -105,7 +105,7 @@ func TestGetPublicReturnsLatestHTML(t *testing.T) {
 
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:         gameID,
 		OwnerID:    uuid.New(),
 		Status:     domain.StatusReady,
@@ -118,7 +118,7 @@ func TestGetPublicReturnsLatestHTML(t *testing.T) {
 		HTML:   gameHTML,
 	}, nil)
 
-	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID})
+	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
 	if err != nil {
 		t.Fatalf("GetPublic() error = %v, want nil", err)
 	}
@@ -135,7 +135,7 @@ func TestGetPublicFailsWhenVersionMissing(t *testing.T) {
 
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:         gameID,
 		OwnerID:    uuid.New(),
 		Status:     domain.StatusReady,
@@ -143,7 +143,7 @@ func TestGetPublicFailsWhenVersionMissing(t *testing.T) {
 	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{}, domain.ErrVersionNotFound)
 
-	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID})
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
 	if !errors.Is(err, domain.ErrVersionNotFound) {
 		t.Fatalf("GetPublic() error = %v, want ErrVersionNotFound", err)
 	}
@@ -335,14 +335,14 @@ func TestGetPublicHidesPrivateGame(t *testing.T) {
 
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:         gameID,
 		OwnerID:    uuid.New(),
 		Status:     domain.StatusReady,
 		Visibility: domain.VisibilityPrivate,
 	}, nil)
 
-	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID})
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
 	}
@@ -356,7 +356,7 @@ func TestGetPublicHidesDeletedGame(t *testing.T) {
 	gameID := uuid.New()
 	deletedAt := time.Now().UTC()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:         gameID,
 		OwnerID:    uuid.New(),
 		Status:     domain.StatusReady,
@@ -364,7 +364,7 @@ func TestGetPublicHidesDeletedGame(t *testing.T) {
 		DeletedAt:  &deletedAt,
 	}, nil)
 
-	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID})
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
 	}
@@ -378,7 +378,7 @@ func TestGetPublicAllowsOwnerOfPrivateGame(t *testing.T) {
 	ownerID := uuid.New()
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:         gameID,
 		OwnerID:    ownerID,
 		Status:     domain.StatusReady,
@@ -388,7 +388,7 @@ func TestGetPublicAllowsOwnerOfPrivateGame(t *testing.T) {
 		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
 	}, nil)
 
-	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID, ViewerID: &ownerID})
+	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b", ViewerID: &ownerID})
 	if err != nil {
 		t.Fatalf("GetPublic() error = %v, want nil for the owner", err)
 	}
@@ -406,14 +406,14 @@ func TestGetPublicHidesPrivateGameFromStranger(t *testing.T) {
 	strangerID := uuid.New()
 	gameID := uuid.New()
 
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:         gameID,
 		OwnerID:    uuid.New(),
 		Status:     domain.StatusReady,
 		Visibility: domain.VisibilityPrivate,
 	}, nil)
 
-	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID, ViewerID: &strangerID})
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b", ViewerID: &strangerID})
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
 	}

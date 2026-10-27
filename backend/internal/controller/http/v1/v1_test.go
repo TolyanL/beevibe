@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/usecase"
 	gamemocks "github.com/TolyanL/beevibe/internal/usecase/mocks/game"
 	llmmocks "github.com/TolyanL/beevibe/internal/usecase/mocks/llm"
@@ -88,6 +89,15 @@ func (e *testEnv) authorized(req *http.Request) *http.Request {
 
 func (e *testEnv) expectSession(userID uuid.UUID) {
 	e.store.EXPECT().GetSessionUserID(mock.Anything, sessionToken).Return(userID, nil).Once()
+}
+
+// gamePath отдаёт slug-адрес игры и учит middleware резолвить его в нужный id.
+func (e *testEnv) gamePath(gameID uuid.UUID) string {
+	slug := gameID.String()
+
+	e.store.EXPECT().GetGameBySlug(mock.Anything, slug).Return(domain.Game{ID: gameID}, nil).Maybe()
+
+	return "/games/" + slug
 }
 
 func (e *testEnv) do(req *http.Request) *httptest.ResponseRecorder {

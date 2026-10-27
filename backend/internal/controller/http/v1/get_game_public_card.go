@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/render"
@@ -13,12 +12,7 @@ import (
 func (h *Handlers) GetGamePublicCard(w http.ResponseWriter, r *http.Request) {
 	var input dto.GetGamePublicCardInput
 
-	raw := chi.URLParam(r, "id")
-	if gameID, err := uuid.Parse(raw); err == nil {
-		input.GameID = gameID
-	} else {
-		input.Slug = raw
-	}
+	input.Slug = chi.URLParam(r, "id")
 
 	viewerID, ok := userIDFromContext(r.Context())
 	if ok {

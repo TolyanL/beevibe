@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/google/uuid"
 
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/logger"
@@ -28,9 +27,7 @@ func NewRouter(h *Handlers) http.Handler {
 }
 
 func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
-	gameID, slug := parseGameRef(r)
-
-	output, err := h.usecase.Game.GetPublic(r.Context(), publicInput(r, gameID, slug))
+	output, err := h.usecase.Game.GetPublic(r.Context(), publicInput(r, parseGameSlug(r)))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "game not found")
 
@@ -45,9 +42,7 @@ func (h *Handlers) GetGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) DownloadGame(w http.ResponseWriter, r *http.Request) {
-	gameID, slug := parseGameRef(r)
-
-	output, err := h.usecase.Game.GetPublic(r.Context(), publicInput(r, gameID, slug))
+	output, err := h.usecase.Game.GetPublic(r.Context(), publicInput(r, parseGameSlug(r)))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "game not found")
 
@@ -62,8 +57,8 @@ func (h *Handlers) DownloadGame(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(output.HTML))
 }
 
-func publicInput(r *http.Request, gameID uuid.UUID, slug string) dto.GetGamePublicInput {
-	input := dto.GetGamePublicInput{GameID: gameID, Slug: slug}
+func publicInput(r *http.Request, slug string) dto.GetGamePublicInput {
+	input := dto.GetGamePublicInput{Slug: slug}
 
 	if viewerID, ok := viewerIDFromContext(r.Context()); ok {
 		input.ViewerID = &viewerID

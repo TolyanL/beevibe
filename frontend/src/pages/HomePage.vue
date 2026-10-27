@@ -132,7 +132,7 @@ onMounted(async () => {
               <span class="size-2 shrink-0 animate-pulse-soft rounded-full bg-bee-deep" />
               <span class="shrink-0 font-bold">Идёт сборка:</span>
               <RouterLink
-                :to="{ name: 'game', params: { id: activeGame.slug || activeGame.id } }"
+                :to="{ name: 'game', params: { id: activeGame.slug } }"
                 class="min-w-0 truncate text-bee-deep hover-link dark:text-bee"
               >
                 {{ shortGameTitle(activeGame.title, activeGame.prompt) }}
@@ -145,7 +145,7 @@ onMounted(async () => {
             >
               <span class="shrink-0 text-faint">Последняя игра:</span>
               <RouterLink
-                :to="{ name: 'game', params: { id: lastGame.slug || lastGame.id } }"
+                :to="{ name: 'game', params: { id: lastGame.slug } }"
                 class="min-w-0 truncate font-bold hover-link"
               >
                 {{ shortGameTitle(lastGame.title, lastGame.prompt) }}

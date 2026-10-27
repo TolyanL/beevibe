@@ -35,7 +35,7 @@ func TestRetryGameRequeuesFailedGame(t *testing.T) {
 		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"coding","status":"error"}`)},
 	}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/retry", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/retry", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusAccepted {
@@ -71,7 +71,7 @@ func TestRetryGameRejectsReadyGame(t *testing.T) {
 		Status:  domain.StatusReady,
 	}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/retry", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/retry", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusConflict {

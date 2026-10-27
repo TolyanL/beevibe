@@ -1034,7 +1034,7 @@ components:
       name: id
       in: path
       required: true
-      description: "Идентификатор игры: читаемый slug или uuid (оба поддерживаются)"
+      description: "Slug игры. Идентификатор из базы в адресах не используется."
       schema:
         type: string
         example: neonovaya-zmeyka-1a2b

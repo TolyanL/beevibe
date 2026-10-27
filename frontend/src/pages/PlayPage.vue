@@ -190,13 +190,7 @@ onMounted(async () => {
       </header>
 
       <div class="animate-rise">
-        <GameFrame
-          :game-id="card?.id ?? id"
-          :slug="id"
-          status="ready"
-          :version-token="1"
-          @loaded="frameLoaded = true"
-        />
+        <GameFrame :game-id="id" status="ready" :version-token="1" @loaded="frameLoaded = true" />
       </div>
 
       <div class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)]">

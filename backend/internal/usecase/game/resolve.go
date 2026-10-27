@@ -10,20 +10,17 @@ import (
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
-// ResolveGameID принимает uuid или slug и возвращает идентификатор игры.
-func (u *UseCase) ResolveGameID(ctx context.Context, ref string) (uuid.UUID, error) {
+// ResolveGameID переводит slug из адреса в идентификатор игры: наружу
+// показываем только читаемые ссылки, uuid остаётся внутри API.
+func (u *UseCase) ResolveGameID(ctx context.Context, slug string) (uuid.UUID, error) {
 	ctx, span := tracer.Start(ctx, "usecase game ResolveGameID")
 	defer span.End()
 
-	if gameID, err := uuid.Parse(ref); err == nil {
-		return gameID, nil
+	if slug == "" {
+		return uuid.Nil, fmt.Errorf("%w: empty game slug", domain.ErrInvalidInput)
 	}
 
-	if ref == "" {
-		return uuid.Nil, fmt.Errorf("%w: empty game reference", domain.ErrInvalidInput)
-	}
-
-	game, err := u.store.GetGameBySlug(ctx, ref)
+	game, err := u.store.GetGameBySlug(ctx, slug)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("store.GetGameBySlug: %w", err)
 	}

@@ -39,7 +39,7 @@ func TestStreamGameWritesEventsAndStops(t *testing.T) {
 	}, nil).Maybe()
 	env.store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(2)).Return(nil, nil).Maybe()
 
-	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String()+"/stream", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodGet, env.gamePath(gameID)+"/stream", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -74,7 +74,7 @@ func TestStreamGameIsForbiddenForForeignGame(t *testing.T) {
 		Status:  domain.StatusCoding,
 	}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String()+"/stream", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodGet, env.gamePath(gameID)+"/stream", nil))
 	rec := env.do(req)
 
 	body := rec.Body.String()

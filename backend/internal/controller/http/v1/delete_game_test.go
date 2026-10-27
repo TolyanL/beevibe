@@ -32,7 +32,7 @@ func TestDeleteGameMarksGameDeleted(t *testing.T) {
 		return game.ID == gameID && game.DeletedAt != nil
 	})).Return(nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodDelete, "/games/"+gameID.String(), nil))
+	req := env.authorized(httptest.NewRequest(http.MethodDelete, env.gamePath(gameID), nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -64,7 +64,7 @@ func TestDeleteGameIsForbiddenForForeignGame(t *testing.T) {
 		Status:  domain.StatusReady,
 	}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodDelete, "/games/"+gameID.String(), nil))
+	req := env.authorized(httptest.NewRequest(http.MethodDelete, env.gamePath(gameID), nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusForbidden {
@@ -92,7 +92,7 @@ func TestUpdateVisibilityPublishesReadyGame(t *testing.T) {
 	})).Return(nil)
 
 	body := strings.NewReader(`{"visibility":"public"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPatch, "/games/"+gameID.String()+"/visibility", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPatch, env.gamePath(gameID)+"/visibility", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -119,7 +119,7 @@ func TestUpdateVisibilityRejectsUnknownValue(t *testing.T) {
 	env.expectSession(userID)
 
 	body := strings.NewReader(`{"visibility":"secret"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPatch, "/games/"+uuid.New().String()+"/visibility", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPatch, env.gamePath(uuid.New())+"/visibility", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusBadRequest {

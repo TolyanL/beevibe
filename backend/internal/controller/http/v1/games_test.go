@@ -140,7 +140,7 @@ func TestGetGameReturnsVersionsAndCost(t *testing.T) {
 	env.store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{Total: 0}, nil)
 	env.store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{}, domain.ErrNotFound)
 
-	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String(), nil))
+	req := env.authorized(httptest.NewRequest(http.MethodGet, env.gamePath(gameID), nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -172,7 +172,7 @@ func TestGetGameReturnsNotFound(t *testing.T) {
 	env.expectSession(userID)
 	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{}, domain.ErrNotFound)
 
-	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String(), nil))
+	req := env.authorized(httptest.NewRequest(http.MethodGet, env.gamePath(gameID), nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusNotFound {
@@ -195,7 +195,7 @@ func TestGetForeignGameIsForbidden(t *testing.T) {
 		Status:  domain.StatusReady,
 	}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String(), nil))
+	req := env.authorized(httptest.NewRequest(http.MethodGet, env.gamePath(gameID), nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusForbidden {
@@ -237,7 +237,7 @@ func TestPatchAcceptsJobAndCharges(t *testing.T) {
 	env.store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 
 	body := strings.NewReader(`{"text":"сделай кнопки больше"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/patch", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/patch", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusAccepted {
@@ -270,7 +270,7 @@ func TestPatchIsForbiddenForForeignGame(t *testing.T) {
 	}, nil)
 
 	body := strings.NewReader(`{"text":"добавь уровень"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/patch", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/patch", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusForbidden {
@@ -294,7 +294,7 @@ func TestPatchRejectsGameInProgress(t *testing.T) {
 	}, nil)
 
 	body := strings.NewReader(`{"text":"добавь уровень"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/patch", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/patch", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusConflict {
@@ -331,7 +331,7 @@ func TestUpdateConfigCreatesVersion(t *testing.T) {
 	env.store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 
 	body := strings.NewReader(`{"tempo":9}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPatch, "/games/"+gameID.String()+"/config", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPatch, env.gamePath(gameID)+"/config", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -350,7 +350,7 @@ func TestUpdateConfigRejectsInvalidValue(t *testing.T) {
 	env.expectSession(userID)
 
 	body := strings.NewReader(`{"tempo":99}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPatch, "/games/"+gameID.String()+"/config", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPatch, env.gamePath(gameID)+"/config", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusBadRequest {
@@ -389,7 +389,7 @@ func TestRollbackCreatesVersion(t *testing.T) {
 	})).Return(nil)
 
 	body := strings.NewReader(`{"version":1}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rollback", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/rollback", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -418,7 +418,7 @@ func TestFixAcceptsJob(t *testing.T) {
 	env.store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
 
 	body := strings.NewReader(`{"error":"не работает прыжок"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/fix", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/fix", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusAccepted {
@@ -459,7 +459,7 @@ func TestRateGameReturnsAggregate(t *testing.T) {
 	}, nil)
 
 	body := strings.NewReader(`{"value":5}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rate", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/rate", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
@@ -492,7 +492,7 @@ func TestRateGameRejectsOwnerRating(t *testing.T) {
 	}, nil)
 
 	body := strings.NewReader(`{"value":5}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rate", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/rate", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusForbidden {
@@ -520,7 +520,7 @@ func TestRateGameRejectsUnknownValue(t *testing.T) {
 	env.expectSession(userID)
 
 	body := strings.NewReader(`{"value":"awesome"}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rate", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/rate", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusBadRequest {
@@ -543,7 +543,7 @@ func TestRecordPlaytimeReturnsTotal(t *testing.T) {
 	env.store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{Seconds: 900}, nil)
 
 	body := strings.NewReader(`{"seconds":120}`)
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/playtime", body))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/playtime", body))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {

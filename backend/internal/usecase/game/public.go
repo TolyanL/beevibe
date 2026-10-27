@@ -18,7 +18,7 @@ func (u *UseCase) GetPublic(ctx context.Context, input dto.GetGamePublicInput) (
 
 	var output dto.GetGamePublicOutput
 
-	game, err := u.resolveGame(ctx, input.GameID, input.Slug)
+	game, err := u.gameBySlug(ctx, input.Slug)
 	if err != nil {
 		return output, err
 	}
@@ -43,7 +43,7 @@ func (u *UseCase) GetPublicCard(ctx context.Context, input dto.GetGamePublicCard
 
 	var output dto.GetGamePublicCardOutput
 
-	game, err := u.resolveGame(ctx, input.GameID, input.Slug)
+	game, err := u.gameBySlug(ctx, input.Slug)
 	if err != nil {
 		return output, err
 	}
@@ -97,19 +97,14 @@ func (u *UseCase) GetPublicCard(ctx context.Context, input dto.GetGamePublicCard
 	return output, nil
 }
 
-func (u *UseCase) resolveGame(ctx context.Context, gameID uuid.UUID, slug string) (domain.Game, error) {
-	if gameID == uuid.Nil && slug != "" {
-		game, err := u.store.GetGameBySlug(ctx, slug)
-		if err != nil {
-			return domain.Game{}, fmt.Errorf("store.GetGameBySlug: %w", err)
-		}
-
-		return game, nil
+func (u *UseCase) gameBySlug(ctx context.Context, slug string) (domain.Game, error) {
+	if slug == "" {
+		return domain.Game{}, fmt.Errorf("%w: empty game slug", domain.ErrInvalidInput)
 	}
 
-	game, err := u.store.GetGame(ctx, gameID)
+	game, err := u.store.GetGameBySlug(ctx, slug)
 	if err != nil {
-		return domain.Game{}, fmt.Errorf("store.GetGame: %w", err)
+		return domain.Game{}, fmt.Errorf("store.GetGameBySlug: %w", err)
 	}
 
 	return game, nil

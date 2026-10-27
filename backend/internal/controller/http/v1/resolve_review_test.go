@@ -30,7 +30,7 @@ func TestAcceptReviewQueuesAssembly(t *testing.T) {
 	env.store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusQueued, "").Return(nil)
 	env.store.EXPECT().SaveGameResumeStage(mock.Anything, gameID, domain.StatusAssembling).Return(nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/review/accept", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/review/accept", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusAccepted {
@@ -64,7 +64,7 @@ func TestRegenerateReviewQueuesCoding(t *testing.T) {
 	env.store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusQueued, "").Return(nil)
 	env.store.EXPECT().SaveGameResumeStage(mock.Anything, gameID, domain.StatusCoding).Return(nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/review/regenerate", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodPost, env.gamePath(gameID)+"/review/regenerate", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusAccepted {

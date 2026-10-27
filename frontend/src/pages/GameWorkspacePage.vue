@@ -41,7 +41,7 @@ const game = useGameStore()
 
 // В адресе игры живёт slug; uuid остаётся только внутри API.
 const id = computed(() => String(route.params.id ?? ''))
-const gameSlug = computed(() => game.game?.slug || id.value)
+const gameSlug = computed(() => game.game?.slug ?? id.value)
 const profileGame = computed(() => {
   const games = auth.profile?.games ?? []
   const gameID = game.game?.id
@@ -686,7 +686,7 @@ onBeforeUnmount(() => {
             </div>
             <RouterLink
               v-if="game.isReady"
-              :to="{ name: 'play', params: { id: game.game?.slug || id } }"
+              :to="{ name: 'play', params: { id: gameSlug } }"
               target="_blank"
               class="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-2 text-[11px] font-bold transition hover:border-bee-deep hover:bg-bee/10"
             >
@@ -724,8 +724,7 @@ onBeforeUnmount(() => {
           <div class="min-w-0 space-y-5">
             <div v-if="promptText" class="relative animate-rise">
               <GameFrame
-                :game-id="id"
-                :slug="game.game?.slug"
+                :game-id="gameSlug"
                 :status="game.status"
                 :version-token="game.refreshKey"
                 @loaded="session.flush()"

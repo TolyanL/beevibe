@@ -22,7 +22,7 @@ func TestGetGamePublicCardWithoutAuth(t *testing.T) {
 	gameID := uuid.New()
 	createdAt := time.Now().UTC()
 
-	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	env.store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:        gameID,
 		OwnerID:   uuid.New(),
 		Prompt:    "змейка в неоне",
@@ -38,7 +38,7 @@ func TestGetGamePublicCardWithoutAuth(t *testing.T) {
 	env.store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{Average: 4.5, Total: 2, Counts: [5]int{0, 0, 0, 1, 1}}, nil)
 	env.store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{Sessions: 3, Seconds: 5400, Hours: 1.5}, nil)
 
-	rec := env.do(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String()+"/public", nil))
+	rec := env.do(httptest.NewRequest(http.MethodGet, "/games/zmeyka-1a2b/public", nil))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
@@ -71,7 +71,7 @@ func TestGetGamePublicCardWithAuthIncludesMyRating(t *testing.T) {
 	gameID := uuid.New()
 
 	env.expectSession(userID)
-	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+	env.store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
 		ID:      gameID,
 		OwnerID: uuid.New(),
 		Prompt:  "змейка",
@@ -86,7 +86,7 @@ func TestGetGamePublicCardWithAuthIncludesMyRating(t *testing.T) {
 	env.store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{}, nil)
 	env.store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{Value: domain.Rating4}, nil)
 
-	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/"+gameID.String()+"/public", nil))
+	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/zmeyka-1a2b/public", nil))
 	rec := env.do(req)
 
 	if rec.Code != http.StatusOK {
