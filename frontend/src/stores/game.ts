@@ -31,6 +31,16 @@ import type {
 
 const PIPELINE_STAGES = 8
 
+const PIPELINE_STAGE_NAMES = new Set([
+  'analyzing',
+  'planning',
+  'coding',
+  'assets',
+  'reviewing',
+  'assembling',
+  'checking',
+])
+
 const ACTIVE_STATUSES = new Set([
   'queued',
   'analyzing',
@@ -66,11 +76,19 @@ export const useGameStore = defineStore('game', () => {
   const isReady = computed(() => status.value === 'ready')
   const isFailed = computed(() => status.value === 'failed')
   const isActive = computed(() => ACTIVE_STATUSES.has(status.value))
+  const pipelineStages = computed(() =>
+    stages.value.filter((stage) => PIPELINE_STAGE_NAMES.has(stage.stage)),
+  )
+
+  const isGenerating = computed(
+    () => ACTIVE_STATUSES.has(status.value) && status.value !== 'patching',
+  )
+
   const stageProgress = computed(() => {
     if (isReady.value) return 100
-    if (!stages.value.length) return 0
+    if (!pipelineStages.value.length) return 0
 
-    const done = stages.value.filter((stage) => stage.status === 'done').length
+    const done = pipelineStages.value.filter((stage) => stage.status === 'done').length
 
     return Math.min(100, Math.round((done / PIPELINE_STAGES) * 100))
   })
@@ -372,6 +390,8 @@ export const useGameStore = defineStore('game', () => {
     isReady,
     isFailed,
     isActive,
+    isGenerating,
+    pipelineStages,
     stageProgress,
     load,
     refresh,

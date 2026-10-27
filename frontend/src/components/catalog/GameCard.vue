@@ -58,20 +58,24 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
 
       <div class="absolute inset-0 flex flex-col justify-between p-4">
         <div class="flex items-center justify-between gap-2">
-          <span class="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/80 backdrop-blur">
+          <span
+            v-if="genre"
+            class="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/80 backdrop-blur"
+          >
             {{ genre }}
           </span>
+          <span v-else class="size-0" />
           <RatingBadge :average="card.rating?.average ?? 0" :total="card.rating?.total ?? 0" size="sm" />
         </div>
 
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p class="font-display text-[1.05rem] font-bold leading-tight text-white">
+            <p v-if="styleName" class="font-display text-[1.05rem] font-bold leading-tight text-white">
               {{ styleName }}
             </p>
             <p class="mt-1 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">
-              <span>{{ mapSize }}</span>
-              <span class="size-0.5 rounded-full bg-white/40" />
+              <span v-if="mapSize">{{ mapSize }}</span>
+              <span v-if="mapSize" class="size-0.5 rounded-full bg-white/40" />
               <span>{{ playtime }}</span>
             </p>
           </div>

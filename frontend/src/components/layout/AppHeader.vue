@@ -16,7 +16,7 @@ const loggingOut = ref(false)
 const userMenu = ref<HTMLElement | null>(null)
 
 const nav = [
-  { name: 'generator', label: 'Генератор', icon: 'wand' as const },
+  { name: 'create', label: 'Создать', icon: 'wand' as const },
   { name: 'catalog', label: 'Каталог', icon: 'grid' as const },
 ]
 
@@ -32,7 +32,7 @@ async function logout(): Promise<void> {
   loggingOut.value = true
   try {
     await auth.logout()
-    await router.push({ name: 'generator' })
+    await router.push({ name: 'home' })
   } finally {
     loggingOut.value = false
   }
@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
                 Профиль
               </RouterLink>
               <RouterLink
-                :to="{ name: 'generator' }"
+                :to="{ name: 'create' }"
                 class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-hover-surface"
                 role="menuitem"
               >

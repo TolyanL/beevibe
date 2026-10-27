@@ -6,15 +6,12 @@ import Textarea from 'openvue/textarea'
 import Select from 'openvue/select'
 import InputText from 'openvue/inputtext'
 import { useToast } from 'openvue/usetoast'
-import { getCatalog } from '@/api/catalog'
-import type { CatalogCard, GameStyle, Genre, MapSize } from '@/api/types'
+import type { GameStyle, Genre, MapSize } from '@/api/types'
 import { messageFromError } from '@/api/client'
-import { formatTokens } from '@/lib/format'
+import { formatNumber, formatTokens } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
 import { useGameStore } from '@/stores/game'
 import AppIcon from '@/components/ui/AppIcon.vue'
-import GameCard from '@/components/catalog/GameCard.vue'
-import HeroPreview from '@/components/generator/HeroPreview.vue'
 
 const router = useRouter()
 const toast = useToast()
@@ -32,11 +29,15 @@ const tempo = ref(6)
 const advanced = ref(false)
 const submitting = ref(false)
 const error = ref('')
-const latest = ref<CatalogCard[]>([])
-const latestLoading = ref(true)
 
 const maxPrompt = 2000
 const currentPrice = computed(() => auth.prices.generate)
+const activeGame = computed(() => {
+  const busy = ['queued', 'analyzing', 'planning', 'coding', 'assets', 'reviewing', 'assembling', 'checking', 'patching']
+  const games = auth.profile?.games ?? []
+
+  return games.find((item) => busy.includes(item.status)) ?? null
+})
 const enoughTokens = computed(() => !auth.isAuthenticated || auth.balance >= currentPrice.value)
 const customGenreReady = computed(() => genre.value !== 'custom' || customGenre.value.trim().length >= 2)
 const customStyleReady = computed(() => style.value !== 'custom' || customStyle.value.trim().length >= 2)
@@ -92,24 +93,6 @@ const genreOptions = [
   { label: 'Своя механика', value: 'custom' },
 ]
 
-const features = [
-  {
-    icon: 'wand',
-    title: 'Промпт вместо ТЗ',
-    text: 'Опишите механику, настроение и цель. Конвейер сам соберёт спецификацию.',
-  },
-  {
-    icon: 'code',
-    title: 'Живой playable',
-    text: 'Игра запускается сразу в широкой сцене — без установок и сборок.',
-  },
-  {
-    icon: 'refresh',
-    title: 'Правки без кода',
-    text: 'Патч промптом, настройки, починка и откат к любой версии.',
-  },
-] as const
-
 const styleOptions = [
   { label: 'Пиксель', value: 'pixel' },
   { label: 'Мультяшный', value: 'cartoon' },
@@ -134,15 +117,11 @@ function applyExample(example: (typeof examples)[number]): void {
   error.value = ''
 }
 
-function scrollToComposer(): void {
-  document.querySelector('#create')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 async function submit(): Promise<void> {
   error.value = ''
 
   if (!auth.isAuthenticated) {
-    await router.push({ name: 'login', query: { redirect: '/#create' } })
+    await router.push({ name: 'login', query: { redirect: '/create' } })
     return
   }
 
@@ -185,89 +164,63 @@ async function submit(): Promise<void> {
   }
 }
 
-onMounted(async () => {
-  if (auth.isAuthenticated && !auth.profile) void auth.refreshProfile()
-
-  try {
-    const response = await getCatalog({ sort: 'rating', limit: 4 })
-    latest.value = response.items ?? []
-  } catch {
-    latest.value = []
-  } finally {
-    latestLoading.value = false
-  }
+onMounted(() => {
+  if (!auth.profile) void auth.refreshProfile()
 })
 </script>
 
 <template>
   <div>
-    <section class="relative overflow-hidden pb-4 pt-10 sm:pt-14 lg:pt-16">
+    <section class="pb-2 pt-8 sm:pt-10">
       <div class="app-container">
-        <div class="grid items-center gap-10 lg:grid-cols-[1.02fr_.98fr] lg:gap-14">
+        <RouterLink
+          :to="{ name: 'home' }"
+          class="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted transition hover:text-ink"
+        >
+          <AppIcon name="back" :size="14" />
+          На главную
+        </RouterLink>
+
+        <div class="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="animate-rise">
-            <div class="eyebrow">GameGen · конвейер агентов</div>
-
-            <h1 class="display-title mt-5 text-[clamp(2.8rem,6.8vw,5.6rem)]">
-              Собери игру
-              <span class="relative inline-block">
-                <span class="relative z-10">из фразы.</span>
-                <span class="absolute inset-x-0 bottom-1 z-0 h-[0.18em] -rotate-1 rounded-full bg-bee/70" />
-              </span>
+            <div class="eyebrow">Конвейер агентов</div>
+            <h1 class="display-title mt-3 text-[clamp(2.2rem,4.6vw,3.4rem)]">
+              Собери игру из фразы
             </h1>
-
-            <p class="mt-6 max-w-xl text-[15px] leading-7 text-muted sm:text-base">
-              Опишите идею — BeeVibe проведёт её через восемь этапов и вернёт готовую
-              HTML5-игру. Играйте сразу в браузере, правьте промптом и делитесь ссылкой.
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-muted">
+              Опишите идею — восемь агентов соберут спецификацию, код и визуал, а вы получите
+              playable в браузере. Правки промптом, версии и публичная ссылка — сразу.
             </p>
-
-            <div class="mt-7 flex flex-wrap items-center gap-2.5">
-              <Button class="bee-button" size="large" @click="scrollToComposer">
-                <AppIcon name="spark" :size="17" />
-                <span class="ml-2">Создать игру</span>
-              </Button>
-              <RouterLink
-                to="/catalog"
-                class="inline-flex h-[46px] items-center gap-2 rounded-full border border-line-strong bg-surface/50 px-5 text-sm font-bold transition hover:border-bee-deep hover:bg-bee/10"
-              >
-                <AppIcon name="grid" :size="16" />
-                Смотреть каталог
-              </RouterLink>
-            </div>
-
-            <div class="mt-9 grid max-w-lg grid-cols-3 gap-4 border-t border-line pt-5">
-              <div>
-                <p class="font-display text-xl font-bold">8</p>
-                <p class="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">этапов</p>
-              </div>
-              <div>
-                <p class="font-display text-xl font-bold">HTML5</p>
-                <p class="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">один файл</p>
-              </div>
-              <div>
-                <p class="font-display text-xl font-bold">0</p>
-                <p class="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">установок</p>
-              </div>
-            </div>
           </div>
 
-          <div class="animate-rise lg:translate-y-2" style="animation-delay: 90ms">
-            <HeroPreview />
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3.5 py-2 text-[11px] font-bold">
+              <AppIcon name="coin" :size="13" class="text-bee-deep dark:text-bee" />
+              Генерация · {{ formatTokens(currentPrice) }}
+            </span>
+            <span v-if="auth.isAuthenticated" class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3.5 py-2 font-mono text-[11px]">
+              <AppIcon name="bolt" :size="13" />
+              {{ formatNumber(auth.balance) }}
+            </span>
           </div>
+        </div>
+
+        <div
+          v-if="activeGame"
+          class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-bee-deep/25 bg-bee/[0.06] px-4 py-3 text-xs"
+        >
+          <span class="size-2 animate-pulse-soft rounded-full bg-bee-deep" />
+          <span class="font-bold">У вас уже идёт сборка:</span>
+          <RouterLink :to="{ name: 'game', params: { id: activeGame.id } }" class="truncate text-bee-deep hover-link dark:text-bee">
+            {{ activeGame.title?.trim() || activeGame.prompt }}
+          </RouterLink>
+          <span class="text-faint">· новая игра встанет в очередь после неё</span>
         </div>
       </div>
     </section>
 
-    <section id="create" class="scroll-mt-24 py-12 sm:py-16">
+    <section class="py-7 sm:py-9">
       <div class="app-container">
-        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div class="eyebrow">Конструктор</div>
-            <h2 class="display-title mt-3 text-3xl sm:text-4xl">Опишите, во что будем играть</h2>
-          </div>
-          <p class="max-w-xs text-right text-xs leading-5 text-muted sm:text-sm">
-            Чем конкретнее механика, цель и атмосфера — тем точнее результат.
-          </p>
-        </div>
 
         <div class="panel overflow-hidden">
           <div class="grid lg:grid-cols-[1.35fr_.65fr]">
@@ -460,46 +413,6 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="py-10 sm:py-14">
-      <div class="app-container">
-        <div class="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div class="eyebrow">Уже играют</div>
-            <h2 class="display-title mt-3 text-3xl sm:text-4xl">Свежие игры из каталога</h2>
-          </div>
-          <RouterLink to="/catalog" class="group inline-flex items-center gap-2 text-sm font-bold text-muted transition hover:text-ink">
-            Все игры
-            <AppIcon name="arrow-right" :size="16" class="transition group-hover:translate-x-0.5" />
-          </RouterLink>
-        </div>
-
-        <div v-if="latestLoading" class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div v-for="index in 4" :key="index" class="h-64 animate-pulse rounded-[1.35rem] bg-surface/70" />
-        </div>
-        <div v-else-if="latest.length" class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <GameCard v-for="card in latest" :key="card.id" :card="card" />
-        </div>
-        <div v-else class="mt-7 rounded-[1.35rem] border border-dashed border-line-strong px-6 py-12 text-center">
-          <p class="text-sm font-bold">Каталог пока пуст</p>
-          <p class="mt-1.5 text-xs text-muted">Сгенерируйте первую игру — она появится здесь.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="py-12 sm:py-16">
-      <div class="app-container">
-        <div class="grid gap-px overflow-hidden rounded-[1.35rem] border border-line bg-line sm:grid-cols-3">
-          <div v-for="(item, index) in features" :key="item.title" class="bg-surface/80 p-6 sm:p-7">
-            <span class="grid size-11 place-items-center rounded-2xl bg-bee/15 text-bee-deep dark:text-bee">
-              <AppIcon :name="item.icon" :size="21" />
-            </span>
-            <p class="mt-5 font-display text-lg font-bold">{{ item.title }}</p>
-            <p class="mt-2 text-[13px] leading-6 text-muted">{{ item.text }}</p>
-            <p class="mt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-faint">0{{ index + 1 }} / 03</p>
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 

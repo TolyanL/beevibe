@@ -126,10 +126,10 @@ onMounted(async () => {
       <header class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted">
+            <span v-if="genre" class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted">
               {{ genre }}
             </span>
-            <span class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted">
+            <span v-if="styleName" class="rounded-full border border-line bg-surface/70 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.09em] text-muted">
               {{ styleName }}
             </span>
             <RatingBadge
@@ -152,7 +152,7 @@ onMounted(async () => {
 
         <div class="flex shrink-0 items-center gap-2">
           <RouterLink
-            to="/"
+            :to="{ name: 'create' }"
             class="inline-flex h-10 items-center gap-2 rounded-full bg-bee px-4 text-[11px] font-extrabold text-graphite transition hover:bg-bee-deep"
           >
             <AppIcon name="spark" :size="14" />

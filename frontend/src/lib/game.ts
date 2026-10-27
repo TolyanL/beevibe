@@ -91,8 +91,18 @@ export const PIPELINE = [
   { id: 'checking', label: 'Проверка', short: 'Проверка' },
 ] as const
 
-export function stageLabel(stage: string): string {
-  return PIPELINE.find((item) => item.id === stage)?.label ?? stage
+const OPERATION_STAGE_LABELS: Record<string, string> = {
+  patching: 'Правка игры',
+  meta: 'Название и описание',
+}
+
+export function stageLabel(stage: string, operation?: string): string {
+  if (stage === 'patching') {
+    if (operation === 'fix') return 'Починка игры'
+    if (operation === 'meta') return 'Название и описание'
+  }
+
+  return PIPELINE.find((item) => item.id === stage)?.label ?? OPERATION_STAGE_LABELS[stage] ?? stage
 }
 
 export function genreLabel(genre: string, custom?: string): string {
@@ -107,7 +117,7 @@ export function genreLabel(genre: string, custom?: string): string {
     custom: 'Своя механика',
   }
 
-  return labels[genre] ?? 'Игра'
+  return labels[genre] ?? ''
 }
 
 export function styleLabel(style: string, custom?: string): string {
@@ -120,7 +130,7 @@ export function styleLabel(style: string, custom?: string): string {
     minimal: 'Минимализм',
   }
 
-  return labels[style] ?? 'Стиль'
+  return labels[style] ?? ''
 }
 
 export function mapSizeLabel(size: string): string {
@@ -130,7 +140,7 @@ export function mapSizeLabel(size: string): string {
     large: 'Большая',
   }
 
-  return labels[size] ?? size
+  return labels[size] ?? ''
 }
 
 export function versionSourceLabel(source: string): string {

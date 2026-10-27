@@ -24,9 +24,9 @@ const submitting = ref(false)
 
 const isRegister = computed(() => mode.value === 'register')
 const redirect = computed(() => {
-  const value = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+  const value = typeof route.query.redirect === 'string' ? route.query.redirect : '/create'
 
-  return value.startsWith('/') && !value.startsWith('//') ? value : '/'
+  return value.startsWith('/') && !value.startsWith('//') ? value : '/create'
 })
 const title = computed(() => (isRegister.value ? 'Создайте аккаунт' : 'С возвращением'))
 const subtitle = computed(() =>
@@ -87,7 +87,7 @@ async function submit(): Promise<void> {
       toast.add({ severity: 'success', summary: 'Вы вошли', life: 2000 })
     }
 
-    await router.push(redirect.value || '/')
+    await router.push(redirect.value || '/create')
   } catch (err) {
     formError.value = messageFromError(err)
   } finally {

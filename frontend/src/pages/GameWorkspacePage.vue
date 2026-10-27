@@ -181,9 +181,11 @@ function sessionLabel(seconds: number): string {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
-function logLine(stage: { stage: string; status: string; durationMs: number }): string {
+function logLine(stage: { stage: string; status: string; durationMs: number; operation?: string }): string {
   const time = stage.durationMs ? ` ${(stage.durationMs / 1000).toFixed(1)}s` : ''
-  return `[${stage.status === 'done' ? 'ok' : '..'}] ${stageLabel(stage.stage)}${time}`
+  const mark = stage.status === 'done' ? 'ok' : stage.status === 'error' ? '!!' : '..'
+
+  return `[${mark}] ${stageLabel(stage.stage, stage.operation)}${time}`
 }
 
 async function load(): Promise<void> {
@@ -554,7 +556,7 @@ onBeforeUnmount(() => {
 
               <div
                 v-if="operation && !isMetaOperation"
-                class="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-3"
+                class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3"
               >
                 <span class="inline-flex items-center gap-2 rounded-full border border-bee-deep/30 bg-canvas/95 px-3.5 py-2 text-[11px] font-bold text-ink shadow-lift backdrop-blur">
                   <span class="size-2.5 animate-pulse-soft rounded-full bg-bee-deep" />
@@ -591,7 +593,7 @@ onBeforeUnmount(() => {
                       <AppIcon name="refresh" :size="14" />
                       <span class="ml-1.5">Перезапустить сборку</span>
                     </Button>
-                    <RouterLink to="/" class="rounded-full border border-line-strong px-4 py-2.5 text-xs font-bold">
+                    <RouterLink :to="{ name: 'create' }" class="rounded-full border border-line-strong px-4 py-2.5 text-xs font-bold">
                       Начать заново
                     </RouterLink>
                   </div>
@@ -600,7 +602,7 @@ onBeforeUnmount(() => {
             </div>
 
             <AiProgress
-              v-if="game.isActive && !operation"
+              v-if="game.isGenerating && !operation"
               :started-at="profileGame?.created_at"
               label="Нейросеть собирает игру"
               hint="этапы конвейера ниже"
@@ -611,7 +613,9 @@ onBeforeUnmount(() => {
               <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
                 <div>
                   <p class="mono-label">Live build</p>
-                  <h2 class="mt-1 font-display text-lg font-bold">Сборка в реальном времени</h2>
+                  <h2 class="mt-1 font-display text-lg font-bold">
+                    {{ game.isGenerating ? 'Сборка в реальном времени' : 'Правка в работе' }}
+                  </h2>
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-bee-deep dark:text-bee">
@@ -631,20 +635,42 @@ onBeforeUnmount(() => {
 
               <div class="grid gap-0 md:grid-cols-[.9fr_1.1fr]">
                 <div class="border-b border-line p-5 md:border-b-0 md:border-r">
-                  <p class="mono-label">Этапы</p>
+                  <p class="mono-label">{{ game.isGenerating ? 'Этапы' : 'Операция' }}</p>
                   <p class="mt-2 text-sm leading-6 text-muted">{{ meta.description }}</p>
-                  <div class="mt-4 grid grid-cols-3 gap-2">
+
+                  <div v-if="game.isGenerating" class="mt-4 grid grid-cols-3 gap-2">
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">{{ game.stageProgress }}%</p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">прогресс</p>
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
-                      <p class="font-display text-lg font-bold">{{ game.stages.filter((item) => item.status === 'done').length }}/8</p>
+                      <p class="font-display text-lg font-bold">
+                        {{ game.pipelineStages.filter((item) => item.status === 'done').length }}/8
+                      </p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">этапов</p>
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">{{ game.stages.filter((item) => item.issues).length }}</p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">issues</p>
+                    </div>
+                  </div>
+
+                  <div v-else class="mt-4 grid grid-cols-3 gap-2">
+                    <div class="rounded-xl border border-line bg-canvas/45 p-3">
+                      <p class="font-display text-lg font-bold">{{ operationLabel }}</p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">операция</p>
+                    </div>
+                    <div class="rounded-xl border border-line bg-canvas/45 p-3">
+                      <p class="font-display text-lg font-bold">{{ versions.length }}</p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">версий</p>
+                    </div>
+                    <div class="rounded-xl border border-line bg-canvas/45 p-3">
+                      <p class="font-display text-lg font-bold">
+                        {{ game.actionPending ? '✓' : '…' }}
+                      </p>
+                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+                        {{ game.streaming ? 'подписка' : 'опрос' }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -662,8 +688,10 @@ onBeforeUnmount(() => {
 
                   <div class="terminal h-[210px] p-4">
                     <p><span class="tok-comment">// beevibe pipeline</span></p>
-                    <p v-for="stage in game.stages" :key="stage.stage">
-                      <span :class="stage.status === 'done' ? 'tok-string' : 'tok-key'">{{ logLine(stage) }}</span>
+                    <p v-for="stage in game.stages" :key="`${stage.stage}-${stage.operation ?? ''}`">
+                      <span :class="stage.status === 'done' ? 'tok-string' : stage.status === 'error' ? 'tok-key' : 'tok-key'">
+                        {{ logLine(stage) }}
+                      </span>
                     </p>
                     <p v-if="!game.stages.length" class="tok-comment">ожидаем первый этап…</p>
                     <p class="mt-1 flex items-center gap-1 text-bee">
@@ -674,7 +702,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <div v-if="game.isActive && !game.spec" class="panel p-5">
+            <div v-if="game.isGenerating && !game.spec" class="panel p-5">
               <div class="flex items-center gap-3">
                 <span class="size-4 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
                 <p class="text-xs text-muted">Спецификация появится после этапа планирования.</p>
@@ -974,7 +1002,42 @@ onBeforeUnmount(() => {
           </div>
 
           <aside class="space-y-5 xl:sticky xl:top-[90px]">
-            <section class="panel p-5">
+            <section v-if="operation" class="panel p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="mono-label">Сейчас</p>
+                  <h2 class="mt-1 font-display text-lg font-bold">{{ operationLabel }}</h2>
+                </div>
+                <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-bee/15 text-bee-deep dark:text-bee">
+                  <AppIcon name="spark" :size="17" />
+                </span>
+              </div>
+
+              <AiProgress
+                class="mt-4"
+                compact
+                :started-at="operation.started_at"
+                :label="operationLabel"
+                :hint="operationHint"
+                :expected-seconds="operationExpectedSeconds"
+              />
+
+              <p class="mt-3 text-[11px] leading-5 text-muted">
+                Пока модель работает, игра остаётся доступной. Результат появится здесь же —
+                обновлять страницу не нужно.
+              </p>
+
+              <button
+                type="button"
+                class="mt-3 w-full rounded-full border border-line-strong px-3 py-2 text-[10px] font-bold text-muted transition hover:border-bad/40 hover:text-bad"
+                :disabled="Boolean(game.actionPending)"
+                @click="cancelRun"
+              >
+                Отменить
+              </button>
+            </section>
+
+            <section v-else class="panel p-5">
               <StageTimeline :stages="game.stages" :status="game.status" />
               <div class="mt-5 grid grid-cols-2 gap-2 border-t border-line pt-4">
                 <div class="rounded-xl border border-line bg-canvas/35 p-3">

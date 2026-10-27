@@ -32,6 +32,8 @@ const genres: { value: Genre | ''; label: string }[] = [
   { value: 'custom', label: 'Своя механика' },
 ]
 
+const activeGenreLabel = computed(() => genres.find((item) => item.value === catalog.genre)?.label ?? '')
+
 const hasFilters = computed(() => Boolean(search.value) || Boolean(catalog.genre) || catalog.sort !== 'fresh')
 
 function syncQuery(): void {
@@ -137,7 +139,7 @@ onBeforeUnmount(() => {
 
           <div class="flex shrink-0 items-center gap-2.5">
             <RouterLink
-              to="/"
+              :to="{ name: 'create' }"
               class="inline-flex h-11 items-center gap-2 rounded-full bg-bee px-5 text-xs font-extrabold text-graphite transition hover:bg-bee-deep"
             >
               <AppIcon name="plus" :size="15" :stroke="2.4" />
@@ -194,24 +196,48 @@ onBeforeUnmount(() => {
               @click="reset"
             >
               <AppIcon name="x" :size="12" />
-              Сбросить
+              Сбросить всё
             </button>
           </div>
         </div>
       </section>
 
-      <div class="mt-6 flex items-center justify-between gap-4">
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-muted">
-          <span v-if="catalog.loading" class="inline-flex items-center gap-2">
+          <span v-if="catalog.loading && !catalog.items.length" class="inline-flex items-center gap-2">
             <span class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
             Загружаем игры…
           </span>
           <span v-else>
             <b class="font-bold text-ink">{{ catalog.total }}</b>
             {{ catalog.total === 1 ? 'игра' : catalog.total < 5 ? 'игры' : 'игр' }}
-            <span v-if="search" class="text-faint">по запросу «{{ search }}»</span>
+            <span v-if="catalog.items.length && catalog.items.length < catalog.total" class="text-faint">
+              · показано {{ catalog.items.length }}
+            </span>
           </span>
         </p>
+
+        <div v-if="hasFilters" class="flex flex-wrap items-center gap-1.5">
+          <button
+            v-if="search"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-full border border-line bg-canvas/50 px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+            @click="search = ''; onSearchInput('')"
+          >
+            «{{ search }}»
+            <AppIcon name="x" :size="10" />
+          </button>
+          <button
+            v-if="catalog.genre"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-full border border-line bg-canvas/50 px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+            @click="chooseGenre('')"
+          >
+            {{ activeGenreLabel }}
+            <AppIcon name="x" :size="10" />
+          </button>
+        </div>
+
         <p class="hidden font-mono text-[9px] uppercase tracking-[0.13em] text-faint sm:block">
           sort: {{ catalog.sort }}
         </p>
@@ -244,11 +270,11 @@ onBeforeUnmount(() => {
         <GameCard v-for="card in catalog.items" :key="card.id" :card="card" />
       </div>
 
-      <div v-else class="mt-4">
+      <div v-else-if="hasFilters" class="mt-4">
         <EmptyState
           icon="search"
           title="Ничего не нашлось"
-          text="Попробуйте другой запрос, жанр или сбросьте фильтры. Новые игры появляются после генерации."
+          :text="`По запросу «${search || activeGenreLabel}» игр нет. Попробуйте другое слово, жанр или сбросьте фильтры.`"
         >
           <button
             type="button"
@@ -258,6 +284,22 @@ onBeforeUnmount(() => {
             <AppIcon name="refresh" :size="14" />
             Сбросить фильтры
           </button>
+        </EmptyState>
+      </div>
+
+      <div v-else class="mt-4">
+        <EmptyState
+          icon="wand"
+          title="Каталог пока пуст"
+          text="Опубликованных игр ещё нет. Соберите первую — она появится здесь после публикации."
+        >
+          <RouterLink
+            :to="{ name: 'create' }"
+            class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-2.5 text-xs font-extrabold text-graphite"
+          >
+            <AppIcon name="wand" :size="14" />
+            Создать игру
+          </RouterLink>
         </EmptyState>
       </div>
 

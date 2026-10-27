@@ -12,7 +12,7 @@ async function logout(): Promise<void> {
   loggingOut.value = true
   try {
     await auth.logout()
-    await router.push({ name: 'generator' })
+    await router.push({ name: 'create' })
   } finally {
     loggingOut.value = false
   }
@@ -35,7 +35,7 @@ async function logout(): Promise<void> {
           <div>
             <p class="mono-label">Сервис</p>
             <div class="mt-3 grid gap-2.5 text-muted">
-              <RouterLink to="/" class="transition hover:text-ink">Генератор</RouterLink>
+              <RouterLink :to="{ name: 'create' }" class="transition hover:text-ink">Создать игру</RouterLink>
               <RouterLink to="/catalog" class="transition hover:text-ink">Каталог</RouterLink>
               <RouterLink to="/profile" class="transition hover:text-ink">Профиль</RouterLink>
             </div>

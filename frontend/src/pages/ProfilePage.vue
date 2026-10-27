@@ -247,7 +247,7 @@ onMounted(() => {
               <h2 class="mt-1 font-display text-xl font-bold">Мои игры</h2>
             </div>
             <RouterLink
-              to="/"
+              :to="{ name: 'create' }"
               class="inline-flex items-center gap-1.5 rounded-full bg-bee px-3.5 py-2 text-[11px] font-extrabold text-graphite transition hover:bg-bee-deep"
             >
               <AppIcon name="plus" :size="13" :stroke="2.4" />
@@ -303,9 +303,9 @@ onMounted(() => {
             {{ gamesLoading ? 'Загружаем…' : `Показать ещё · осталось ${gamesTotal - games.length}` }}
           </button>
 
-          <div v-else class="p-5">
+          <div v-else-if="!gamesLoading" class="p-5">
             <EmptyState icon="wand" title="Пока ни одной игры" text="Опишите идею на главной — первая игра появится здесь.">
-              <RouterLink to="/" class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-2.5 text-xs font-extrabold text-graphite">
+              <RouterLink :to="{ name: 'create' }" class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-2.5 text-xs font-extrabold text-graphite">
                 <AppIcon name="spark" :size="14" />
                 Создать игру
               </RouterLink>

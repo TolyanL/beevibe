@@ -12,16 +12,23 @@ import AppIcon from '@/components/ui/AppIcon.vue'
           Стена.
         </h1>
         <p class="mx-auto mt-6 max-w-md text-sm leading-6 text-muted">
-          Эта страница вышла за пределы карты. Вернитесь в генератор или найдите готовую игру в
-          каталоге.
+          Эта страница вышла за пределы карты. Вернитесь на главную, создайте новую игру или
+          найдите готовую в каталоге.
         </p>
         <div class="mt-7 flex flex-wrap justify-center gap-2.5">
           <RouterLink
-            to="/"
+            :to="{ name: 'home' }"
+            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-3 text-xs font-bold transition hover:bg-hover-surface-strong"
+          >
+            <AppIcon name="back" :size="15" />
+            На главную
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'create' }"
             class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-3 text-xs font-extrabold text-graphite transition hover:bg-bee-deep"
           >
             <AppIcon name="wand" :size="15" />
-            В генератор
+            Создать игру
           </RouterLink>
           <RouterLink
             to="/catalog"
