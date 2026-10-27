@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -155,5 +156,67 @@ func TestDownloadGameSetsAttachment(t *testing.T) {
 
 	if disposition := rec.Header().Get("Content-Disposition"); disposition != `attachment; filename="game.html"` {
 		t.Errorf("content disposition = %q, want attachment", disposition)
+	}
+}
+
+func TestGetGameServesPrivateGameToItsOwner(t *testing.T) {
+	t.Parallel()
+
+	router, store := newTestRouter(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetSessionUserID(mock.Anything, "session-token").Return(ownerID, nil).Maybe()
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID:     uuid.New(),
+		GameID: gameID,
+		Number: 1,
+		HTML:   gameHTML,
+	}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/g/"+gameID.String(), nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "session-token"})
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), "<canvas") {
+		t.Errorf("body = %q, want the game html", rec.Body.String())
+	}
+}
+
+func TestGetGameHidesPrivateGameFromGuests(t *testing.T) {
+	t.Parallel()
+
+	router, store := newTestRouter(t)
+
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/g/"+gameID.String(), nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 }

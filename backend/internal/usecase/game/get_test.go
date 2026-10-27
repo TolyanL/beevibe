@@ -369,3 +369,52 @@ func TestGetPublicHidesDeletedGame(t *testing.T) {
 		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
 	}
 }
+
+func TestGetPublicAllowsOwnerOfPrivateGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
+	}, nil)
+
+	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID, ViewerID: &ownerID})
+	if err != nil {
+		t.Fatalf("GetPublic() error = %v, want nil for the owner", err)
+	}
+
+	if output.HTML != gameHTML {
+		t.Errorf("html = %q, want the latest version", output.HTML)
+	}
+}
+
+func TestGetPublicHidesPrivateGameFromStranger(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	strangerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID, ViewerID: &strangerID})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
+	}
+}

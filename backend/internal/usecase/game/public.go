@@ -23,7 +23,7 @@ func (u *UseCase) GetPublic(ctx context.Context, input dto.GetGamePublicInput) (
 		return output, err
 	}
 
-	if !game.IsPublic() {
+	if !visibleTo(game, input.ViewerID) {
 		return output, domain.ErrNotFound
 	}
 
@@ -113,4 +113,14 @@ func (u *UseCase) resolveGame(ctx context.Context, gameID uuid.UUID, slug string
 	}
 
 	return game, nil
+}
+
+// visibleTo пускает автора к своей игре в любом статусе: превью в рабочем
+// пространстве не должно зависеть от публикации.
+func visibleTo(game domain.Game, viewerID *uuid.UUID) bool {
+	if game.IsPublic() {
+		return true
+	}
+
+	return viewerID != nil && game.IsOwner(*viewerID)
 }
