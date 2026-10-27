@@ -122,6 +122,7 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 			&card.Slug, &card.Author, &ownerID,
 			&card.Genre, &card.CustomGenre, &card.CustomStyle, &card.MapSize, &card.Style, &card.CreatedAt,
 			&ratingAverage, &ratingTotal, &ratingCounts, &sessions, &seconds, &card.TokensCost, &card.ModelCalls,
+			&specPalette,
 		); err != nil {
 			return nil, 0, fmt.Errorf("rows.Scan: %w", err)
 		}
