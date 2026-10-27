@@ -550,6 +550,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /games/{id}/review/accept:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Принять код с замечаниями ревью и собрать версию
+      description: >
+        Доступно, когда конвейер остановился в статусе `needs_decision`. Игра возвращается
+        в очередь и продолжает с этапа сборки: код не перегенерируется.
+      security:
+        - sessionCookie: []
+      responses:
+        "202":
+          description: Игра снова в очереди, начиная с этапа сборки
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewDecision"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Игра не ждёт решения по ревью
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /games/{id}/review/regenerate:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    post:
+      tags: [games]
+      summary: Перегенерировать только код после замечаний ревью
+      description: >
+        Доступно в статусе `needs_decision`. Спека, план и ассеты сохраняются, конвейер
+        продолжает с этапа кода — полный проход не нужен.
+      security:
+        - sessionCookie: []
+      responses:
+        "202":
+          description: Игра снова в очереди, начиная с этапа кода
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewDecision"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Игра не ждёт решения по ревью
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /games/{id}/retry:
     parameters:
       - $ref: "#/components/parameters/GameId"
@@ -1312,7 +1370,7 @@ components:
               type: string
         status:
           type: string
-          enum: [queued, analyzing, planning, coding, assets, reviewing, assembling, checking, ready, failed]
+          enum: [queued, analyzing, planning, coding, assets, reviewing, assembling, checking, patching, needs_decision, ready, failed]
         fail_reason:
           type: string
           description: Причина остановки конвейера, заполнен только в статусе failed
@@ -1323,6 +1381,18 @@ components:
         created_at:
           type: string
           format: date-time
+        review_issues:
+          type: array
+          description: Замечания ревью, пока игра ждёт решения автора
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              line:
+                type: integer
         stages:
           type: array
           items:
@@ -1471,6 +1541,16 @@ components:
           maxLength: 500
         cover:
           $ref: "#/components/schemas/GameCover"
+
+    ReviewDecision:
+      type: object
+      properties:
+        status:
+          type: string
+          example: queued
+        resume_from:
+          type: string
+          enum: [analyzing, planning, coding, assets, reviewing, assembling, checking]
 
     GameJobAccepted:
       type: object

@@ -2,17 +2,22 @@ package game
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
 )
 
 const (
-	artifactPlan   = "plan"
-	artifactCode   = "code"
-	artifactAssets = "assets"
-	artifactHTML   = "html"
+	artifactReviewIssues = "review_issues"
+	artifactPlan         = "plan"
+	artifactCode         = "code"
+	artifactAssets       = "assets"
+	artifactHTML         = "html"
 )
+
+// errNeedsDecision останавливает конвейер без провала: дальше решает автор.
+var errNeedsDecision = errors.New("pipeline needs a decision")
 
 // resumeStage возвращает этап, с которого нужно продолжить конвейер: следующим
 // после последнего успешно завершённого.

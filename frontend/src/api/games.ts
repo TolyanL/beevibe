@@ -64,6 +64,14 @@ export function fixGame(id: string, error?: string): Promise<GameJobResponse> {
   })
 }
 
+export function acceptReview(id: string): Promise<{ status: string; resume_from?: string }> {
+  return request<{ status: string; resume_from?: string }>(`/games/${id}/review/accept`, { method: 'POST' })
+}
+
+export function regenerateReview(id: string): Promise<{ status: string; resume_from?: string }> {
+  return request<{ status: string; resume_from?: string }>(`/games/${id}/review/regenerate`, { method: 'POST' })
+}
+
 export function retryGame(id: string): Promise<{ status: string; resume_from?: string }> {
   return request<{ status: string; resume_from?: string }>(`/games/${id}/retry`, { method: 'POST' })
 }

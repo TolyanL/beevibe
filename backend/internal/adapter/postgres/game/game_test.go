@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	gameColumns    = 15
+	gameColumns    = 16
 	versionColumns = 10
 )
 
@@ -136,7 +136,7 @@ func TestClaimQueuedGameReturnsClaimedGame(t *testing.T) {
 	now := time.Now().UTC()
 
 	db.EXPECT().QueryRow(mock.Anything, mock.Anything).Return(pgtest.Row(t,
-		gameID, ownerID, "змейка", nil, nil, nil, "analyzing", "", "private", nil, "", "", nil, "zmeyka-1a2b", now, now,
+		gameID, ownerID, "змейка", nil, nil, nil, "analyzing", "", "private", nil, "", "", nil, "zmeyka-1a2b", now, now, "",
 	))
 
 	game, err := postgres.ClaimQueuedGame(ctx)

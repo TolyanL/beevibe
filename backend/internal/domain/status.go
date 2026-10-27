@@ -14,20 +14,24 @@ const (
 	StatusReady      Status = "ready"
 	StatusFailed     Status = "failed"
 	StatusPatching   Status = "patching"
+	// StatusNeedsDecision — конвейер остановился на замечаниях ревью и ждёт,
+	// что выберет автор: оставить код или сгенерировать его заново.
+	StatusNeedsDecision Status = "needs_decision"
 )
 
 var statusTransitions = map[Status][]Status{
-	StatusQueued:     {StatusAnalyzing},
-	StatusAnalyzing:  {StatusPlanning, StatusFailed},
-	StatusPlanning:   {StatusCoding, StatusFailed},
-	StatusCoding:     {StatusAssets, StatusFailed},
-	StatusAssets:     {StatusReviewing, StatusFailed},
-	StatusReviewing:  {StatusAssembling, StatusCoding, StatusFailed},
-	StatusAssembling: {StatusChecking, StatusFailed},
-	StatusChecking:   {StatusReady, StatusFailed, StatusPatching},
-	StatusReady:      {StatusPatching, StatusFailed},
-	StatusPatching:   {StatusChecking, StatusFailed, StatusReady},
-	StatusFailed:     {},
+	StatusQueued:        {StatusAnalyzing},
+	StatusAnalyzing:     {StatusPlanning, StatusFailed},
+	StatusPlanning:      {StatusCoding, StatusFailed},
+	StatusCoding:        {StatusAssets, StatusFailed},
+	StatusAssets:        {StatusReviewing, StatusFailed},
+	StatusReviewing:     {StatusAssembling, StatusCoding, StatusFailed, StatusNeedsDecision},
+	StatusNeedsDecision: {},
+	StatusAssembling:    {StatusChecking, StatusFailed},
+	StatusChecking:      {StatusReady, StatusFailed, StatusPatching},
+	StatusReady:         {StatusPatching, StatusFailed},
+	StatusPatching:      {StatusChecking, StatusFailed, StatusReady},
+	StatusFailed:        {},
 }
 
 func (s Status) String() string {

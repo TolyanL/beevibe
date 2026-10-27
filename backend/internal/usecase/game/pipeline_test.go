@@ -156,10 +156,10 @@ func TestRunPipelineStopsAtCallBudget(t *testing.T) {
 	}
 }
 
-func TestRunPipelineRetriesCodeAfterReviewIssues(t *testing.T) {
+func TestRunPipelinePausesWhenReviewFindsIssues(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llmMock, validator, outbox := newTestUseCase(t)
+	uc, store, llmMock, _, _ := newTestUseCase(t)
 
 	game := domain.Game{
 		ID:      uuid.New(),
@@ -169,7 +169,6 @@ func TestRunPipelineRetriesCodeAfterReviewIssues(t *testing.T) {
 	}
 
 	llmMock.EXPECT().Prompt(mock.Anything).Return("system prompt", nil)
-	llmMock.EXPECT().PromptVersion().Return("v1")
 
 	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: analyzerJSON}, nil).Once()
 	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "plan"}, nil).Once()
@@ -178,32 +177,21 @@ func TestRunPipelineRetriesCodeAfterReviewIssues(t *testing.T) {
 	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{
 		Text: `{"issues":[{"code":"no_touch","message":"нет тача"}],"approved":false}`,
 	}, nil).Once()
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "code v2"}, nil).Once()
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: "assets v2"}, nil).Once()
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: reviewerJSON}, nil).Once()
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Once()
-
-	validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil)
-	validator.EXPECT().ExtractConfig(mock.Anything, gameHTML).Return(domain.GameConfig{
-		Tempo:   5,
-		MapSize: domain.MapSizeMedium,
-		Style:   domain.StyleNeon,
-	}, nil)
 
 	store.EXPECT().ListGenEvents(mock.Anything, game.ID, int64(0)).Return(nil, nil).Maybe()
 	store.EXPECT().ListGameArtifacts(mock.Anything, game.ID).Return(map[string]string{}, nil).Maybe()
 	store.EXPECT().SaveGameArtifact(mock.Anything, game.ID, mock.Anything, mock.Anything).Return(nil).Maybe()
-	store.EXPECT().UpdateGame(mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().UpdateGame(mock.Anything, mock.Anything).Return(nil).Maybe()
 	store.EXPECT().UpdateGameStatus(mock.Anything, game.ID, mock.Anything, mock.Anything).Return(nil)
-	store.EXPECT().CreateVersion(mock.Anything, mock.MatchedBy(func(version domain.Version) bool {
-		return version.GameID == game.ID && version.Number == 1
-	})).Return(nil)
 	store.EXPECT().InsertGenEvent(mock.Anything, mock.Anything).Return(nil)
-	outbox.EXPECT().InsertOutboxEvent(mock.Anything, mock.Anything).Return(nil)
 
 	if err := uc.RunPipeline(context.Background(), game); err != nil {
-		t.Fatalf("RunPipeline() error = %v, want nil", err)
+		t.Fatalf("RunPipeline() error = %v, want nil: a review stop is not a failure", err)
 	}
+
+	// Код не перегенерируется и версия не создаётся, пока автор не решит.
+	llmMock.AssertNumberOfCalls(t, "Complete", 5)
+	store.AssertNotCalled(t, "CreateVersion", mock.Anything, mock.Anything)
 }
 
 func TestRunPipelineResumesFromFailedStage(t *testing.T) {

@@ -22,6 +22,7 @@ type Store interface {
 	DeleteGame(ctx context.Context, game domain.Game) error
 	UpdateGameVisibility(ctx context.Context, game domain.Game) error
 	UpdateGameMeta(ctx context.Context, game domain.Game) error
+	SaveGameResumeStage(ctx context.Context, gameID uuid.UUID, stage domain.Status) error
 	UpdateGame(ctx context.Context, game domain.Game) error
 	UpdateGameStatus(ctx context.Context, gameID uuid.UUID, status domain.Status, failReason string) error
 	ListUserGames(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput) ([]dto.ProfileGame, int, error)

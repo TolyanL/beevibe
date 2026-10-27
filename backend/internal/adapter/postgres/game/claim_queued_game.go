@@ -27,11 +27,16 @@ func (p *Postgres) ClaimQueuedGame(ctx context.Context) (domain.Game, error) {
 	             WHERE g.id = claimed.id
 	             RETURNING g.id, g.owner_id, g.prompt, g.params_json, g.spec_json, g.config_json,
 	                       g.status, g.fail_reason, g.visibility, g.deleted_at,
-	                       g.title, g.description, g.cover_json, g.slug, g.created_at, g.updated_at`
+	                       g.title, g.description, g.cover_json, g.slug, g.created_at, g.updated_at,
+	                       g.resume_stage`
 
 	row := gameRow{}
 
-	err := transaction.TryExtractTX(ctx).QueryRow(ctx, sql).Scan(row.Dest()...)
+	var resumeStage string
+
+	dest := append(row.Dest(), &resumeStage)
+
+	err := transaction.TryExtractTX(ctx).QueryRow(ctx, sql).Scan(dest...)
 	if err != nil {
 		if pgerr.IsNoRows(err) {
 			return domain.Game{}, domain.ErrNotFound
@@ -40,5 +45,12 @@ func (p *Postgres) ClaimQueuedGame(ctx context.Context) (domain.Game, error) {
 		return domain.Game{}, fmt.Errorf("txOrPool.QueryRow: %w", err)
 	}
 
-	return row.ToDomain()
+	game, err := row.ToDomain()
+	if err != nil {
+		return domain.Game{}, fmt.Errorf("row.ToDomain: %w", err)
+	}
+
+	game.ResumeStage = domain.Status(resumeStage)
+
+	return game, nil
 }

@@ -17,6 +17,7 @@ const toneClass = computed(() => {
   if (meta.value.tone === 'good') return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-500'
   if (meta.value.tone === 'bad') return 'border-red-500/25 bg-red-500/10 text-red-500'
   if (meta.value.tone === 'live') return 'border-bee/40 bg-bee/10 text-bee-deep dark:text-bee'
+  if (meta.value.tone === 'warn') return 'border-orange-500/25 bg-orange-500/10 text-orange-500'
 
   return 'border-line-strong bg-surface text-muted'
 })
@@ -30,7 +31,7 @@ const toneClass = computed(() => {
     <span
       class="size-1.5 rounded-full"
       :class="[
-        meta.tone === 'good' ? 'bg-emerald-500' : meta.tone === 'bad' ? 'bg-red-500' : meta.tone === 'live' ? 'bg-bee' : 'bg-faint',
+        meta.tone === 'good' ? 'bg-emerald-500' : meta.tone === 'bad' ? 'bg-red-500' : meta.tone === 'live' ? 'bg-bee' : meta.tone === 'warn' ? 'bg-orange-500' : 'bg-faint',
         pulse && meta.tone === 'live' ? 'animate-pulse-soft' : '',
       ]"
     />

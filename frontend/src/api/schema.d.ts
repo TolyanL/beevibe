@@ -805,6 +805,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/games/{id}/review/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Принять код с замечаниями ревью и собрать версию
+         * @description Доступно, когда конвейер остановился в статусе `needs_decision`. Игра возвращается в очередь и продолжает с этапа сборки: код не перегенерируется.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Игра снова в очереди, начиная с этапа сборки */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewDecision"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description Игра не ждёт решения по ревью */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/games/{id}/review/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GameId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Перегенерировать только код после замечаний ревью
+         * @description Доступно в статусе `needs_decision`. Спека, план и ассеты сохраняются, конвейер продолжает с этапа кода — полный проход не нужен.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["GameId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Игра снова в очереди, начиная с этапа кода */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewDecision"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description Игра не ждёт решения по ревью */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/games/{id}/retry": {
         parameters: {
             query?: never;
@@ -1568,7 +1676,7 @@ export interface components {
                 custom_style?: string;
             };
             /** @enum {string} */
-            status?: "queued" | "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking" | "ready" | "failed";
+            status?: "queued" | "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking" | "patching" | "needs_decision" | "ready" | "failed";
             /** @description Причина остановки конвейера, заполнен только в статусе failed */
             fail_reason?: string;
             /**
@@ -1578,6 +1686,12 @@ export interface components {
             visibility?: "public" | "private";
             /** Format: date-time */
             created_at?: string;
+            /** @description Замечания ревью, пока игра ждёт решения автора */
+            review_issues?: {
+                code?: string;
+                message?: string;
+                line?: number;
+            }[];
             stages?: components["schemas"]["Stage"][];
             spec?: components["schemas"]["GameSpec"];
             config?: components["schemas"]["GameConfig"];
@@ -1650,6 +1764,12 @@ export interface components {
             title?: string;
             description?: string;
             cover?: components["schemas"]["GameCover"];
+        };
+        ReviewDecision: {
+            /** @example queued */
+            status?: string;
+            /** @enum {string} */
+            resume_from?: "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking";
         };
         GameJobAccepted: {
             /** @enum {string} */

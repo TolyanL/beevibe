@@ -153,6 +153,7 @@ type Game struct {
 	Cover       *GameCover  `json:"cover,omitempty"`
 	CreatedAt   time.Time   `json:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at"`
+	ResumeStage Status      `json:"-"`
 }
 
 func NewGame(ownerID uuid.UUID, prompt string, params GameParams) (Game, error) {
@@ -232,6 +233,34 @@ func (g Game) DisplayTitle() string {
 	}
 
 	return g.Prompt
+}
+
+// NeedsDecision останавливает конвейер на замечаниях ревью: автор сам
+// решает, оставить текущий код или сгенерировать его заново.
+func (g *Game) NeedsDecision() error {
+	if !canTransition(g.Status, StatusNeedsDecision) {
+		return fmt.Errorf("%w: %s -> %s", ErrInvalidTransition, g.Status, StatusNeedsDecision)
+	}
+
+	g.Status = StatusNeedsDecision
+	g.UpdatedAt = time.Now().UTC()
+
+	return nil
+}
+
+// ScheduleResume возвращает игру в очередь с указанием, с какого этапа
+// продолжить: так решение по ревью не стоит полного прохода конвейера.
+func (g *Game) ScheduleResume(stage Status) error {
+	if !stage.IsPipeline() {
+		return fmt.Errorf("%w: %s is not a pipeline stage", ErrInvalidInput, stage)
+	}
+
+	g.Status = StatusQueued
+	g.ResumeStage = stage
+	g.FailReason = ""
+	g.UpdatedAt = time.Now().UTC()
+
+	return nil
 }
 
 // ResumeAt ставит игру на конкретный этап конвейера: перезапуск после сбоя

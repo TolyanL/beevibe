@@ -92,6 +92,58 @@ const operationHint = computed(() => {
 
 const operationExpectedSeconds = computed(() => (game.operation?.kind === 'meta' ? 45 : 150))
 const isMetaOperation = computed(() => game.operation?.kind === 'meta')
+const reviewIssues = computed(() => game.game?.review_issues ?? [])
+const needsDecision = computed(() => game.status === 'needs_decision')
+
+function stageTitle(stage: string): string {
+  switch (stage) {
+    case 'assembling':
+      return 'сборки'
+    case 'coding':
+      return 'кода'
+    case 'assets':
+      return 'ассетов'
+    default:
+      return 'конвейера'
+  }
+}
+
+async function acceptReview(): Promise<void> {
+  try {
+    const resumeFrom = await game.acceptReviewDecision()
+    toast.add({
+      severity: 'success',
+      summary: 'Код принят',
+      detail: `Продолжаем с этапа «${stageLabel(resumeFrom || 'assembling')}» — перегенерации не будет.`,
+      life: 3400,
+    })
+  } catch (err) {
+    toast.add({ severity: 'error', summary: 'Не удалось продолжить', detail: messageFromError(err), life: 3200 })
+  }
+}
+
+function regenerateCode(): void {
+  confirm.require({
+    header: 'Сгенерировать код заново?',
+    message:
+      'Спека, план и ассеты сохранятся — заново пойдёт только этап кода. Это займёт время, но не полный проход конвейера.',
+    acceptLabel: 'Перегенерировать код',
+    rejectLabel: 'Оставить как есть',
+    accept: async () => {
+      try {
+        const resumeFrom = await game.regenerateCode()
+        toast.add({
+          severity: 'success',
+          summary: 'Перегенерация запущена',
+          detail: `Продолжаем с этапа «${stageLabel(resumeFrom || 'coding')}».`,
+          life: 3400,
+        })
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Не удалось запустить', detail: messageFromError(err), life: 3200 })
+      }
+    },
+  })
+}
 
 type EditTab = 'patch' | 'config' | 'fix'
 
@@ -590,6 +642,49 @@ onBeforeUnmount(() => {
             >
               <AppIcon name="alert" :size="16" class="mt-0.5" />
               {{ game.streamError }}
+            </div>
+
+            <div v-if="needsDecision" class="panel border-orange-500/25 p-5 sm:p-6">
+              <div class="flex items-start gap-3">
+                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-orange-500">
+                  <AppIcon name="alert" :size="20" />
+                </span>
+                <div class="flex-1">
+                  <h2 class="font-display text-lg font-bold">Ревью нашло замечания</h2>
+                  <p class="mt-1.5 text-xs leading-5 text-muted">
+                    Конвейер остановился, чтобы не тратить время на перегенерацию без вашего согласия.
+                    Оставьте код как есть — соберём версию из него, — или перегенерируйте только код.
+                  </p>
+
+                  <ul v-if="reviewIssues.length" class="mt-3 space-y-1.5">
+                    <li
+                      v-for="(issue, index) in reviewIssues"
+                      :key="`${issue.code}-${index}`"
+                      class="flex gap-2 rounded-xl border border-line bg-canvas/40 px-3 py-2 text-[11px] leading-5 text-muted"
+                    >
+                      <span class="font-mono text-[9px] uppercase tracking-[0.08em] text-faint">{{ issue.code }}</span>
+                      <span class="flex-1">{{ issue.message }}</span>
+                      <span v-if="issue.line" class="font-mono text-[9px] text-faint">:{{ issue.line }}</span>
+                    </li>
+                  </ul>
+
+                  <div class="mt-4 flex flex-wrap gap-2">
+                    <Button class="bee-button" :loading="game.actionPending === 'review'" @click="acceptReview">
+                      <AppIcon name="check" :size="14" />
+                      <span class="ml-1.5">Оставить как есть</span>
+                    </Button>
+                    <Button class="p-button-secondary" :disabled="Boolean(game.actionPending)" @click="regenerateCode">
+                      <AppIcon name="refresh" :size="14" />
+                      <span class="ml-1.5">Сгенерировать код заново</span>
+                    </Button>
+                  </div>
+
+                  <p class="mt-3 text-[10px] leading-4 text-faint">
+                    «Оставить как есть» продолжает с этапа {{ stageTitle('assembling') }} — быстро и без новых
+                    вызовов модели. Перегенерация начинается с этапа кода.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div v-if="game.isFailed" class="panel border-red-500/20 p-5 sm:p-6">

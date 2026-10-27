@@ -1,8 +1,10 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  acceptReview,
   cancelGame,
   createGame,
+  regenerateReview,
   deleteGame,
   fixGame,
   getGame,
@@ -275,6 +277,36 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  async function acceptReviewDecision(): Promise<string> {
+    if (!currentId) return ''
+
+    actionPending.value = 'review'
+    try {
+      streamError.value = ''
+      const response = await acceptReview(currentId)
+      await refresh()
+
+      return response.resume_from ?? ''
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
+  async function regenerateCode(): Promise<string> {
+    if (!currentId) return ''
+
+    actionPending.value = 'review'
+    try {
+      streamError.value = ''
+      const response = await regenerateReview(currentId)
+      await refresh()
+
+      return response.resume_from ?? ''
+    } finally {
+      actionPending.value = ''
+    }
+  }
+
   async function retry(): Promise<string> {
     if (!currentId) return ''
 
@@ -403,6 +435,8 @@ export const useGameStore = defineStore('game', () => {
     applyConfig,
     cancel,
     retry,
+    acceptReviewDecision,
+    regenerateCode,
     saveMeta,
     generateMeta,
     remove,

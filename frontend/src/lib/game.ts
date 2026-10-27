@@ -3,7 +3,7 @@ import type { GameStatus } from '@/api/types'
 export interface StatusMeta {
   label: string
   short: string
-  tone: 'neutral' | 'live' | 'good' | 'bad'
+  tone: 'neutral' | 'live' | 'good' | 'bad' | 'warn'
   description: string
 }
 
@@ -43,6 +43,12 @@ const META: Record<GameStatus, StatusMeta> = {
     short: 'Ревью',
     tone: 'live',
     description: 'Проверяем игру на ошибки и соответствие плану.',
+  },
+  needs_decision: {
+    label: 'Нужно решение',
+    short: 'Решение',
+    tone: 'warn',
+    description: 'Ревью нашло замечания. Оставьте код как есть или сгенерируйте его заново.',
   },
   assembling: {
     label: 'Сборка',

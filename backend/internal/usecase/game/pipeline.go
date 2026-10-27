@@ -31,7 +31,6 @@ type pipeline struct {
 	html   string
 	tokens int
 	calls  int
-	fixes  int
 }
 
 func (u *UseCase) RunNextQueuedGame(ctx context.Context) (bool, error) {
@@ -115,6 +114,10 @@ func (u *UseCase) RunPipeline(ctx context.Context, game domain.Game) error {
 		}
 
 		if err := step.run(ctx, p); err != nil {
+			if errors.Is(err, errNeedsDecision) {
+				return nil
+			}
+
 			return u.abort(ctx, p, err)
 		}
 	}
@@ -143,6 +146,16 @@ func (u *UseCase) restorePipeline(ctx context.Context, p *pipeline) (domain.Stat
 
 	if p.game.Spec != nil && p.spec.Genre == "" {
 		p.spec = *p.game.Spec
+	}
+
+	if p.game.ResumeStage != "" {
+		hint := p.game.ResumeStage
+
+		if err := u.store.SaveGameResumeStage(ctx, p.game.ID, ""); err != nil {
+			return domain.StatusAnalyzing, fmt.Errorf("store.SaveGameResumeStage: %w", err)
+		}
+
+		return hint, nil
 	}
 
 	return resumeStage(events), nil
@@ -333,29 +346,30 @@ func (u *UseCase) stepReview(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
 
+	duration := time.Since(start).Milliseconds()
+
 	if len(review.Issues) == 0 {
-		return u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", time.Since(start).Milliseconds(), 0)
+		return u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", duration, 0)
 	}
 
-	if p.fixes >= u.worker.MaxFixAttempts {
-		return u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", time.Since(start).Milliseconds(), len(review.Issues))
+	issuesRaw, err := json.Marshal(review.Issues)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	p.fixes++
+	if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactReviewIssues, string(issuesRaw)); err != nil {
+		return fmt.Errorf("store.SaveGameArtifact: %w", err)
+	}
 
-	if err := u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", time.Since(start).Milliseconds(), len(review.Issues)); err != nil {
+	if err := u.transition(ctx, p, domain.StatusNeedsDecision); err != nil {
+		return fmt.Errorf("u.transition: %w", err)
+	}
+
+	if err := u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", duration, len(review.Issues)); err != nil {
 		return fmt.Errorf("u.emitStageEvent: %w", err)
 	}
 
-	if err := u.stepCode(ctx, p); err != nil {
-		return fmt.Errorf("u.stepCode: %w", err)
-	}
-
-	if err := u.stepAssets(ctx, p); err != nil {
-		return fmt.Errorf("u.stepAssets: %w", err)
-	}
-
-	return u.stepReview(ctx, p)
+	return errNeedsDecision
 }
 
 func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {

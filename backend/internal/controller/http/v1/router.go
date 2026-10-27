@@ -51,6 +51,8 @@ func NewRouter(h *Handlers) http.Handler {
 			r.Post("/patch", h.PatchGame)
 			r.Post("/cancel", h.CancelGame)
 			r.Post("/retry", h.RetryGame)
+			r.Post("/review/accept", h.AcceptReview)
+			r.Post("/review/regenerate", h.RegenerateReview)
 			r.Patch("/config", h.UpdateGameConfig)
 			r.Post("/rollback", h.RollbackGame)
 			r.Post("/fix", h.FixGame)

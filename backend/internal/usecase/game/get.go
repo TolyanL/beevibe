@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/tracer"
@@ -66,6 +68,15 @@ func (u *UseCase) Get(ctx context.Context, input dto.GetGameInput) (dto.GetGameO
 	output.Stages = buildStages(events)
 	output.Operation = activeOperation(game.Status, events)
 	output.Cursor = eventsCursor(events)
+
+	if game.Status == domain.StatusNeedsDecision {
+		issues, err := u.reviewIssues(ctx, game.ID)
+		if err != nil {
+			return output, err
+		}
+
+		output.ReviewIssues = issues
+	}
 	output.Spec = game.Spec
 	output.Config = game.Config
 	output.Versions = make([]dto.Version, 0, len(versions))
@@ -187,4 +198,24 @@ func buildStages(events []domain.GenEvent) []dto.Stage {
 	}
 
 	return stages
+}
+
+func (u *UseCase) reviewIssues(ctx context.Context, gameID uuid.UUID) ([]domain.Issue, error) {
+	artifacts, err := u.store.ListGameArtifacts(ctx, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("store.ListGameArtifacts: %w", err)
+	}
+
+	raw := artifacts[artifactReviewIssues]
+	if raw == "" {
+		return nil, nil
+	}
+
+	var issues []domain.Issue
+
+	if err := json.Unmarshal([]byte(raw), &issues); err != nil {
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	return issues, nil
 }

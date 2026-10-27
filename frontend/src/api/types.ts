@@ -31,6 +31,7 @@ export type GameStatus =
   | 'ready'
   | 'failed'
   | 'patching'
+  | 'needs_decision'
 
 export interface User {
   id: string
@@ -170,6 +171,12 @@ export interface GameStage {
   operation?: string
 }
 
+export interface ReviewIssue {
+  code: string
+  message: string
+  line?: number
+}
+
 export interface ActiveOperation {
   kind: 'patch' | 'fix' | 'config' | 'meta'
   started_at: string
@@ -190,6 +197,7 @@ export interface Game {
   rating: RatingAggregate
   my_rating: number
   operation?: ActiveOperation | null
+  review_issues?: ReviewIssue[]
   cursor: number
 }
 
