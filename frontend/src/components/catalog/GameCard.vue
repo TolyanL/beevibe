@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import type { CSSProperties } from 'vue'
 import type { CatalogCard } from '@/api/types'
 import { formatHours, formatRelative } from '@/lib/format'
-import { genreLabel, mapSizeLabel, styleLabel } from '@/lib/game'
+import { gameDescription, genreLabel, mapSizeLabel, shortGameTitle, styleLabel } from '@/lib/game'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import RatingBadge from '@/components/ui/RatingBadge.vue'
 
@@ -40,7 +40,8 @@ const style = computed<CSSProperties>(() => {
   return { '--thumb-a': a, '--thumb-b': b } as CSSProperties
 })
 
-const title = computed(() => props.card.title?.trim() || props.card.prompt)
+const title = computed(() => shortGameTitle(props.card.title, props.card.prompt))
+const description = computed(() => gameDescription(props.card.description, props.card.prompt))
 const genre = computed(() => genreLabel(props.card.genre, props.card.custom_genre))
 const styleName = computed(() => styleLabel(props.card.style, props.card.custom_style))
 const author = computed(() => props.card.author ?? '')
@@ -90,9 +91,12 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
     </div>
 
     <div class="flex flex-1 flex-col p-4">
-      <h3 class="line-clamp-2 text-[15px] font-bold leading-snug tracking-[-0.015em]">
+      <h3 class="line-clamp-1 text-[15px] font-bold leading-snug tracking-[-0.015em]" :title="title">
         {{ title }}
       </h3>
+      <p v-if="description && description !== title" class="mt-1.5 line-clamp-2 text-[11px] leading-5 text-muted" :title="description">
+        {{ description }}
+      </p>
       <div class="mt-auto flex items-center justify-between gap-3 pt-4">
         <span class="text-[11px] text-faint">
           <span v-if="author" class="text-muted">{{ author }} · </span>{{ formatRelative(card.created_at) }}

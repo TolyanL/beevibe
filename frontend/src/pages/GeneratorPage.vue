@@ -9,6 +9,7 @@ import { useToast } from 'openvue/usetoast'
 import type { GameStyle, Genre, MapSize } from '@/api/types'
 import { messageFromError } from '@/api/client'
 import { formatNumber, formatTokens } from '@/lib/format'
+import { genreLabel, shortGameTitle, styleLabel, stylePalette } from '@/lib/game'
 import { useAuthStore } from '@/stores/auth'
 import { useGameStore } from '@/stores/game'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -32,6 +33,16 @@ const error = ref('')
 
 const maxPrompt = 2000
 const currentPrice = computed(() => auth.prices.generate)
+const previewTitle = computed(() => shortGameTitle(title.value, prompt.value))
+const previewDescription = computed(() => prompt.value.trim())
+const previewGenre = computed(() => genreLabel(genre.value, customGenre.value))
+const previewStyle = computed(() => styleLabel(style.value, customStyle.value))
+const previewCover = computed(() => {
+  const palette = stylePalette(style.value)
+
+  return { background: `linear-gradient(135deg, ${palette[0]}, ${palette[1]})` }
+})
+const hasPreview = computed(() => prompt.value.trim().length >= 3)
 const activeGame = computed(() => {
   const busy = ['queued', 'analyzing', 'planning', 'coding', 'assets', 'reviewing', 'assembling', 'checking', 'patching']
   const games = auth.profile?.games ?? []
@@ -343,6 +354,41 @@ onMounted(() => {
                     В профиль
                   </RouterLink>
                 </div>
+              </div>
+
+              <div v-if="hasPreview" class="mt-6 rounded-2xl border border-line bg-canvas/45 p-3.5">
+                <p class="mono-label">Так игра появится в каталоге</p>
+
+                <div class="mt-2.5 overflow-hidden rounded-xl border border-line bg-surface/80">
+                  <div class="relative flex aspect-[16/6] max-h-56 items-end p-3" :style="previewCover">
+                    <div class="dot-grid absolute inset-0 opacity-40" />
+                    <span
+                      v-if="previewGenre"
+                      class="relative rounded-full border border-white/15 bg-black/35 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/85 backdrop-blur"
+                    >
+                      {{ previewGenre }}
+                    </span>
+                  </div>
+
+                  <div class="p-3">
+                    <p class="line-clamp-1 text-[14px] font-bold leading-snug" :title="previewTitle">
+                      {{ previewTitle }}
+                    </p>
+                    <p class="mt-1 line-clamp-2 text-[11px] leading-5 text-muted">
+                      {{ previewDescription }}
+                    </p>
+                    <p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                      <span v-if="previewStyle">{{ previewStyle }}</span>
+                      <span v-if="previewStyle" class="size-0.5 rounded-full bg-faint" />
+                      <span>черновик · не опубликована</span>
+                    </p>
+                  </div>
+                </div>
+
+                <p class="mt-2 text-[10px] leading-4 text-faint">
+                  Название и описание можно изменить в воркспейсе после сборки — вручную или
+                  автогенерацией.
+                </p>
               </div>
 
               <div class="mt-6 flex flex-col justify-between gap-4 border-t border-line pt-5 sm:flex-row sm:items-center">

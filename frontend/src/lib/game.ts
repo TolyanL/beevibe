@@ -120,6 +120,18 @@ export function genreLabel(genre: string, custom?: string): string {
   return labels[genre] ?? ''
 }
 
+const STYLE_PALETTES: Record<string, [string, string]> = {
+  pixel: ['#84cc16', '#0d9488'],
+  cartoon: ['#fb7185', '#f59e0b'],
+  neon: ['#ffcc00', '#7c3aed'],
+  minimal: ['#f3f0e6', '#98917f'],
+  custom: ['#22d3ee', '#2563eb'],
+}
+
+export function stylePalette(style: string): [string, string] {
+  return STYLE_PALETTES[style] ?? ['#ffcc00', '#7c3aed']
+}
+
 export function styleLabel(style: string, custom?: string): string {
   if (style === 'custom' && custom && custom.trim()) return custom.trim()
 
@@ -131,6 +143,30 @@ export function styleLabel(style: string, custom?: string): string {
   }
 
   return labels[style] ?? ''
+}
+
+const shortTitleWords = 5
+
+// Каталог показывает короткое имя: название автора, иначе первые слова промпта.
+export function shortGameTitle(title: string | undefined, prompt: string, words = shortTitleWords): string {
+  const clean = (title ?? '').trim()
+
+  if (clean) return clean
+
+  const parts = prompt.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length === 0) return 'Игра'
+
+  const truncated = parts.length > words
+  const head = parts.slice(0, words).join(' ').replace(/[,:;.\-—]+$/, '')
+
+  return truncated ? `${head}…` : head
+}
+
+export function gameDescription(description: string | undefined, prompt: string): string {
+  const clean = (description ?? '').trim()
+
+  return clean || prompt.trim()
 }
 
 export function mapSizeLabel(size: string): string {
