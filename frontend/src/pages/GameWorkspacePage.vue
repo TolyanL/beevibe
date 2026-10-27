@@ -732,13 +732,13 @@ onBeforeUnmount(() => {
 
               <div
                 v-if="operation && !isMetaOperation"
-                class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3"
+                class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center overflow-hidden p-3"
               >
                 <span
-                  class="inline-flex items-center gap-2 rounded-full border border-bee-deep/30 bg-canvas/95 px-3.5 py-2 text-[11px] font-bold text-ink shadow-lift backdrop-blur"
+                  class="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-bee-deep/30 bg-canvas/95 px-3.5 py-2 text-[11px] font-bold text-ink shadow-lift backdrop-blur"
                 >
-                  <span class="size-2.5 animate-pulse-soft rounded-full bg-bee-deep" />
-                  {{ operationLabel }} — собираем новую версию
+                  <span class="size-2.5 shrink-0 animate-pulse-soft rounded-full bg-bee-deep" />
+                  <span class="truncate">{{ operationLabel }} — собираем версию</span>
                 </span>
               </div>
             </div>
@@ -914,9 +914,9 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
 
-                  <div v-else class="mt-4 grid grid-cols-3 gap-2">
+                  <div v-else class="mt-4 grid grid-cols-2 gap-2">
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
-                      <p class="font-display text-lg font-bold">{{ operationLabel }}</p>
+                      <p class="truncate font-display text-base font-bold">{{ operationLabel }}</p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
                         операция
                       </p>
@@ -924,15 +924,7 @@ onBeforeUnmount(() => {
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">{{ versions.length }}</p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-                        версий
-                      </p>
-                    </div>
-                    <div class="rounded-xl border border-line bg-canvas/45 p-3">
-                      <p class="font-display text-lg font-bold">
-                        {{ game.actionPending ? '✓' : '…' }}
-                      </p>
-                      <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-                        {{ game.streaming ? 'подписка' : 'опрос' }}
+                        версий в игре
                       </p>
                     </div>
                   </div>
