@@ -94,7 +94,7 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 		}
 	}
 
-	return dto.CreateGameOutput{ID: game.ID, Status: string(game.Status)}, nil
+	return dto.CreateGameOutput{ID: game.ID, Slug: game.DisplaySlug(), Status: string(game.Status)}, nil
 }
 
 func (u *UseCase) replayCreateGame(ctx context.Context, input dto.CreateGameInput) (*dto.CreateGameOutput, error) {
@@ -126,7 +126,7 @@ func (u *UseCase) replayCreateGame(ctx context.Context, input dto.CreateGameInpu
 		return nil, fmt.Errorf("store.GetGame: %w", err)
 	}
 
-	return &dto.CreateGameOutput{ID: game.ID, Status: string(game.Status)}, nil
+	return &dto.CreateGameOutput{ID: game.ID, Slug: game.DisplaySlug(), Status: string(game.Status)}, nil
 }
 
 func buildParams(input dto.CreateGameInput) (domain.GameParams, error) {

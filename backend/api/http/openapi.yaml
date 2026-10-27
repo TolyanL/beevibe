@@ -1034,9 +1034,10 @@ components:
       name: id
       in: path
       required: true
+      description: "Идентификатор игры: читаемый slug или uuid (оба поддерживаются)"
       schema:
         type: string
-        format: uuid
+        example: neonovaya-zmeyka-1a2b
 
   responses:
     BadRequest:
@@ -1237,6 +1238,9 @@ components:
         id:
           type: string
           format: uuid
+        slug:
+          type: string
+          description: "Читаемая ссылка на игру: /games/{slug} и /play/{slug}"
         status:
           type: string
           example: queued

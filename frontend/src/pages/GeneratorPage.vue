@@ -246,7 +246,7 @@ onMounted(() => {
           <span class="size-2 animate-pulse-soft rounded-full bg-bee-deep" />
           <span class="font-bold">У вас уже идёт сборка:</span>
           <RouterLink
-            :to="{ name: 'game', params: { id: activeGame.id } }"
+            :to="{ name: 'game', params: { id: activeGame.slug || activeGame.id } }"
             class="truncate text-bee-deep hover-link dark:text-bee"
           >
             {{ activeGame.title?.trim() || activeGame.prompt }}

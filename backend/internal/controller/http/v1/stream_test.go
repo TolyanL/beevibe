@@ -84,7 +84,7 @@ func TestStreamGameIsForbiddenForForeignGame(t *testing.T) {
 	}
 }
 
-func TestStreamGameRejectsBrokenID(t *testing.T) {
+func TestStreamGameRejectsUnknownReference(t *testing.T) {
 	t.Parallel()
 
 	env := newTestEnv(t)
@@ -92,11 +92,12 @@ func TestStreamGameRejectsBrokenID(t *testing.T) {
 	userID := uuid.New()
 
 	env.expectSession(userID)
+	env.store.EXPECT().GetGameBySlug(mock.Anything, "not-a-uuid").Return(domain.Game{}, domain.ErrNotFound)
 
 	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/not-a-uuid/stream", nil))
 	rec := env.do(req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusNotFound, rec.Body.String())
 	}
 }

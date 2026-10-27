@@ -452,6 +452,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -462,6 +463,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -490,6 +492,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -531,6 +534,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -550,6 +554,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -596,6 +601,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -615,6 +621,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -647,6 +654,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -664,6 +672,7 @@ export interface paths {
           'Idempotency-Key'?: string
         }
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -718,6 +727,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -733,6 +743,7 @@ export interface paths {
           'Last-Event-ID'?: number
         }
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -765,6 +776,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -782,6 +794,7 @@ export interface paths {
           'Idempotency-Key'?: string
         }
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -828,6 +841,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -843,6 +857,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -882,6 +897,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -897,6 +913,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -936,6 +953,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -951,6 +969,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1006,6 +1025,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -1021,6 +1041,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1062,6 +1083,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -1078,6 +1100,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1108,6 +1131,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -1120,6 +1144,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1156,6 +1181,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -1173,6 +1199,7 @@ export interface paths {
           'Idempotency-Key'?: string
         }
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1219,6 +1246,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -1234,6 +1262,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1282,6 +1311,7 @@ export interface paths {
       query?: never
       header?: never
       path: {
+        /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
         id: components['parameters']['GameId']
       }
       cookie?: never
@@ -1294,6 +1324,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1431,6 +1462,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1471,6 +1503,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1510,6 +1543,7 @@ export interface paths {
         query?: never
         header?: never
         path: {
+          /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
           id: components['parameters']['GameId']
         }
         cookie?: never
@@ -1631,6 +1665,8 @@ export interface components {
     CreateGameResponse: {
       /** Format: uuid */
       id?: string
+      /** @description Читаемая ссылка на игру: /games/{slug} и /play/{slug} */
+      slug?: string
       /** @example queued */
       status?: string
     }
@@ -1889,6 +1925,7 @@ export interface components {
     }
   }
   parameters: {
+    /** @description Идентификатор игры: читаемый slug или uuid (оба поддерживаются) */
     GameId: string
   }
   requestBodies: never

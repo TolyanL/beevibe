@@ -223,7 +223,8 @@ export const useGameStore = defineStore('game', () => {
     actionPending.value = 'create'
     try {
       const response = await createGame(input)
-      return response.id
+
+      return response.slug || response.id
     } finally {
       actionPending.value = ''
     }

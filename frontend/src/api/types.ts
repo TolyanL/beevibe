@@ -183,6 +183,14 @@ export interface ActiveOperation {
 }
 
 export interface Game {
+  id: string
+  prompt: string
+  params?: {
+    genre?: string
+    style?: string
+    map_size?: string
+    tempo?: number
+  }
   status: GameStatus
   visibility: Visibility
   title: string
@@ -238,6 +246,7 @@ export interface CreateGameInput {
 }
 
 export interface CreateGameResponse {
+  slug: string
   id: string
   status: GameStatus
 }

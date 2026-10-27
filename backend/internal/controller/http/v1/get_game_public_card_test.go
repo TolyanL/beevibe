@@ -23,11 +23,11 @@ func TestGetGamePublicCardWithoutAuth(t *testing.T) {
 	createdAt := time.Now().UTC()
 
 	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
-		ID:       gameID,
-		OwnerID:  uuid.New(),
-		Prompt:   "змейка в неоне",
-		Params:   domain.GameParams{Genre: domain.GenreSnake, Style: domain.StyleNeon, MapSize: domain.MapSizeMedium},
-		Status:   domain.StatusReady,
+		ID:        gameID,
+		OwnerID:   uuid.New(),
+		Prompt:    "змейка в неоне",
+		Params:    domain.GameParams{Genre: domain.GenreSnake, Style: domain.StyleNeon, MapSize: domain.MapSizeMedium},
+		Status:    domain.StatusReady,
 		CreatedAt: createdAt,
 	}, nil)
 	env.store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{

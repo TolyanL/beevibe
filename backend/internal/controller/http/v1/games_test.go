@@ -560,7 +560,7 @@ func TestRecordPlaytimeReturnsTotal(t *testing.T) {
 	}
 }
 
-func TestGameRouteRejectsBrokenID(t *testing.T) {
+func TestGameRouteRejectsUnknownReference(t *testing.T) {
 	t.Parallel()
 
 	env := newTestEnv(t)
@@ -576,12 +576,45 @@ func TestGameRouteRejectsBrokenID(t *testing.T) {
 		{method: http.MethodPost, path: "/games/not-a-uuid/rate"},
 	} {
 		env.expectSession(userID)
+		env.store.EXPECT().GetGameBySlug(mock.Anything, "not-a-uuid").Return(domain.Game{}, domain.ErrNotFound)
 
 		req := env.authorized(httptest.NewRequest(tt.method, tt.path, strings.NewReader(`{}`)))
 		rec := env.do(req)
 
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("%s %s: status = %d, want %d", tt.method, tt.path, rec.Code, http.StatusBadRequest)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s %s: status = %d, want %d", tt.method, tt.path, rec.Code, http.StatusNotFound)
 		}
+	}
+}
+
+func TestGameRoutesAcceptSlug(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	userID := uuid.New()
+	gameID := uuid.New()
+
+	env.expectSession(userID)
+	env.store.EXPECT().GetGameBySlug(mock.Anything, "neonovaya-zmeyka-1a2b").Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusReady,
+	}, nil)
+	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusReady,
+	}, nil)
+	env.store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{}, nil)
+	env.store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return([]domain.GenEvent{}, nil)
+	env.store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{}, nil)
+	env.store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{}, domain.ErrNotFound)
+
+	req := env.authorized(httptest.NewRequest(http.MethodGet, "/games/neonovaya-zmeyka-1a2b", nil))
+	rec := env.do(req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 }

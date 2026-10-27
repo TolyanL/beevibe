@@ -309,7 +309,7 @@ onMounted(() => {
               <RouterLink
                 v-for="item in games"
                 :key="item.id"
-                :to="{ name: 'game', params: { id: item.id } }"
+                :to="{ name: 'game', params: { id: item.slug || item.id } }"
                 class="group hover-row flex items-center gap-3 px-4 py-4 sm:px-6"
               >
                 <span

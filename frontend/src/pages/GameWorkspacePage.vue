@@ -39,13 +39,16 @@ const confirm = useConfirm()
 const auth = useAuthStore()
 const game = useGameStore()
 
+// В адресе игры живёт slug; uuid остаётся только внутри API.
 const id = computed(() => String(route.params.id ?? ''))
-const promptText = computed(
-  () =>
-    auth.profile?.games.find((item) => item.id === id.value)?.prompt ??
-    `Игра ${id.value.slice(0, 8)}`,
-)
-const profileGame = computed(() => auth.profile?.games.find((item) => item.id === id.value))
+const gameSlug = computed(() => game.game?.slug || id.value)
+const profileGame = computed(() => {
+  const games = auth.profile?.games ?? []
+  const gameID = game.game?.id
+
+  return games.find((item) => (gameID && item.id === gameID) || item.slug === id.value) ?? null
+})
+const promptText = computed(() => game.game?.prompt ?? profileGame.value?.prompt ?? 'Игра')
 const gameTitle = computed(() => shortGameTitle(game.game?.title, promptText.value))
 const gameDescription = computed(() => gameDescriptionOf(game.game?.description, promptText.value))
 const versions = computed(() =>
@@ -273,9 +276,13 @@ async function load(): Promise<void> {
   if (!auth.profile) await auth.refreshProfile()
 }
 
+function publicPath(): string {
+  return `${window.location.origin}/play/${gameSlug.value}`
+}
+
 async function copyId(): Promise<void> {
   try {
-    await navigator.clipboard.writeText(id.value)
+    await navigator.clipboard.writeText(publicPath())
     copied.value = true
     window.setTimeout(() => (copied.value = false), 1600)
   } catch {
@@ -604,7 +611,7 @@ onBeforeUnmount(() => {
             class="font-mono text-[9px] text-faint transition hover:text-ink"
             @click="copyId"
           >
-            {{ copied ? 'id скопирован' : `id · ${id.slice(0, 8)}` }}
+            {{ copied ? 'ссылка скопирована' : gameSlug }}
           </button>
         </div>
       </div>

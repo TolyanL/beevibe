@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	slugMaxLength = 48
+	slugMaxLength = 40
 	slugSuffixLen = 4
 )
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/TolyanL/beevibe/pkg/logger"
@@ -42,6 +43,8 @@ func NewRouter(h *Handlers) http.Handler {
 		r.Post("/games", h.CreateGame)
 
 		r.Route("/games/{id}", func(r chi.Router) {
+			r.Use(h.ResolveGame)
+
 			r.Get("/", h.GetGame)
 			r.Delete("/", h.DeleteGame)
 			r.Patch("/visibility", h.UpdateGameVisibility)

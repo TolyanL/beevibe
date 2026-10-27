@@ -32,5 +32,6 @@ func (i CreateGameInput) Validate() error {
 
 type CreateGameOutput struct {
 	ID     uuid.UUID `json:"id"`
+	Slug   string    `json:"slug"`
 	Status string    `json:"status"`
 }
