@@ -39,6 +39,9 @@ type Store interface {
 	InsertPlaySession(ctx context.Context, session domain.PlaySession) error
 	GetPlaytimeAggregate(ctx context.Context, gameID uuid.UUID) (dto.PlaytimeAggregate, error)
 
+	SaveGameArtifact(ctx context.Context, gameID uuid.UUID, kind, content string) error
+	ListGameArtifacts(ctx context.Context, gameID uuid.UUID) (map[string]string, error)
+
 	InsertGenEvent(ctx context.Context, event domain.GenEvent) error
 	ListGenEvents(ctx context.Context, gameID uuid.UUID, afterSeq int64) ([]domain.GenEvent, error)
 

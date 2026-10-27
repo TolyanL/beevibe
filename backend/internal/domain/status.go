@@ -38,6 +38,57 @@ func (s Status) IsTerminal() bool {
 	return s == StatusReady || s == StatusFailed
 }
 
+var pipelineOrder = []Status{
+	StatusAnalyzing,
+	StatusPlanning,
+	StatusCoding,
+	StatusAssets,
+	StatusReviewing,
+	StatusAssembling,
+	StatusChecking,
+}
+
+func (s Status) pipelineIndex() int {
+	for index, stage := range pipelineOrder {
+		if stage == s {
+			return index
+		}
+	}
+
+	return -1
+}
+
+// Before сообщает, что этап идёт раньше другого в конвейере.
+func (s Status) Before(other Status) bool {
+	left, right := s.pipelineIndex(), other.pipelineIndex()
+
+	if left < 0 || right < 0 {
+		return false
+	}
+
+	return left < right
+}
+
+// Next отдаёт следующий этап конвейера: пустая строка — начинать с начала.
+func (s Status) Next() Status {
+	index := s.pipelineIndex()
+	if index < 0 || index+1 >= len(pipelineOrder) {
+		return StatusAnalyzing
+	}
+
+	return pipelineOrder[index+1]
+}
+
+func (s Status) IsPipeline() bool {
+	switch s {
+	case StatusAnalyzing, StatusPlanning, StatusCoding, StatusAssets,
+		StatusReviewing, StatusAssembling, StatusChecking:
+		return true
+	default:
+		return false
+	}
+}
+
 func (s Status) IsActive() bool {
 	_, ok := statusTransitions[s]
 

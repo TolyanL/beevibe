@@ -64,8 +64,8 @@ export function fixGame(id: string, error?: string): Promise<GameJobResponse> {
   })
 }
 
-export function retryGame(id: string): Promise<{ status: string }> {
-  return request<{ status: string }>(`/games/${id}/retry`, { method: 'POST' })
+export function retryGame(id: string): Promise<{ status: string; resume_from?: string }> {
+  return request<{ status: string; resume_from?: string }>(`/games/${id}/retry`, { method: 'POST' })
 }
 
 export function cancelGame(id: string): Promise<{ status: string }> {

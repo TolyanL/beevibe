@@ -275,13 +275,16 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
-  async function retry(): Promise<void> {
-    if (!currentId) return
+  async function retry(): Promise<string> {
+    if (!currentId) return ''
+
     actionPending.value = 'retry'
     try {
       streamError.value = ''
-      await retryGame(currentId)
+      const response = await retryGame(currentId)
       await refresh()
+
+      return response.resume_from ?? ''
     } finally {
       actionPending.value = ''
     }

@@ -10,5 +10,6 @@ type RetryGameInput struct {
 }
 
 type RetryGameOutput struct {
-	Status string `json:"status"`
+	Status     string `json:"status"`
+	ResumeFrom string `json:"resume_from,omitempty"`
 }

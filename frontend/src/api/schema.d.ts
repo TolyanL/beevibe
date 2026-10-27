@@ -668,6 +668,11 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             status?: "queued";
+                            /**
+                             * @description Этап, с которого продолжится конвейер
+                             * @enum {string}
+                             */
+                            resume_from?: "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking";
                         };
                     };
                 };
@@ -813,7 +818,7 @@ export interface paths {
         put?: never;
         /**
          * Перезапустить упавшую генерацию без нового списания
-         * @description Доступно только для игры в статусе `failed`; игра возвращается в очередь с теми же `prompt` и `params`, клиент получает `202 {status:"queued"}` и обычный SSE-поток.
+         * @description Доступно только для игры в статусе `failed`; игра возвращается в очередь с теми же `prompt` и `params`. Артефакты пройденных этапов сохранены, поэтому конвейер продолжает с упавшего этапа — `resume_from` говорит, с какого именно. Клиент получает `202 {status:"queued"}` и обычный SSE-поток.
          */
         post: {
             parameters: {
@@ -835,6 +840,11 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             status?: "queued";
+                            /**
+                             * @description Этап, с которого продолжится конвейер
+                             * @enum {string}
+                             */
+                            resume_from?: "analyzing" | "planning" | "coding" | "assets" | "reviewing" | "assembling" | "checking";
                         };
                     };
                 };

@@ -29,6 +29,11 @@ func TestRetryGameRequeuesFailedGame(t *testing.T) {
 		FailReason: "llm unavailable",
 	}, nil)
 	env.store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusQueued, "").Return(nil)
+	env.store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return([]domain.GenEvent{
+		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"analyzing","status":"done"}`)},
+		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"planning","status":"done"}`)},
+		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"coding","status":"error"}`)},
+	}, nil)
 
 	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/retry", nil))
 	rec := env.do(req)
@@ -44,6 +49,10 @@ func TestRetryGameRequeuesFailedGame(t *testing.T) {
 
 	if output.Status != string(domain.StatusQueued) {
 		t.Errorf("status = %q, want queued", output.Status)
+	}
+
+	if output.ResumeFrom != string(domain.StatusCoding) {
+		t.Errorf("resumeFrom = %q, want coding (the stage that failed)", output.ResumeFrom)
 	}
 }
 

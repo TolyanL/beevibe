@@ -363,8 +363,17 @@ function removeGame(): void {
 
 async function retryGame(): Promise<void> {
   try {
-    await game.retry()
-    toast.add({ severity: 'success', summary: 'Сборка перезапущена', life: 2600 })
+    const resumeFrom = await game.retry()
+    const label = resumeFrom ? stageLabel(resumeFrom) : ''
+
+    toast.add({
+      severity: 'success',
+      summary: 'Сборка перезапущена',
+      detail: label
+        ? `Продолжаем с этапа «${label}» — пройденные шаги сохранены.`
+        : 'Конвейер начнёт с первого этапа.',
+      life: 3200,
+    })
   } catch (err) {
     toast.add({ severity: 'error', summary: 'Не удалось перезапустить', detail: messageFromError(err), life: 3200 })
   }

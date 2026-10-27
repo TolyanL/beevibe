@@ -15,6 +15,7 @@ import (
 const (
 	metaStage          = "meta"
 	stageStatusRunning = "running"
+	stageStatusDone    = "done"
 )
 
 type artifact struct {

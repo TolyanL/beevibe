@@ -1968,6 +1968,74 @@ func (_c *MockStore_ListCatalog_Call) RunAndReturn(run func(ctx context.Context,
 	return _c
 }
 
+// ListGameArtifacts provides a mock function for the type MockStore
+func (_mock *MockStore) ListGameArtifacts(ctx context.Context, gameID uuid.UUID) (map[string]string, error) {
+	ret := _mock.Called(ctx, gameID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListGameArtifacts")
+	}
+
+	var r0 map[string]string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (map[string]string, error)); ok {
+		return returnFunc(ctx, gameID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) map[string]string); ok {
+		r0 = returnFunc(ctx, gameID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, gameID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_ListGameArtifacts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListGameArtifacts'
+type MockStore_ListGameArtifacts_Call struct {
+	*mock.Call
+}
+
+// ListGameArtifacts is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gameID uuid.UUID
+func (_e *MockStore_Expecter) ListGameArtifacts(ctx any, gameID any) *MockStore_ListGameArtifacts_Call {
+	return &MockStore_ListGameArtifacts_Call{Call: _e.mock.On("ListGameArtifacts", ctx, gameID)}
+}
+
+func (_c *MockStore_ListGameArtifacts_Call) Run(run func(ctx context.Context, gameID uuid.UUID)) *MockStore_ListGameArtifacts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ListGameArtifacts_Call) Return(stringToString map[string]string, err error) *MockStore_ListGameArtifacts_Call {
+	_c.Call.Return(stringToString, err)
+	return _c
+}
+
+func (_c *MockStore_ListGameArtifacts_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID) (map[string]string, error)) *MockStore_ListGameArtifacts_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListGenEvents provides a mock function for the type MockStore
 func (_mock *MockStore) ListGenEvents(ctx context.Context, gameID uuid.UUID, afterSeq int64) ([]domain.GenEvent, error) {
 	ret := _mock.Called(ctx, gameID, afterSeq)
@@ -2391,6 +2459,75 @@ func (_c *MockStore_ReadOutboxEvents_Call) Return(events []domain.Event, err err
 }
 
 func (_c *MockStore_ReadOutboxEvents_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]domain.Event, error)) *MockStore_ReadOutboxEvents_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SaveGameArtifact provides a mock function for the type MockStore
+func (_mock *MockStore) SaveGameArtifact(ctx context.Context, gameID uuid.UUID, kind string, content string) error {
+	ret := _mock.Called(ctx, gameID, kind, content)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveGameArtifact")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, string) error); ok {
+		r0 = returnFunc(ctx, gameID, kind, content)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SaveGameArtifact_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveGameArtifact'
+type MockStore_SaveGameArtifact_Call struct {
+	*mock.Call
+}
+
+// SaveGameArtifact is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gameID uuid.UUID
+//   - kind string
+//   - content string
+func (_e *MockStore_Expecter) SaveGameArtifact(ctx any, gameID any, kind any, content any) *MockStore_SaveGameArtifact_Call {
+	return &MockStore_SaveGameArtifact_Call{Call: _e.mock.On("SaveGameArtifact", ctx, gameID, kind, content)}
+}
+
+func (_c *MockStore_SaveGameArtifact_Call) Run(run func(ctx context.Context, gameID uuid.UUID, kind string, content string)) *MockStore_SaveGameArtifact_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SaveGameArtifact_Call) Return(err error) *MockStore_SaveGameArtifact_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SaveGameArtifact_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID, kind string, content string) error) *MockStore_SaveGameArtifact_Call {
 	_c.Call.Return(run)
 	return _c
 }

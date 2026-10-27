@@ -234,6 +234,20 @@ func (g Game) DisplayTitle() string {
 	return g.Prompt
 }
 
+// ResumeAt ставит игру на конкретный этап конвейера: перезапуск после сбоя
+// продолжает работу с упавшего этапа, а не с нуля.
+func (g *Game) ResumeAt(stage Status) error {
+	if !stage.IsPipeline() {
+		return fmt.Errorf("%w: %s is not a pipeline stage", ErrInvalidInput, stage)
+	}
+
+	g.Status = stage
+	g.FailReason = ""
+	g.UpdatedAt = time.Now().UTC()
+
+	return nil
+}
+
 func (g *Game) Retry() error {
 	if g.Status != StatusFailed {
 		return fmt.Errorf("%w: %s -> %s", ErrInvalidTransition, g.Status, StatusQueued)

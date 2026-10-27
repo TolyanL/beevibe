@@ -39,7 +39,13 @@ func (u *UseCase) Retry(ctx context.Context, input dto.RetryGameInput) (dto.Retr
 		return output, fmt.Errorf("transaction.Wrap: %w", err)
 	}
 
+	events, err := u.store.ListGenEvents(ctx, input.GameID, 0)
+	if err != nil {
+		return output, fmt.Errorf("store.ListGenEvents: %w", err)
+	}
+
 	output.Status = string(game.Status)
+	output.ResumeFrom = string(resumeStage(events))
 
 	return output, nil
 }
