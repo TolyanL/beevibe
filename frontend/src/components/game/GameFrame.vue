@@ -152,7 +152,7 @@ async function share(): Promise<void> {
       </div>
     </div>
 
-    <div class="relative bg-[#0b0b09]">
+    <div class="stage-frame-wrap relative bg-[#0b0b09]">
       <iframe
         v-if="ready"
         ref="frame"
