@@ -54,3 +54,6 @@ _dev/
 
 # Local config
 **/configs/config.yaml
+
+# Review stack secrets
+deploy/config.yaml
