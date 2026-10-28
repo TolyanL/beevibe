@@ -50,6 +50,66 @@ func (_m *MockStore) EXPECT() *MockStore_Expecter {
 	return &MockStore_Expecter{mock: &_m.Mock}
 }
 
+// ClaimGameJob provides a mock function for the type MockStore
+func (_mock *MockStore) ClaimGameJob(ctx context.Context) (domain.GameJob, error) {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ClaimGameJob")
+	}
+
+	var r0 domain.GameJob
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (domain.GameJob, error)); ok {
+		return returnFunc(ctx)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) domain.GameJob); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Get(0).(domain.GameJob)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_ClaimGameJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ClaimGameJob'
+type MockStore_ClaimGameJob_Call struct {
+	*mock.Call
+}
+
+// ClaimGameJob is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockStore_Expecter) ClaimGameJob(ctx any) *MockStore_ClaimGameJob_Call {
+	return &MockStore_ClaimGameJob_Call{Call: _e.mock.On("ClaimGameJob", ctx)}
+}
+
+func (_c *MockStore_ClaimGameJob_Call) Run(run func(ctx context.Context)) *MockStore_ClaimGameJob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ClaimGameJob_Call) Return(gameJob domain.GameJob, err error) *MockStore_ClaimGameJob_Call {
+	_c.Call.Return(gameJob, err)
+	return _c
+}
+
+func (_c *MockStore_ClaimGameJob_Call) RunAndReturn(run func(ctx context.Context) (domain.GameJob, error)) *MockStore_ClaimGameJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ClaimQueuedGame provides a mock function for the type MockStore
 func (_mock *MockStore) ClaimQueuedGame(ctx context.Context) (domain.Game, error) {
 	ret := _mock.Called(ctx)
@@ -419,6 +479,63 @@ func (_c *MockStore_CreateVersion_Call) RunAndReturn(run func(ctx context.Contex
 	return _c
 }
 
+// DeleteGame provides a mock function for the type MockStore
+func (_mock *MockStore) DeleteGame(ctx context.Context, game domain.Game) error {
+	ret := _mock.Called(ctx, game)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteGame")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.Game) error); ok {
+		r0 = returnFunc(ctx, game)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_DeleteGame_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteGame'
+type MockStore_DeleteGame_Call struct {
+	*mock.Call
+}
+
+// DeleteGame is a helper method to define mock.On call
+//   - ctx context.Context
+//   - game domain.Game
+func (_e *MockStore_Expecter) DeleteGame(ctx any, game any) *MockStore_DeleteGame_Call {
+	return &MockStore_DeleteGame_Call{Call: _e.mock.On("DeleteGame", ctx, game)}
+}
+
+func (_c *MockStore_DeleteGame_Call) Run(run func(ctx context.Context, game domain.Game)) *MockStore_DeleteGame_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.Game
+		if args[1] != nil {
+			arg1 = args[1].(domain.Game)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_DeleteGame_Call) Return(err error) *MockStore_DeleteGame_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_DeleteGame_Call) RunAndReturn(run func(ctx context.Context, game domain.Game) error) *MockStore_DeleteGame_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteIdempotencyKey provides a mock function for the type MockStore
 func (_mock *MockStore) DeleteIdempotencyKey(ctx context.Context, key string, operation string) error {
 	ret := _mock.Called(ctx, key, operation)
@@ -601,6 +718,72 @@ func (_c *MockStore_GetGame_Call) Return(game domain.Game, err error) *MockStore
 }
 
 func (_c *MockStore_GetGame_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID) (domain.Game, error)) *MockStore_GetGame_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetGameBySlug provides a mock function for the type MockStore
+func (_mock *MockStore) GetGameBySlug(ctx context.Context, slug string) (domain.Game, error) {
+	ret := _mock.Called(ctx, slug)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGameBySlug")
+	}
+
+	var r0 domain.Game
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.Game, error)); ok {
+		return returnFunc(ctx, slug)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.Game); ok {
+		r0 = returnFunc(ctx, slug)
+	} else {
+		r0 = ret.Get(0).(domain.Game)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, slug)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetGameBySlug_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGameBySlug'
+type MockStore_GetGameBySlug_Call struct {
+	*mock.Call
+}
+
+// GetGameBySlug is a helper method to define mock.On call
+//   - ctx context.Context
+//   - slug string
+func (_e *MockStore_Expecter) GetGameBySlug(ctx any, slug any) *MockStore_GetGameBySlug_Call {
+	return &MockStore_GetGameBySlug_Call{Call: _e.mock.On("GetGameBySlug", ctx, slug)}
+}
+
+func (_c *MockStore_GetGameBySlug_Call) Run(run func(ctx context.Context, slug string)) *MockStore_GetGameBySlug_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetGameBySlug_Call) Return(game domain.Game, err error) *MockStore_GetGameBySlug_Call {
+	_c.Call.Return(game, err)
+	return _c
+}
+
+func (_c *MockStore_GetGameBySlug_Call) RunAndReturn(run func(ctx context.Context, slug string) (domain.Game, error)) *MockStore_GetGameBySlug_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1348,6 +1531,63 @@ func (_c *MockStore_InsertGameEvent_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// InsertGameJob provides a mock function for the type MockStore
+func (_mock *MockStore) InsertGameJob(ctx context.Context, job domain.GameJob) error {
+	ret := _mock.Called(ctx, job)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InsertGameJob")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.GameJob) error); ok {
+		r0 = returnFunc(ctx, job)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_InsertGameJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertGameJob'
+type MockStore_InsertGameJob_Call struct {
+	*mock.Call
+}
+
+// InsertGameJob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - job domain.GameJob
+func (_e *MockStore_Expecter) InsertGameJob(ctx any, job any) *MockStore_InsertGameJob_Call {
+	return &MockStore_InsertGameJob_Call{Call: _e.mock.On("InsertGameJob", ctx, job)}
+}
+
+func (_c *MockStore_InsertGameJob_Call) Run(run func(ctx context.Context, job domain.GameJob)) *MockStore_InsertGameJob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.GameJob
+		if args[1] != nil {
+			arg1 = args[1].(domain.GameJob)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_InsertGameJob_Call) Return(err error) *MockStore_InsertGameJob_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_InsertGameJob_Call) RunAndReturn(run func(ctx context.Context, job domain.GameJob) error) *MockStore_InsertGameJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // InsertGenEvent provides a mock function for the type MockStore
 func (_mock *MockStore) InsertGenEvent(ctx context.Context, event domain.GenEvent) error {
 	ret := _mock.Called(ctx, event)
@@ -1655,7 +1895,7 @@ func (_c *MockStore_InsertTokenOp_Call) RunAndReturn(run func(ctx context.Contex
 }
 
 // ListCatalog provides a mock function for the type MockStore
-func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error) {
+func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, int, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -1663,8 +1903,9 @@ func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilte
 	}
 
 	var r0 []dto.CatalogCard
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, dto.CatalogFilter) ([]dto.CatalogCard, error)); ok {
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, dto.CatalogFilter) ([]dto.CatalogCard, int, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, dto.CatalogFilter) []dto.CatalogCard); ok {
@@ -1674,12 +1915,17 @@ func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilte
 			r0 = ret.Get(0).([]dto.CatalogCard)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, dto.CatalogFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, dto.CatalogFilter) int); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, dto.CatalogFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockStore_ListCatalog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListCatalog'
@@ -1712,12 +1958,80 @@ func (_c *MockStore_ListCatalog_Call) Run(run func(ctx context.Context, filter d
 	return _c
 }
 
-func (_c *MockStore_ListCatalog_Call) Return(catalogCards []dto.CatalogCard, err error) *MockStore_ListCatalog_Call {
-	_c.Call.Return(catalogCards, err)
+func (_c *MockStore_ListCatalog_Call) Return(catalogCards []dto.CatalogCard, n int, err error) *MockStore_ListCatalog_Call {
+	_c.Call.Return(catalogCards, n, err)
 	return _c
 }
 
-func (_c *MockStore_ListCatalog_Call) RunAndReturn(run func(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error)) *MockStore_ListCatalog_Call {
+func (_c *MockStore_ListCatalog_Call) RunAndReturn(run func(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, int, error)) *MockStore_ListCatalog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListGameArtifacts provides a mock function for the type MockStore
+func (_mock *MockStore) ListGameArtifacts(ctx context.Context, gameID uuid.UUID) (map[string]string, error) {
+	ret := _mock.Called(ctx, gameID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListGameArtifacts")
+	}
+
+	var r0 map[string]string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (map[string]string, error)); ok {
+		return returnFunc(ctx, gameID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) map[string]string); ok {
+		r0 = returnFunc(ctx, gameID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, gameID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_ListGameArtifacts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListGameArtifacts'
+type MockStore_ListGameArtifacts_Call struct {
+	*mock.Call
+}
+
+// ListGameArtifacts is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gameID uuid.UUID
+func (_e *MockStore_Expecter) ListGameArtifacts(ctx any, gameID any) *MockStore_ListGameArtifacts_Call {
+	return &MockStore_ListGameArtifacts_Call{Call: _e.mock.On("ListGameArtifacts", ctx, gameID)}
+}
+
+func (_c *MockStore_ListGameArtifacts_Call) Run(run func(ctx context.Context, gameID uuid.UUID)) *MockStore_ListGameArtifacts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ListGameArtifacts_Call) Return(stringToString map[string]string, err error) *MockStore_ListGameArtifacts_Call {
+	_c.Call.Return(stringToString, err)
+	return _c
+}
+
+func (_c *MockStore_ListGameArtifacts_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID) (map[string]string, error)) *MockStore_ListGameArtifacts_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1797,31 +2111,37 @@ func (_c *MockStore_ListGenEvents_Call) RunAndReturn(run func(ctx context.Contex
 }
 
 // ListTokenOps provides a mock function for the type MockStore
-func (_mock *MockStore) ListTokenOps(ctx context.Context, userID uuid.UUID, limit int) ([]domain.TokenOp, error) {
-	ret := _mock.Called(ctx, userID, limit)
+func (_mock *MockStore) ListTokenOps(ctx context.Context, userID uuid.UUID, filter dto.ListTokenOpsInput) ([]domain.TokenOp, int, error) {
+	ret := _mock.Called(ctx, userID, filter)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListTokenOps")
 	}
 
 	var r0 []domain.TokenOp
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, int) ([]domain.TokenOp, error)); ok {
-		return returnFunc(ctx, userID, limit)
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, dto.ListTokenOpsInput) ([]domain.TokenOp, int, error)); ok {
+		return returnFunc(ctx, userID, filter)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, int) []domain.TokenOp); ok {
-		r0 = returnFunc(ctx, userID, limit)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, dto.ListTokenOpsInput) []domain.TokenOp); ok {
+		r0 = returnFunc(ctx, userID, filter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.TokenOp)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, int) error); ok {
-		r1 = returnFunc(ctx, userID, limit)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, dto.ListTokenOpsInput) int); ok {
+		r1 = returnFunc(ctx, userID, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID, dto.ListTokenOpsInput) error); ok {
+		r2 = returnFunc(ctx, userID, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockStore_ListTokenOps_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListTokenOps'
@@ -1832,12 +2152,12 @@ type MockStore_ListTokenOps_Call struct {
 // ListTokenOps is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uuid.UUID
-//   - limit int
-func (_e *MockStore_Expecter) ListTokenOps(ctx any, userID any, limit any) *MockStore_ListTokenOps_Call {
-	return &MockStore_ListTokenOps_Call{Call: _e.mock.On("ListTokenOps", ctx, userID, limit)}
+//   - filter dto.ListTokenOpsInput
+func (_e *MockStore_Expecter) ListTokenOps(ctx any, userID any, filter any) *MockStore_ListTokenOps_Call {
+	return &MockStore_ListTokenOps_Call{Call: _e.mock.On("ListTokenOps", ctx, userID, filter)}
 }
 
-func (_c *MockStore_ListTokenOps_Call) Run(run func(ctx context.Context, userID uuid.UUID, limit int)) *MockStore_ListTokenOps_Call {
+func (_c *MockStore_ListTokenOps_Call) Run(run func(ctx context.Context, userID uuid.UUID, filter dto.ListTokenOpsInput)) *MockStore_ListTokenOps_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1847,9 +2167,9 @@ func (_c *MockStore_ListTokenOps_Call) Run(run func(ctx context.Context, userID 
 		if args[1] != nil {
 			arg1 = args[1].(uuid.UUID)
 		}
-		var arg2 int
+		var arg2 dto.ListTokenOpsInput
 		if args[2] != nil {
-			arg2 = args[2].(int)
+			arg2 = args[2].(dto.ListTokenOpsInput)
 		}
 		run(
 			arg0,
@@ -1860,59 +2180,64 @@ func (_c *MockStore_ListTokenOps_Call) Run(run func(ctx context.Context, userID 
 	return _c
 }
 
-func (_c *MockStore_ListTokenOps_Call) Return(tokenOps []domain.TokenOp, err error) *MockStore_ListTokenOps_Call {
-	_c.Call.Return(tokenOps, err)
+func (_c *MockStore_ListTokenOps_Call) Return(tokenOps []domain.TokenOp, n int, err error) *MockStore_ListTokenOps_Call {
+	_c.Call.Return(tokenOps, n, err)
 	return _c
 }
 
-func (_c *MockStore_ListTokenOps_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, limit int) ([]domain.TokenOp, error)) *MockStore_ListTokenOps_Call {
+func (_c *MockStore_ListTokenOps_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, filter dto.ListTokenOpsInput) ([]domain.TokenOp, int, error)) *MockStore_ListTokenOps_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// ListUserGamesWithCost provides a mock function for the type MockStore
-func (_mock *MockStore) ListUserGamesWithCost(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]dto.ProfileGame, error) {
-	ret := _mock.Called(ctx, userID, limit, offset)
+// ListUserGames provides a mock function for the type MockStore
+func (_mock *MockStore) ListUserGames(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput) ([]dto.ProfileGame, int, error) {
+	ret := _mock.Called(ctx, userID, filter)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ListUserGamesWithCost")
+		panic("no return value specified for ListUserGames")
 	}
 
 	var r0 []dto.ProfileGame
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, int, int) ([]dto.ProfileGame, error)); ok {
-		return returnFunc(ctx, userID, limit, offset)
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, dto.ListUserGamesInput) ([]dto.ProfileGame, int, error)); ok {
+		return returnFunc(ctx, userID, filter)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, int, int) []dto.ProfileGame); ok {
-		r0 = returnFunc(ctx, userID, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, dto.ListUserGamesInput) []dto.ProfileGame); ok {
+		r0 = returnFunc(ctx, userID, filter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]dto.ProfileGame)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, int, int) error); ok {
-		r1 = returnFunc(ctx, userID, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, dto.ListUserGamesInput) int); ok {
+		r1 = returnFunc(ctx, userID, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID, dto.ListUserGamesInput) error); ok {
+		r2 = returnFunc(ctx, userID, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
-// MockStore_ListUserGamesWithCost_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUserGamesWithCost'
-type MockStore_ListUserGamesWithCost_Call struct {
+// MockStore_ListUserGames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUserGames'
+type MockStore_ListUserGames_Call struct {
 	*mock.Call
 }
 
-// ListUserGamesWithCost is a helper method to define mock.On call
+// ListUserGames is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uuid.UUID
-//   - limit int
-//   - offset int
-func (_e *MockStore_Expecter) ListUserGamesWithCost(ctx any, userID any, limit any, offset any) *MockStore_ListUserGamesWithCost_Call {
-	return &MockStore_ListUserGamesWithCost_Call{Call: _e.mock.On("ListUserGamesWithCost", ctx, userID, limit, offset)}
+//   - filter dto.ListUserGamesInput
+func (_e *MockStore_Expecter) ListUserGames(ctx any, userID any, filter any) *MockStore_ListUserGames_Call {
+	return &MockStore_ListUserGames_Call{Call: _e.mock.On("ListUserGames", ctx, userID, filter)}
 }
 
-func (_c *MockStore_ListUserGamesWithCost_Call) Run(run func(ctx context.Context, userID uuid.UUID, limit int, offset int)) *MockStore_ListUserGamesWithCost_Call {
+func (_c *MockStore_ListUserGames_Call) Run(run func(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput)) *MockStore_ListUserGames_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1922,30 +2247,25 @@ func (_c *MockStore_ListUserGamesWithCost_Call) Run(run func(ctx context.Context
 		if args[1] != nil {
 			arg1 = args[1].(uuid.UUID)
 		}
-		var arg2 int
+		var arg2 dto.ListUserGamesInput
 		if args[2] != nil {
-			arg2 = args[2].(int)
-		}
-		var arg3 int
-		if args[3] != nil {
-			arg3 = args[3].(int)
+			arg2 = args[2].(dto.ListUserGamesInput)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *MockStore_ListUserGamesWithCost_Call) Return(profileGames []dto.ProfileGame, err error) *MockStore_ListUserGamesWithCost_Call {
-	_c.Call.Return(profileGames, err)
+func (_c *MockStore_ListUserGames_Call) Return(profileGames []dto.ProfileGame, n int, err error) *MockStore_ListUserGames_Call {
+	_c.Call.Return(profileGames, n, err)
 	return _c
 }
 
-func (_c *MockStore_ListUserGamesWithCost_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]dto.ProfileGame, error)) *MockStore_ListUserGamesWithCost_Call {
+func (_c *MockStore_ListUserGames_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput) ([]dto.ProfileGame, int, error)) *MockStore_ListUserGames_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2143,6 +2463,267 @@ func (_c *MockStore_ReadOutboxEvents_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// SaveGameArtifact provides a mock function for the type MockStore
+func (_mock *MockStore) SaveGameArtifact(ctx context.Context, gameID uuid.UUID, kind string, content string) error {
+	ret := _mock.Called(ctx, gameID, kind, content)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveGameArtifact")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, string) error); ok {
+		r0 = returnFunc(ctx, gameID, kind, content)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SaveGameArtifact_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveGameArtifact'
+type MockStore_SaveGameArtifact_Call struct {
+	*mock.Call
+}
+
+// SaveGameArtifact is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gameID uuid.UUID
+//   - kind string
+//   - content string
+func (_e *MockStore_Expecter) SaveGameArtifact(ctx any, gameID any, kind any, content any) *MockStore_SaveGameArtifact_Call {
+	return &MockStore_SaveGameArtifact_Call{Call: _e.mock.On("SaveGameArtifact", ctx, gameID, kind, content)}
+}
+
+func (_c *MockStore_SaveGameArtifact_Call) Run(run func(ctx context.Context, gameID uuid.UUID, kind string, content string)) *MockStore_SaveGameArtifact_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SaveGameArtifact_Call) Return(err error) *MockStore_SaveGameArtifact_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SaveGameArtifact_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID, kind string, content string) error) *MockStore_SaveGameArtifact_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SaveGameResumeStage provides a mock function for the type MockStore
+func (_mock *MockStore) SaveGameResumeStage(ctx context.Context, gameID uuid.UUID, stage domain.Status) error {
+	ret := _mock.Called(ctx, gameID, stage)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveGameResumeStage")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, domain.Status) error); ok {
+		r0 = returnFunc(ctx, gameID, stage)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SaveGameResumeStage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveGameResumeStage'
+type MockStore_SaveGameResumeStage_Call struct {
+	*mock.Call
+}
+
+// SaveGameResumeStage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gameID uuid.UUID
+//   - stage domain.Status
+func (_e *MockStore_Expecter) SaveGameResumeStage(ctx any, gameID any, stage any) *MockStore_SaveGameResumeStage_Call {
+	return &MockStore_SaveGameResumeStage_Call{Call: _e.mock.On("SaveGameResumeStage", ctx, gameID, stage)}
+}
+
+func (_c *MockStore_SaveGameResumeStage_Call) Run(run func(ctx context.Context, gameID uuid.UUID, stage domain.Status)) *MockStore_SaveGameResumeStage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 domain.Status
+		if args[2] != nil {
+			arg2 = args[2].(domain.Status)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SaveGameResumeStage_Call) Return(err error) *MockStore_SaveGameResumeStage_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SaveGameResumeStage_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID, stage domain.Status) error) *MockStore_SaveGameResumeStage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SumTopupsSince provides a mock function for the type MockStore
+func (_mock *MockStore) SumTopupsSince(ctx context.Context, userID uuid.UUID, since time.Time) (int64, error) {
+	ret := _mock.Called(ctx, userID, since)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SumTopupsSince")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, time.Time) (int64, error)); ok {
+		return returnFunc(ctx, userID, since)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, time.Time) int64); ok {
+		r0 = returnFunc(ctx, userID, since)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, time.Time) error); ok {
+		r1 = returnFunc(ctx, userID, since)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_SumTopupsSince_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SumTopupsSince'
+type MockStore_SumTopupsSince_Call struct {
+	*mock.Call
+}
+
+// SumTopupsSince is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+//   - since time.Time
+func (_e *MockStore_Expecter) SumTopupsSince(ctx any, userID any, since any) *MockStore_SumTopupsSince_Call {
+	return &MockStore_SumTopupsSince_Call{Call: _e.mock.On("SumTopupsSince", ctx, userID, since)}
+}
+
+func (_c *MockStore_SumTopupsSince_Call) Run(run func(ctx context.Context, userID uuid.UUID, since time.Time)) *MockStore_SumTopupsSince_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SumTopupsSince_Call) Return(n int64, err error) *MockStore_SumTopupsSince_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockStore_SumTopupsSince_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, since time.Time) (int64, error)) *MockStore_SumTopupsSince_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateDisplayName provides a mock function for the type MockStore
+func (_mock *MockStore) UpdateDisplayName(ctx context.Context, user domain.User) error {
+	ret := _mock.Called(ctx, user)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateDisplayName")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.User) error); ok {
+		r0 = returnFunc(ctx, user)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UpdateDisplayName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateDisplayName'
+type MockStore_UpdateDisplayName_Call struct {
+	*mock.Call
+}
+
+// UpdateDisplayName is a helper method to define mock.On call
+//   - ctx context.Context
+//   - user domain.User
+func (_e *MockStore_Expecter) UpdateDisplayName(ctx any, user any) *MockStore_UpdateDisplayName_Call {
+	return &MockStore_UpdateDisplayName_Call{Call: _e.mock.On("UpdateDisplayName", ctx, user)}
+}
+
+func (_c *MockStore_UpdateDisplayName_Call) Run(run func(ctx context.Context, user domain.User)) *MockStore_UpdateDisplayName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.User
+		if args[1] != nil {
+			arg1 = args[1].(domain.User)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UpdateDisplayName_Call) Return(err error) *MockStore_UpdateDisplayName_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UpdateDisplayName_Call) RunAndReturn(run func(ctx context.Context, user domain.User) error) *MockStore_UpdateDisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateGame provides a mock function for the type MockStore
 func (_mock *MockStore) UpdateGame(ctx context.Context, game domain.Game) error {
 	ret := _mock.Called(ctx, game)
@@ -2196,6 +2777,63 @@ func (_c *MockStore_UpdateGame_Call) Return(err error) *MockStore_UpdateGame_Cal
 }
 
 func (_c *MockStore_UpdateGame_Call) RunAndReturn(run func(ctx context.Context, game domain.Game) error) *MockStore_UpdateGame_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateGameMeta provides a mock function for the type MockStore
+func (_mock *MockStore) UpdateGameMeta(ctx context.Context, game domain.Game) error {
+	ret := _mock.Called(ctx, game)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGameMeta")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.Game) error); ok {
+		r0 = returnFunc(ctx, game)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UpdateGameMeta_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateGameMeta'
+type MockStore_UpdateGameMeta_Call struct {
+	*mock.Call
+}
+
+// UpdateGameMeta is a helper method to define mock.On call
+//   - ctx context.Context
+//   - game domain.Game
+func (_e *MockStore_Expecter) UpdateGameMeta(ctx any, game any) *MockStore_UpdateGameMeta_Call {
+	return &MockStore_UpdateGameMeta_Call{Call: _e.mock.On("UpdateGameMeta", ctx, game)}
+}
+
+func (_c *MockStore_UpdateGameMeta_Call) Run(run func(ctx context.Context, game domain.Game)) *MockStore_UpdateGameMeta_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.Game
+		if args[1] != nil {
+			arg1 = args[1].(domain.Game)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UpdateGameMeta_Call) Return(err error) *MockStore_UpdateGameMeta_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UpdateGameMeta_Call) RunAndReturn(run func(ctx context.Context, game domain.Game) error) *MockStore_UpdateGameMeta_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2265,6 +2903,63 @@ func (_c *MockStore_UpdateGameStatus_Call) Return(err error) *MockStore_UpdateGa
 }
 
 func (_c *MockStore_UpdateGameStatus_Call) RunAndReturn(run func(ctx context.Context, gameID uuid.UUID, status domain.Status, failReason string) error) *MockStore_UpdateGameStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateGameVisibility provides a mock function for the type MockStore
+func (_mock *MockStore) UpdateGameVisibility(ctx context.Context, game domain.Game) error {
+	ret := _mock.Called(ctx, game)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGameVisibility")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.Game) error); ok {
+		r0 = returnFunc(ctx, game)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UpdateGameVisibility_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateGameVisibility'
+type MockStore_UpdateGameVisibility_Call struct {
+	*mock.Call
+}
+
+// UpdateGameVisibility is a helper method to define mock.On call
+//   - ctx context.Context
+//   - game domain.Game
+func (_e *MockStore_Expecter) UpdateGameVisibility(ctx any, game any) *MockStore_UpdateGameVisibility_Call {
+	return &MockStore_UpdateGameVisibility_Call{Call: _e.mock.On("UpdateGameVisibility", ctx, game)}
+}
+
+func (_c *MockStore_UpdateGameVisibility_Call) Run(run func(ctx context.Context, game domain.Game)) *MockStore_UpdateGameVisibility_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.Game
+		if args[1] != nil {
+			arg1 = args[1].(domain.Game)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UpdateGameVisibility_Call) Return(err error) *MockStore_UpdateGameVisibility_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UpdateGameVisibility_Call) RunAndReturn(run func(ctx context.Context, game domain.Game) error) *MockStore_UpdateGameVisibility_Call {
 	_c.Call.Return(run)
 	return _c
 }

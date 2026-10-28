@@ -21,7 +21,10 @@ export function formatPrice(value: number): string {
 }
 
 function trim(value: number): string {
-  return value.toFixed(value >= 10 ? 0 : 1).replace('.', ',').replace(/,0$/, '')
+  return value
+    .toFixed(value >= 10 ? 0 : 1)
+    .replace('.', ',')
+    .replace(/,0$/, '')
 }
 
 export function formatDate(value: string): string {

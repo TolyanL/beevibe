@@ -15,7 +15,18 @@ func (h *Handlers) TopupTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := h.usecase.User.TopupTokens(r.Context(), dto.TopupTokensInput{UserID: userID})
+	var body dto.TopupTokensInput
+
+	if !decodeJSON(w, r, &body) {
+		writeError(w, errInvalidBody)
+
+		return
+	}
+
+	body.UserID = userID
+	body.IdempotencyKey = r.Header.Get("Idempotency-Key")
+
+	output, err := h.usecase.User.TopupTokens(r.Context(), body)
 	if err != nil {
 		err = render.Error(r.Context(), err, "request failed")
 

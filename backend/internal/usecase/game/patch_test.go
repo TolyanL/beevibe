@@ -10,49 +10,41 @@ import (
 
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
-	"github.com/TolyanL/beevibe/pkg/llm"
 )
 
-func TestPatchCreatesNewVersion(t *testing.T) {
+func TestPatchChargesAndEnqueuesJob(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llmMock, validator, outbox := newTestUseCase(t)
+	uc, store, _, _, _ := newTestUseCase(t)
 
 	userID := uuid.New()
 	gameID := uuid.New()
 
-	game := domain.Game{ID: gameID, OwnerID: userID, Status: domain.StatusReady}
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML}
-
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(game, nil)
-	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
-	store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{latest}, nil)
-
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusReady,
+	}, nil)
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
+	}, nil)
 	store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
 		ID:           userID,
 		TokenBalance: 1000,
 	}, nil)
 	store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(updated domain.User) bool {
-		return updated.TokenBalance == 1000-40
+		return updated.TokenBalance == 960
 	})).Return(nil)
 	store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
 		return op.Delta == -40 && op.Reason == domain.ReasonPatch
 	})).Return(nil)
-
-	llmMock.EXPECT().Prompt("patch").Return("system prompt", nil)
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{
-		Text:  gameHTML,
-		Usage: llm.Usage{PromptTokens: 10, CompletionTokens: 20},
-	}, nil).Once()
-	llmMock.EXPECT().PromptVersion().Return("v1")
-
-	validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil)
-
-	store.EXPECT().CreateVersion(mock.Anything, mock.MatchedBy(func(version domain.Version) bool {
-		return version.GameID == gameID && version.Number == 2 && version.Source == domain.VersionSourcePatch
+	store.EXPECT().InsertGameJob(mock.Anything, mock.MatchedBy(func(job domain.GameJob) bool {
+		return job.GameID == gameID && job.OwnerID == userID &&
+			job.Kind == domain.JobKindPatch && job.Instruction == "добавь второй уровень"
 	})).Return(nil)
-	outbox.EXPECT().InsertOutboxEvent(mock.Anything, mock.MatchedBy(func(event domain.Event) bool {
-		return event.Type == domain.EventGamePatched
+	store.EXPECT().UpdateGameStatus(mock.Anything, gameID, domain.StatusPatching, "").Return(nil)
+	store.EXPECT().InsertGenEvent(mock.Anything, mock.MatchedBy(func(event domain.GenEvent) bool {
+		return event.Type == domain.GenEventStage && event.GameID == gameID
 	})).Return(nil)
 
 	output, err := uc.Patch(context.Background(), dto.PatchGameInput{
@@ -64,12 +56,8 @@ func TestPatchCreatesNewVersion(t *testing.T) {
 		t.Fatalf("Patch() error = %v, want nil", err)
 	}
 
-	if output.VersionID == uuid.Nil {
-		t.Error("version id = nil, want uuid")
-	}
-
-	if output.TokensSpent != 30 {
-		t.Errorf("tokens spent = %d, want 30", output.TokensSpent)
+	if output.Status != string(domain.StatusPatching) {
+		t.Errorf("status = %q, want %q", output.Status, domain.StatusPatching)
 	}
 }
 
@@ -107,7 +95,7 @@ func TestPatchRejectsGameInProgress(t *testing.T) {
 	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
 		ID:      gameID,
 		OwnerID: userID,
-		Status:  domain.StatusCoding,
+		Status:  domain.StatusPatching,
 	}, nil)
 
 	_, err := uc.Patch(context.Background(), dto.PatchGameInput{
@@ -120,56 +108,33 @@ func TestPatchRejectsGameInProgress(t *testing.T) {
 	}
 }
 
-func TestPatchRefundsWhenValidationFails(t *testing.T) {
+func TestPatchRejectsInsufficientBalance(t *testing.T) {
 	t.Parallel()
 
-	uc, store, llmMock, validator, _ := newTestUseCase(t)
+	uc, store, _, _, _ := newTestUseCase(t)
 
 	userID := uuid.New()
 	gameID := uuid.New()
 
-	game := domain.Game{ID: gameID, OwnerID: userID, Status: domain.StatusReady}
-	latest := domain.Version{ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML}
-
-	store.EXPECT().GetGame(mock.Anything, gameID).Return(game, nil)
-	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(latest, nil)
-	store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{latest}, nil)
-
-	store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
-		ID:           userID,
-		TokenBalance: 1000,
-	}, nil).Once()
-	store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(updated domain.User) bool {
-		return updated.TokenBalance == 960
-	})).Return(nil).Once()
-	store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
-		return op.Delta == -40
-	})).Return(nil).Once()
-
-	llmMock.EXPECT().Prompt("patch").Return("system prompt", nil)
-	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: gameHTML}, nil).Once()
-
-	validator.EXPECT().Check(mock.Anything, gameHTML).Return([]domain.Issue{
-		{Code: "external_url", Message: "external url found"},
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusReady,
 	}, nil)
-
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
+	}, nil)
 	store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(domain.User{
 		ID:           userID,
-		TokenBalance: 960,
-	}, nil).Once()
-	store.EXPECT().UpdateUser(mock.Anything, mock.MatchedBy(func(updated domain.User) bool {
-		return updated.TokenBalance == 1000
-	})).Return(nil).Once()
-	store.EXPECT().InsertTokenOp(mock.Anything, mock.MatchedBy(func(op domain.TokenOp) bool {
-		return op.Delta == 40 && op.Reason == domain.ReasonRefund
-	})).Return(nil).Once()
+		TokenBalance: 10,
+	}, nil)
 
 	_, err := uc.Patch(context.Background(), dto.PatchGameInput{
 		UserID: userID,
 		GameID: gameID,
 		Text:   "добавь второй уровень",
 	})
-	if !errors.Is(err, domain.ErrValidationFailed) {
-		t.Fatalf("Patch() error = %v, want ErrValidationFailed", err)
+	if !errors.Is(err, domain.ErrNotEnoughTokens) {
+		t.Fatalf("Patch() error = %v, want ErrNotEnoughTokens", err)
 	}
 }

@@ -2,8 +2,22 @@ export type ThemeMode = 'light' | 'dark'
 
 export type Genre = 'arcade' | 'snake' | 'clicker' | 'platformer' | 'puzzle' | 'custom'
 export type MapSize = 'small' | 'medium' | 'large'
-export type GameStyle = 'pixel' | 'cartoon' | 'neon' | 'minimal'
+export type GameStyle = 'pixel' | 'cartoon' | 'neon' | 'minimal' | 'custom'
 export type CatalogSort = 'rating' | 'hours' | 'fresh'
+
+export type Visibility = 'public' | 'private'
+
+export interface GameCover {
+  palette: string[]
+  style: string
+  seed: string
+}
+
+export interface GameMeta {
+  title: string
+  description: string
+  cover?: GameCover
+}
 
 export type GameStatus =
   | 'queued'
@@ -17,10 +31,12 @@ export type GameStatus =
   | 'ready'
   | 'failed'
   | 'patching'
+  | 'needs_decision'
 
 export interface User {
   id: string
   email: string
+  display_name: string
   balance: number
 }
 
@@ -31,8 +47,11 @@ export interface UserEnvelope {
 export interface ProfileGame {
   id: string
   prompt: string
+  title: string
+  slug: string
   genre: string
   status: GameStatus
+  visibility: Visibility
   tokens_cost: number
   model_calls: number
   fixes: number
@@ -55,7 +74,20 @@ export interface Profile {
   prices: {
     generate: number
     patch: number
+    meta: number
   }
+}
+
+export type UserInfo = User
+
+export interface ListUserGamesPage {
+  items: ProfileGame[]
+  total: number
+}
+
+export interface TokenOpsPage {
+  items: ProfileTokenOp[]
+  total: number
 }
 
 export interface RatingAggregate {
@@ -68,6 +100,26 @@ export interface PlaytimeAggregate {
   sessions: number
   seconds: number
   hours: number
+}
+
+export interface GamePublicCard {
+  id: string
+  prompt: string
+  genre: string
+  style: string
+  map_size: string
+  created_at: string
+  rating: RatingAggregate
+  playtime: PlaytimeAggregate
+  my_rating: number
+  is_owner: boolean
+  custom_genre?: string
+  custom_style?: string
+  title: string
+  description: string
+  slug: string
+  author: string
+  cover?: GameCover
 }
 
 export interface GameSpec {
@@ -113,13 +165,38 @@ export interface GameCost {
 
 export interface GameStage {
   stage: string
-  status: 'running' | 'done'
+  status: 'running' | 'done' | 'error'
   durationMs: number
   issues?: number
+  operation?: string
+}
+
+export interface ReviewIssue {
+  code: string
+  message: string
+  line?: number
+}
+
+export interface ActiveOperation {
+  kind: 'patch' | 'fix' | 'config' | 'meta'
+  started_at: string
 }
 
 export interface Game {
+  id: string
+  prompt: string
+  params?: {
+    genre?: string
+    style?: string
+    map_size?: string
+    tempo?: number
+  }
   status: GameStatus
+  visibility: Visibility
+  title: string
+  description: string
+  slug: string
+  cover?: GameCover
   stages: GameStage[]
   spec?: GameSpec
   config?: GameConfig
@@ -127,11 +204,21 @@ export interface Game {
   cost: GameCost
   rating: RatingAggregate
   my_rating: number
+  operation?: ActiveOperation | null
+  review_issues?: ReviewIssue[]
+  cursor: number
 }
 
 export interface CatalogCard {
   id: string
   prompt: string
+  title: string
+  description: string
+  cover?: GameCover
+  author: string
+  slug: string
+  custom_genre?: string
+  custom_style?: string
   genre: string
   map_size: string
   style: string
@@ -144,10 +231,14 @@ export interface CatalogCard {
 
 export interface CatalogPage {
   items: CatalogCard[]
+  total: number
 }
 
 export interface CreateGameInput {
   prompt: string
+  title?: string
+  customGenre?: string
+  customStyle?: string
   genre?: Genre
   tempo?: number
   mapSize?: MapSize
@@ -155,13 +246,13 @@ export interface CreateGameInput {
 }
 
 export interface CreateGameResponse {
+  slug: string
   id: string
   status: GameStatus
 }
 
-export interface PatchGameResponse {
-  versionId: string
-  tokensSpent: number
+export interface GameJobResponse {
+  status: 'patching'
 }
 
 export interface VersionResponse {
@@ -190,13 +281,14 @@ export interface ApiErrorEnvelope {
 
 export interface StageEventPayload {
   stage: string
-  status: 'running' | 'done'
+  status: 'running' | 'done' | 'error'
   durationMs: number
   issues?: number
+  operation?: string
 }
 
 export interface ArtifactEventPayload {
-  kind: 'spec' | 'config'
+  kind: 'spec' | 'config' | 'version' | 'meta'
   content: unknown
 }
 

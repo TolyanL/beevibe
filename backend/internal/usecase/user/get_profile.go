@@ -8,7 +8,7 @@ import (
 	"github.com/TolyanL/beevibe/pkg/tracer"
 )
 
-const profileGamesLimit = 50
+const profileGamesLimit = 20
 
 func (u *UseCase) GetProfile(ctx context.Context, input dto.GetProfileInput) (dto.GetProfileOutput, error) {
 	ctx, span := tracer.Start(ctx, "usecase user GetProfile")
@@ -21,12 +21,12 @@ func (u *UseCase) GetProfile(ctx context.Context, input dto.GetProfileInput) (dt
 		return output, fmt.Errorf("store.GetUserByID: %w", err)
 	}
 
-	games, err := u.store.ListUserGamesWithCost(ctx, input.UserID, profileGamesLimit, 0)
+	games, _, err := u.store.ListUserGames(ctx, input.UserID, dto.ListUserGamesInput{Limit: profileGamesLimit})
 	if err != nil {
-		return output, fmt.Errorf("store.ListUserGamesWithCost: %w", err)
+		return output, fmt.Errorf("store.ListUserGames: %w", err)
 	}
 
-	ops, err := u.store.ListTokenOps(ctx, input.UserID, profileGamesLimit)
+	ops, _, err := u.store.ListTokenOps(ctx, input.UserID, dto.ListTokenOpsInput{Limit: profileGamesLimit})
 	if err != nil {
 		return output, fmt.Errorf("store.ListTokenOps: %w", err)
 	}
@@ -37,6 +37,7 @@ func (u *UseCase) GetProfile(ctx context.Context, input dto.GetProfileInput) (dt
 	output.Prices = dto.ProfilePrices{
 		Generate: u.tokens.PriceGenerate,
 		Patch:    u.tokens.PricePatch,
+		Meta:     u.tokens.PriceMeta,
 	}
 
 	for _, op := range ops {

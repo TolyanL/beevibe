@@ -16,7 +16,7 @@ const loggingOut = ref(false)
 const userMenu = ref<HTMLElement | null>(null)
 
 const nav = [
-  { name: 'generator', label: 'Генератор', icon: 'wand' as const },
+  { name: 'create', label: 'Создать', icon: 'wand' as const },
   { name: 'catalog', label: 'Каталог', icon: 'grid' as const },
 ]
 
@@ -32,7 +32,7 @@ async function logout(): Promise<void> {
   loggingOut.value = true
   try {
     await auth.logout()
-    await router.push({ name: 'generator' })
+    await router.push({ name: 'home' })
   } finally {
     loggingOut.value = false
   }
@@ -69,13 +69,19 @@ onBeforeUnmount(() => {
         <BrandMark />
       </RouterLink>
 
-      <nav class="hidden items-center gap-1 rounded-full border border-line bg-surface/60 p-1 md:flex">
+      <nav
+        class="hidden items-center gap-1 rounded-full border border-line bg-surface/60 p-1 md:flex"
+      >
         <RouterLink
           v-for="item in nav"
           :key="item.name"
           :to="{ name: item.name }"
           class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition hover:text-ink"
-          :class="route.name === item.name ? 'bg-ink text-canvas shadow-sm hover:text-canvas' : 'text-muted'"
+          :class="
+            route.name === item.name
+              ? 'bg-ink text-canvas shadow-sm hover:text-canvas'
+              : 'text-muted'
+          "
         >
           <AppIcon :name="item.icon" :size="15" />
           {{ item.label }}
@@ -84,7 +90,11 @@ onBeforeUnmount(() => {
           v-if="auth.isAuthenticated"
           :to="{ name: 'profile' }"
           class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition hover:text-ink"
-          :class="route.name === 'profile' ? 'bg-ink text-canvas shadow-sm hover:text-canvas' : 'text-muted'"
+          :class="
+            route.name === 'profile'
+              ? 'bg-ink text-canvas shadow-sm hover:text-canvas'
+              : 'text-muted'
+          "
         >
           <AppIcon name="chart" :size="15" />
           Профиль
@@ -129,15 +139,15 @@ onBeforeUnmount(() => {
             >
               <RouterLink
                 :to="{ name: 'profile' }"
-                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-canvas"
+                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-hover-surface"
                 role="menuitem"
               >
                 <AppIcon name="chart" :size="16" class="text-muted" />
                 Профиль
               </RouterLink>
               <RouterLink
-                :to="{ name: 'generator' }"
-                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-canvas"
+                :to="{ name: 'create' }"
+                class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold hover:bg-hover-surface"
                 role="menuitem"
               >
                 <AppIcon name="wand" :size="16" class="text-muted" />
@@ -146,7 +156,7 @@ onBeforeUnmount(() => {
               <div class="my-1 h-px bg-line" />
               <button
                 type="button"
-                class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-bad hover:bg-canvas disabled:opacity-50"
+                class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-bad hover:bg-hover-surface disabled:opacity-50"
                 role="menuitem"
                 :disabled="loggingOut"
                 @click="logout"
@@ -161,7 +171,7 @@ onBeforeUnmount(() => {
         <RouterLink
           v-else
           :to="{ name: 'login' }"
-          class="hidden rounded-full bg-ink px-4 py-2.5 text-[12px] font-bold text-canvas transition hover:bg-graphite/85 sm:inline-flex"
+          class="hidden rounded-full bg-ink px-4 py-2.5 text-[12px] font-bold text-canvas transition hover:bg-hover-ink sm:inline-flex"
         >
           Войти
         </RouterLink>
@@ -186,7 +196,11 @@ onBeforeUnmount(() => {
             :key="item.name"
             :to="{ name: item.name }"
             class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
-            :class="route.name === item.name ? 'bg-bee text-graphite' : 'text-muted hover:bg-surface'"
+            :class="
+              route.name === item.name
+                ? 'bg-bee text-graphite'
+                : 'text-muted hover:bg-hover-surface'
+            "
           >
             <AppIcon :name="item.icon" :size="18" />
             {{ item.label }}
@@ -195,19 +209,33 @@ onBeforeUnmount(() => {
             v-if="auth.isAuthenticated"
             :to="{ name: 'profile' }"
             class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
-            :class="route.name === 'profile' ? 'bg-bee text-graphite' : 'text-muted hover:bg-surface'"
+            :class="
+              route.name === 'profile'
+                ? 'bg-bee text-graphite'
+                : 'text-muted hover:bg-hover-surface'
+            "
           >
             <AppIcon name="chart" :size="18" />
             Профиль
           </RouterLink>
         </div>
 
-        <div v-if="auth.isAuthenticated" class="mt-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3">
+        <div
+          v-if="auth.isAuthenticated"
+          class="mt-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3"
+        >
           <div class="min-w-0">
             <p class="truncate text-xs font-bold">{{ auth.user?.email }}</p>
-            <p class="mt-0.5 font-mono text-[11px] text-muted">{{ formatTokens(auth.balance) }} токенов</p>
+            <p class="mt-0.5 font-mono text-[11px] text-muted">
+              {{ formatTokens(auth.balance) }} токенов
+            </p>
           </div>
-          <button type="button" class="text-xs font-bold text-bad" :disabled="loggingOut" @click="logout">
+          <button
+            type="button"
+            class="text-xs font-bold text-bad"
+            :disabled="loggingOut"
+            @click="logout"
+          >
             Выйти
           </button>
         </div>
@@ -226,7 +254,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .menu-enter-active,
 .menu-leave-active {
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
 }
 
 .menu-enter-from,

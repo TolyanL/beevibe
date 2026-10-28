@@ -2,7 +2,12 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+
+	"github.com/google/uuid"
+
+	"github.com/TolyanL/beevibe/internal/domain"
 
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/tracer"
@@ -26,13 +31,19 @@ func catalogOrderBy(sort string) string {
 	}
 }
 
-func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error) {
+func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, int, error) {
 	ctx, span := tracer.Start(ctx, "adapter postgres ListCatalog")
 	defer span.End()
 
 	const query = `WITH catalog AS (
 	    SELECT g.id,
 	           g.prompt,
+	           g.title,
+	           g.description,
+	           g.cover_json,
+	           g.slug,
+	           COALESCE(u.display_name, '') AS author_name,
+	           g.owner_id,
 	           g.params_json,
 	           g.created_at,
 	           COALESCE(ra.rating_average, 0) AS rating_average,
@@ -41,8 +52,10 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	           COALESCE(pa.sessions, 0) AS sessions,
 	           COALESCE(pa.seconds, 0) AS seconds,
 	           COALESCE(va.tokens_cost, 0) AS tokens_cost,
-	           COALESCE(va.model_calls, 0) AS model_calls
+	           COALESCE(va.model_calls, 0) AS model_calls,
+	           COALESCE(g.spec_json->'palette', '[]'::jsonb) AS spec_palette
 	    FROM games g
+	    LEFT JOIN users u ON u.id = g.owner_id
 	    LEFT JOIN (
 	        SELECT game_id,
 	               AVG(value)::float8 AS rating_average,
@@ -64,29 +77,39 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	        SELECT game_id, SUM(tokens_cost) AS tokens_cost, SUM(model_calls) AS model_calls
 	        FROM versions GROUP BY game_id
 	    ) va ON va.game_id = g.id
-	    WHERE g.status = 'ready' AND ($1 = '' OR COALESCE(g.params_json->>'genre', '') = $1)
+	    WHERE g.status = 'ready' AND g.visibility = 'public' AND g.deleted_at IS NULL
+	      AND ($1 = '' OR COALESCE(g.params_json->>'genre', '') = $1)
+	          AND ($2 = '' OR g.prompt ILIKE '%' || $2 || '%')
 	)
-	SELECT id, prompt,
+	SELECT COUNT(*) OVER (),
+	       id, prompt, title, description, cover_json, slug, author_name, owner_id,
 	       COALESCE(params_json->>'genre', ''),
+	       COALESCE(params_json->>'custom_genre', ''),
+	       COALESCE(params_json->>'custom_style', ''),
 	       COALESCE(params_json->>'map_size', ''),
 	       COALESCE(params_json->>'style', ''),
-	       created_at, rating_average, rating_total, rating_counts, sessions, seconds, tokens_cost, model_calls
+	       created_at, rating_average, rating_total, rating_counts, sessions, seconds, tokens_cost, model_calls,
+	       spec_palette
 	FROM catalog
 	ORDER BY `
 
-	rows, err := transaction.TryExtractTX(ctx).Query(ctx, query+catalogOrderBy(filter.Sort)+` LIMIT $2 OFFSET $3`,
-		filter.Genre, filter.Limit, filter.Offset)
+	rows, err := transaction.TryExtractTX(ctx).Query(ctx, query+catalogOrderBy(filter.Sort)+` LIMIT $3 OFFSET $4`,
+		filter.Genre, filter.Q, filter.Limit, filter.Offset)
 	if err != nil {
-		return nil, fmt.Errorf("txOrPool.Query: %w", err)
+		return nil, 0, fmt.Errorf("txOrPool.Query: %w", err)
 	}
 
 	defer rows.Close()
 
 	cards := make([]dto.CatalogCard, 0)
+	total := 0
 
 	for rows.Next() {
 		var (
 			card          dto.CatalogCard
+			coverRaw      []byte
+			specPalette   []byte
+			ownerID       uuid.UUID
 			ratingAverage float64
 			ratingTotal   int
 			ratingCounts  []int32
@@ -95,12 +118,28 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 		)
 
 		if err := rows.Scan(
-			&card.ID, &card.Prompt, &card.Genre, &card.MapSize, &card.Style, &card.CreatedAt,
+			&total, &card.ID, &card.Prompt, &card.Title, &card.Description, &coverRaw,
+			&card.Slug, &card.Author, &ownerID,
+			&card.Genre, &card.CustomGenre, &card.CustomStyle, &card.MapSize, &card.Style, &card.CreatedAt,
 			&ratingAverage, &ratingTotal, &ratingCounts, &sessions, &seconds, &card.TokensCost, &card.ModelCalls,
+			&specPalette,
 		); err != nil {
-			return nil, fmt.Errorf("rows.Scan: %w", err)
+			return nil, 0, fmt.Errorf("rows.Scan: %w", err)
 		}
 
+		if len(coverRaw) > 0 {
+			var cover domain.GameCover
+
+			if err := json.Unmarshal(coverRaw, &cover); err == nil {
+				card.Cover = &cover
+			}
+		}
+
+		if card.Cover == nil {
+			card.Cover = coverFromSpecPalette(specPalette, card.Style, card.Slug)
+		}
+
+		card.Author = authorName(card.Author, ownerID)
 		card.Rating = dto.RatingAggregate{Average: ratingAverage, Total: ratingTotal}
 		for i := 0; i < len(ratingCounts) && i < len(card.Rating.Counts); i++ {
 			card.Rating.Counts[i] = int(ratingCounts[i])
@@ -116,8 +155,30 @@ func (p *Postgres) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows.Err: %w", err)
+		return nil, 0, fmt.Errorf("rows.Err: %w", err)
 	}
 
-	return cards, nil
+	return cards, total, nil
+}
+
+func authorName(name string, ownerID uuid.UUID) string {
+	if name != "" {
+		return name
+	}
+
+	return "bee-" + ownerID.String()[:8]
+}
+
+func coverFromSpecPalette(raw []byte, style, seed string) *domain.GameCover {
+	if len(raw) == 0 {
+		return nil
+	}
+
+	var palette []string
+
+	if err := json.Unmarshal(raw, &palette); err != nil {
+		return nil
+	}
+
+	return domain.CoverFromPalette(palette, style, seed)
 }

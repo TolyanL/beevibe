@@ -22,9 +22,7 @@ function storedTheme(): ThemeMode | null {
 export const useThemeStore = defineStore('theme', () => {
   const theme = ref<ThemeMode>(storedTheme() ?? systemTheme())
   const reducedMotion = ref(
-    typeof window !== 'undefined'
-      ? window.localStorage.getItem(MOTION_KEY) === 'reduced'
-      : false,
+    typeof window !== 'undefined' ? window.localStorage.getItem(MOTION_KEY) === 'reduced' : false,
   )
   const isDark = computed(() => theme.value === 'dark')
 

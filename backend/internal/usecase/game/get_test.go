@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
@@ -104,6 +105,12 @@ func TestGetPublicReturnsLatestHTML(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
 		ID:     uuid.New(),
 		GameID: gameID,
@@ -111,7 +118,7 @@ func TestGetPublicReturnsLatestHTML(t *testing.T) {
 		HTML:   gameHTML,
 	}, nil)
 
-	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID})
+	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
 	if err != nil {
 		t.Fatalf("GetPublic() error = %v, want nil", err)
 	}
@@ -128,11 +135,64 @@ func TestGetPublicFailsWhenVersionMissing(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{}, domain.ErrVersionNotFound)
 
-	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{GameID: gameID})
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
 	if !errors.Is(err, domain.ErrVersionNotFound) {
 		t.Fatalf("GetPublic() error = %v, want ErrVersionNotFound", err)
+	}
+}
+
+func TestGetExposesPromptFailReasonAndCreatedForFailedGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	userID := uuid.New()
+	gameID := uuid.New()
+	createdAt := time.Now().UTC()
+
+	game := domain.Game{
+		ID:         gameID,
+		OwnerID:    userID,
+		Prompt:     "змейка в неоновом лабиринте",
+		Params:     domain.GameParams{Genre: domain.GenreSnake, MapSize: domain.MapSizeMedium, Style: domain.StyleNeon},
+		Status:     domain.StatusFailed,
+		FailReason: "analyzer: response is empty",
+		CreatedAt:  createdAt,
+	}
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(game, nil)
+	store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{}, nil)
+	store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return([]domain.GenEvent{}, nil)
+	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{}, nil)
+	store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{}, domain.ErrNotFound)
+
+	output, err := uc.Get(context.Background(), dto.GetGameInput{UserID: userID, GameID: gameID})
+	if err != nil {
+		t.Fatalf("Get() error = %v, want nil", err)
+	}
+
+	if output.ID != gameID || output.Prompt != game.Prompt {
+		t.Errorf("id/prompt = %s/%q, want %s/%q", output.ID, output.Prompt, gameID, game.Prompt)
+	}
+
+	if output.Params.Genre != domain.GenreSnake || output.Params.MapSize != domain.MapSizeMedium || output.Params.Style != domain.StyleNeon {
+		t.Errorf("params = %+v, want snake medium neon", output.Params)
+	}
+
+	if output.FailReason != game.FailReason {
+		t.Errorf("failReason = %q, want %q", output.FailReason, game.FailReason)
+	}
+
+	if !output.CreatedAt.Equal(createdAt) {
+		t.Errorf("createdAt = %v, want %v", output.CreatedAt, createdAt)
 	}
 }
 
@@ -191,5 +251,170 @@ func TestListGenEventsRejectsForeignGame(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("ListGenEvents() error = %v, want ErrForbidden", err)
+	}
+}
+
+func TestGetReportsActiveOperationWhilePatching(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	userID := uuid.New()
+	gameID := uuid.New()
+	startedAt := time.Now().UTC()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusPatching,
+	}, nil)
+	store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{}, nil)
+	store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return([]domain.GenEvent{
+		{
+			GameID:    gameID,
+			Type:      domain.GenEventStage,
+			Payload:   []byte(`{"stage":"patching","status":"running","operation":"fix"}`),
+			CreatedAt: startedAt,
+		},
+	}, nil)
+	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{}, nil)
+	store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{}, domain.ErrNotFound)
+
+	output, err := uc.Get(context.Background(), dto.GetGameInput{UserID: userID, GameID: gameID})
+	if err != nil {
+		t.Fatalf("Get() error = %v, want nil", err)
+	}
+
+	if output.Operation == nil {
+		t.Fatal("operation = nil, want active operation while patching")
+	}
+
+	if output.Operation.Kind != string(domain.JobKindFix) {
+		t.Errorf("kind = %q, want %q", output.Operation.Kind, domain.JobKindFix)
+	}
+
+	if !output.Operation.StartedAt.Equal(startedAt) {
+		t.Errorf("startedAt = %v, want %v", output.Operation.StartedAt, startedAt)
+	}
+}
+
+func TestGetHidesOperationWhenReady(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	userID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:      gameID,
+		OwnerID: userID,
+		Status:  domain.StatusReady,
+	}, nil)
+	store.EXPECT().ListVersions(mock.Anything, gameID).Return([]domain.Version{}, nil)
+	store.EXPECT().ListGenEvents(mock.Anything, gameID, int64(0)).Return([]domain.GenEvent{
+		{GameID: gameID, Type: domain.GenEventStage, Payload: []byte(`{"stage":"patching","status":"done","operation":"patch"}`)},
+	}, nil)
+	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{}, nil)
+	store.EXPECT().GetRating(mock.Anything, gameID, userID).Return(domain.Rating{}, domain.ErrNotFound)
+
+	output, err := uc.Get(context.Background(), dto.GetGameInput{UserID: userID, GameID: gameID})
+	if err != nil {
+		t.Fatalf("Get() error = %v, want nil", err)
+	}
+
+	if output.Operation != nil {
+		t.Errorf("operation = %+v, want nil for a ready game", output.Operation)
+	}
+}
+
+func TestGetPublicHidesPrivateGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	gameID := uuid.New()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestGetPublicHidesDeletedGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	gameID := uuid.New()
+	deletedAt := time.Now().UTC()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+		DeletedAt:  &deletedAt,
+	}, nil)
+
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b"})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestGetPublicAllowsOwnerOfPrivateGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID: uuid.New(), GameID: gameID, Number: 1, HTML: gameHTML,
+	}, nil)
+
+	output, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b", ViewerID: &ownerID})
+	if err != nil {
+		t.Fatalf("GetPublic() error = %v, want nil for the owner", err)
+	}
+
+	if output.HTML != gameHTML {
+		t.Errorf("html = %q, want the latest version", output.HTML)
+	}
+}
+
+func TestGetPublicHidesPrivateGameFromStranger(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	strangerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+
+	_, err := uc.GetPublic(context.Background(), dto.GetGamePublicInput{Slug: "zmeyka-1a2b", ViewerID: &strangerID})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("GetPublic() error = %v, want ErrNotFound", err)
 	}
 }

@@ -16,19 +16,21 @@ import (
 type userRow struct {
 	ID           uuid.UUID
 	Email        string
+	DisplayName  string
 	PasswordHash string
 	TokenBalance int64
 	CreatedAt    time.Time
 }
 
 func (r *userRow) Dest() []any {
-	return []any{&r.ID, &r.Email, &r.PasswordHash, &r.TokenBalance, &r.CreatedAt}
+	return []any{&r.ID, &r.Email, &r.DisplayName, &r.PasswordHash, &r.TokenBalance, &r.CreatedAt}
 }
 
 func (r *userRow) ToDomain() (domain.User, error) {
 	return domain.User{
 		ID:           r.ID,
 		Email:        domain.Email(r.Email),
+		DisplayName:  r.DisplayName,
 		PasswordHash: domain.PasswordHash(r.PasswordHash),
 		TokenBalance: r.TokenBalance,
 		CreatedAt:    r.CreatedAt,
@@ -39,7 +41,7 @@ func (p *Postgres) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.Us
 	ctx, span := tracer.Start(ctx, "adapter postgres GetUserByID")
 	defer span.End()
 
-	const sql = `SELECT id, email, password_hash, token_balance, created_at
+	const sql = `SELECT id, email, display_name, password_hash, token_balance, created_at
 	             FROM users WHERE id = $1`
 
 	row := userRow{}

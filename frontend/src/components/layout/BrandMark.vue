@@ -17,7 +17,9 @@ withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
     </span>
     <span v-if="!compact" class="leading-none">
       <span class="block font-display text-[1.02rem] font-bold tracking-[-0.05em]">BeeVibe</span>
-      <span class="mt-1 block font-mono text-[0.54rem] font-bold uppercase tracking-[0.18em] text-muted">
+      <span
+        class="mt-1 block font-mono text-[0.54rem] font-bold uppercase tracking-[0.18em] text-muted"
+      >
         game lab
       </span>
     </span>

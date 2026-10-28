@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Profile, TopupResponse, UserEnvelope } from './types'
+import type { Profile, TopupResponse, UserEnvelope, UserInfo } from './types'
 
 export interface Credentials {
   email: string
@@ -32,6 +32,17 @@ export function getProfile(): Promise<Profile> {
   return request<Profile>('/profile')
 }
 
-export function topup(): Promise<TopupResponse> {
-  return request<TopupResponse>('/profile/topup', { method: 'POST' })
+export function updateProfile(displayName: string): Promise<{ user: UserInfo }> {
+  return request<{ user: UserInfo }>('/profile', {
+    method: 'PATCH',
+    body: { display_name: displayName },
+  })
+}
+
+export function topup(amount: number): Promise<TopupResponse> {
+  return request<TopupResponse>('/profile/topup', {
+    method: 'POST',
+    body: { amount },
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
+  })
 }

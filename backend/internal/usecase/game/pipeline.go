@@ -23,6 +23,7 @@ const (
 
 type pipeline struct {
 	game   domain.Game
+	stage  domain.Status
 	spec   domain.GameSpec
 	plan   string
 	code   string
@@ -30,7 +31,6 @@ type pipeline struct {
 	html   string
 	tokens int
 	calls  int
-	fixes  int
 }
 
 func (u *UseCase) RunNextQueuedGame(ctx context.Context) (bool, error) {
@@ -75,37 +75,90 @@ func (u *UseCase) RunPipeline(ctx context.Context, game domain.Game) error {
 	ctx, cancel := context.WithTimeout(ctx, u.worker.Timeout)
 	defer cancel()
 
+	ctx, release := u.trackTask(game.ID, cancel, ctx)
+	defer release()
+
 	p := &pipeline{game: game}
 
-	if err := u.stepAnalyze(ctx, p); err != nil {
+	resume, err := u.restorePipeline(ctx, p)
+	if err != nil {
 		return u.abort(ctx, p, err)
 	}
 
-	if err := u.stepPlan(ctx, p); err != nil {
-		return u.abort(ctx, p, err)
+	if resume != domain.StatusAnalyzing {
+		if err := p.game.ResumeAt(resume); err != nil {
+			return u.abort(ctx, p, fmt.Errorf("game.ResumeAt: %w", err))
+		}
+
+		if err := u.store.UpdateGameStatus(ctx, p.game.ID, p.game.Status, ""); err != nil {
+			return u.abort(ctx, p, fmt.Errorf("store.UpdateGameStatus: %w", err))
+		}
 	}
 
-	if err := u.stepCode(ctx, p); err != nil {
-		return u.abort(ctx, p, err)
+	steps := []struct {
+		stage domain.Status
+		run   func(context.Context, *pipeline) error
+	}{
+		{domain.StatusAnalyzing, u.stepAnalyze},
+		{domain.StatusPlanning, u.stepPlan},
+		{domain.StatusCoding, u.stepCode},
+		{domain.StatusAssets, u.stepAssets},
+		{domain.StatusReviewing, u.stepReview},
+		{domain.StatusAssembling, u.stepAssemble},
+		{domain.StatusChecking, u.stepCheck},
 	}
 
-	if err := u.stepAssets(ctx, p); err != nil {
-		return u.abort(ctx, p, err)
-	}
+	for _, step := range steps {
+		if step.stage.Before(resume) {
+			continue
+		}
 
-	if err := u.stepReview(ctx, p); err != nil {
-		return u.abort(ctx, p, err)
-	}
+		if err := step.run(ctx, p); err != nil {
+			if errors.Is(err, errNeedsDecision) {
+				return nil
+			}
 
-	if err := u.stepAssemble(ctx, p); err != nil {
-		return u.abort(ctx, p, err)
-	}
-
-	if err := u.stepCheck(ctx, p); err != nil {
-		return u.abort(ctx, p, err)
+			return u.abort(ctx, p, err)
+		}
 	}
 
 	return nil
+}
+
+// restorePipeline поднимает артефакты прошлых попыток и говорит, с какого
+// этапа продолжать: перезапуск после сбоя не должен тратить токены на уже
+// пройденные шаги.
+func (u *UseCase) restorePipeline(ctx context.Context, p *pipeline) (domain.Status, error) {
+	events, err := u.store.ListGenEvents(ctx, p.game.ID, 0)
+	if err != nil {
+		return domain.StatusAnalyzing, fmt.Errorf("store.ListGenEvents: %w", err)
+	}
+
+	artifacts, err := u.store.ListGameArtifacts(ctx, p.game.ID)
+	if err != nil {
+		return domain.StatusAnalyzing, fmt.Errorf("store.ListGameArtifacts: %w", err)
+	}
+
+	p.plan = artifacts[artifactPlan]
+	p.code = artifacts[artifactCode]
+	p.assets = artifacts[artifactAssets]
+	p.html = artifacts[artifactHTML]
+
+	if p.game.Spec != nil && p.spec.Genre == "" {
+		p.spec = *p.game.Spec
+	}
+
+	if p.game.ResumeStage != "" {
+		hint := p.game.ResumeStage
+
+		if err := u.store.SaveGameResumeStage(ctx, p.game.ID, ""); err != nil {
+			return domain.StatusAnalyzing, fmt.Errorf("store.SaveGameResumeStage: %w", err)
+		}
+
+		return hint, nil
+	}
+
+	return resumeStage(events), nil
 }
 
 func (u *UseCase) stepAnalyze(ctx context.Context, p *pipeline) error {
@@ -142,6 +195,10 @@ func (u *UseCase) stepAnalyze(ctx context.Context, p *pipeline) error {
 
 	if err := p.game.ApplySpec(spec); err != nil {
 		return fmt.Errorf("game.ApplySpec: %w", err)
+	}
+
+	if err := u.applyCoverFromSpec(ctx, &p.game); err != nil {
+		return fmt.Errorf("u.applyCoverFromSpec: %w", err)
 	}
 
 	if err := u.store.UpdateGame(ctx, p.game); err != nil {
@@ -183,6 +240,10 @@ func (u *UseCase) stepPlan(ctx context.Context, p *pipeline) error {
 
 	p.plan = raw
 
+	if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactPlan, raw); err != nil {
+		return fmt.Errorf("store.SaveGameArtifact: %w", err)
+	}
+
 	return u.emitStageEvent(ctx, p.game.ID, domain.StatusPlanning, "done", time.Since(start).Milliseconds(), 0)
 }
 
@@ -208,6 +269,10 @@ func (u *UseCase) stepCode(ctx context.Context, p *pipeline) error {
 	}
 
 	p.code = raw
+
+	if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactCode, raw); err != nil {
+		return fmt.Errorf("store.SaveGameArtifact: %w", err)
+	}
 
 	return u.emitStageEvent(ctx, p.game.ID, domain.StatusCoding, "done", time.Since(start).Milliseconds(), 0)
 }
@@ -239,6 +304,10 @@ func (u *UseCase) stepAssets(ctx context.Context, p *pipeline) error {
 	}
 
 	p.assets = raw
+
+	if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactAssets, raw); err != nil {
+		return fmt.Errorf("store.SaveGameArtifact: %w", err)
+	}
 
 	return u.emitStageEvent(ctx, p.game.ID, domain.StatusAssets, "done", time.Since(start).Milliseconds(), 0)
 }
@@ -277,29 +346,30 @@ func (u *UseCase) stepReview(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("json.Unmarshal: %w", err)
 	}
 
+	duration := time.Since(start).Milliseconds()
+
 	if len(review.Issues) == 0 {
-		return u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", time.Since(start).Milliseconds(), 0)
+		return u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", duration, 0)
 	}
 
-	if p.fixes >= u.worker.MaxFixAttempts {
-		return u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", time.Since(start).Milliseconds(), len(review.Issues))
+	issuesRaw, err := json.Marshal(review.Issues)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	p.fixes++
+	if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactReviewIssues, string(issuesRaw)); err != nil {
+		return fmt.Errorf("store.SaveGameArtifact: %w", err)
+	}
 
-	if err := u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", time.Since(start).Milliseconds(), len(review.Issues)); err != nil {
+	if err := u.transition(ctx, p, domain.StatusNeedsDecision); err != nil {
+		return fmt.Errorf("u.transition: %w", err)
+	}
+
+	if err := u.emitStageEvent(ctx, p.game.ID, domain.StatusReviewing, "done", duration, len(review.Issues)); err != nil {
 		return fmt.Errorf("u.emitStageEvent: %w", err)
 	}
 
-	if err := u.stepCode(ctx, p); err != nil {
-		return fmt.Errorf("u.stepCode: %w", err)
-	}
-
-	if err := u.stepAssets(ctx, p); err != nil {
-		return fmt.Errorf("u.stepAssets: %w", err)
-	}
-
-	return u.stepReview(ctx, p)
+	return errNeedsDecision
 }
 
 func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {
@@ -333,6 +403,10 @@ func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {
 
 		if len(issues) == 0 {
 			p.html = html
+
+			if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactHTML, html); err != nil {
+				return fmt.Errorf("store.SaveGameArtifact: %w", err)
+			}
 
 			return u.emitStageEvent(ctx, p.game.ID, domain.StatusAssembling, "done", time.Since(start).Milliseconds(), 0)
 		}
@@ -442,11 +516,18 @@ func (u *UseCase) complete(
 
 	p.calls++
 	p.tokens += resp.TotalTokens()
+	u.markReplied(ctx)
 
 	return resp.Text, nil
 }
 
 func (u *UseCase) transition(ctx context.Context, p *pipeline, stage domain.Status) error {
+	p.stage = stage
+
+	if p.game.Status == stage {
+		return nil
+	}
+
 	if err := p.game.StartStage(stage); err != nil {
 		return fmt.Errorf("game.StartStage: %w", err)
 	}
@@ -460,6 +541,17 @@ func (u *UseCase) transition(ctx context.Context, p *pipeline, stage domain.Stat
 
 func (u *UseCase) abort(ctx context.Context, p *pipeline, cause error) error {
 	failCtx := context.WithoutCancel(ctx)
+
+	stage := p.stage
+	if stage == "" {
+		stage = p.game.Status
+	}
+
+	if stage.IsPipeline() {
+		if err := u.emitStageEvent(failCtx, p.game.ID, stage, "error", 0, 0); err != nil {
+			cause = errors.Join(cause, fmt.Errorf("u.emitStageEvent: %w", err))
+		}
+	}
 
 	if err := u.failGame(failCtx, p, cause); err != nil {
 		return errors.Join(cause, err)
@@ -480,26 +572,10 @@ func (u *UseCase) failGame(ctx context.Context, p *pipeline, cause error) error 
 			return fmt.Errorf("store.UpdateGameStatus: %w", err)
 		}
 
-		user, err := u.store.GetUserByIDForUpdate(ctx, p.game.OwnerID)
-		if err != nil {
-			return fmt.Errorf("store.GetUserByIDForUpdate: %w", err)
-		}
-
-		if err := user.Credit(u.tokens.PriceGenerate); err != nil {
-			return fmt.Errorf("user.Credit: %w", err)
-		}
-
-		if err := u.store.UpdateUser(ctx, user); err != nil {
-			return fmt.Errorf("store.UpdateUser: %w", err)
-		}
-
-		op, err := domain.NewTokenOp(user.ID, &p.game.ID, u.tokens.PriceGenerate, domain.ReasonRefund)
-		if err != nil {
-			return fmt.Errorf("domain.NewTokenOp: %w", err)
-		}
-
-		if err := u.store.InsertTokenOp(ctx, op); err != nil {
-			return fmt.Errorf("store.InsertTokenOp: %w", err)
+		if !u.replied(p.game.ID) {
+			if err := u.refundInTx(ctx, p.game.OwnerID, p.game.ID, u.tokens.PriceGenerate); err != nil {
+				return fmt.Errorf("u.refundInTx: %w", err)
+			}
 		}
 
 		if err := u.publishEvent(ctx, p.game, domain.EventGameFailed, nil, p.tokens, reason); err != nil {

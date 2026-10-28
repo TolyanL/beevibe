@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import InputText from 'openvue/inputtext'
 import type { CatalogSort, Genre } from '@/api/types'
-import { genreLabel } from '@/lib/game'
 import { useCatalogStore } from '@/stores/catalog'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import GameCard from '@/components/catalog/GameCard.vue'
@@ -15,6 +14,7 @@ const catalog = useCatalogStore()
 const search = ref('')
 const sentinel = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const sortOptions: { value: CatalogSort; label: string; icon: 'clock' | 'star' | 'flame' }[] = [
   { value: 'fresh', label: 'Свежие', icon: 'clock' },
@@ -32,23 +32,30 @@ const genres: { value: Genre | ''; label: string }[] = [
   { value: 'custom', label: 'Своя механика' },
 ]
 
-const filtered = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  if (!query) return catalog.items
+const activeGenreLabel = computed(
+  () => genres.find((item) => item.value === catalog.genre)?.label ?? '',
+)
 
-  return catalog.items.filter((card) => {
-    const haystack = [card.prompt, genreLabel(card.genre), card.style].join(' ').toLowerCase()
-    return haystack.includes(query)
-  })
-})
-
-const hasFilters = computed(() => Boolean(search.value) || Boolean(catalog.genre) || catalog.sort !== 'fresh')
+const hasFilters = computed(
+  () => Boolean(search.value) || Boolean(catalog.genre) || catalog.sort !== 'fresh',
+)
 
 function syncQuery(): void {
   const query: Record<string, string> = {}
+  if (search.value.trim()) query.q = search.value.trim()
   if (catalog.sort !== 'fresh') query.sort = catalog.sort
   if (catalog.genre) query.genre = catalog.genre
   void router.replace({ query })
+}
+
+function onSearchInput(value: string | undefined): void {
+  if (searchTimer) clearTimeout(searchTimer)
+
+  searchTimer = setTimeout(() => {
+    searchTimer = null
+    syncQuery()
+    void catalog.setSearch(value ?? '')
+  }, 350)
 }
 
 function chooseSort(sort: CatalogSort): void {
@@ -63,10 +70,16 @@ function chooseGenre(genre: Genre | ''): void {
   void catalog.load(true)
 }
 
+function clearSearch(): void {
+  search.value = ''
+  onSearchInput('')
+}
+
 function reset(): void {
   search.value = ''
   catalog.sort = 'fresh'
   catalog.genre = ''
+  catalog.setSearch('')
   syncQuery()
   void catalog.load(true)
 }
@@ -83,16 +96,27 @@ watch(
 onMounted(() => {
   const routeSort = route.query.sort
   const routeGenre = route.query.genre
-  if (routeSort === 'rating' || routeSort === 'hours' || routeSort === 'fresh') catalog.sort = routeSort
+  const routeQuery = route.query.q
+
+  if (routeSort === 'rating' || routeSort === 'hours' || routeSort === 'fresh')
+    catalog.sort = routeSort
   if (typeof routeGenre === 'string' && genres.some((item) => item.value === routeGenre)) {
     catalog.genre = routeGenre as Genre
+  }
+  if (typeof routeQuery === 'string' && routeQuery) {
+    search.value = routeQuery
+    catalog.setSearch(routeQuery)
   }
 
   void catalog.load(true)
 
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && catalog.hasMore && !catalog.loadingMore) {
+      if (
+        entries.some((entry) => entry.isIntersecting) &&
+        catalog.hasMore &&
+        !catalog.loadingMore
+      ) {
         void catalog.loadMore()
       }
     },
@@ -103,6 +127,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+
   observer?.disconnect()
   observer = null
 })
@@ -111,7 +137,9 @@ onBeforeUnmount(() => {
 <template>
   <div class="pb-8 pt-10 sm:pt-14">
     <div class="app-container">
-      <section class="relative overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 px-5 py-8 sm:px-8 sm:py-10">
+      <section
+        class="relative overflow-hidden rounded-[1.6rem] border border-line bg-surface/70 px-5 py-8 sm:px-8 sm:py-10"
+      >
         <div class="absolute -right-20 -top-24 size-64 rounded-full bg-bee/15 blur-3xl" />
         <div class="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -127,7 +155,7 @@ onBeforeUnmount(() => {
 
           <div class="flex shrink-0 items-center gap-2.5">
             <RouterLink
-              to="/"
+              :to="{ name: 'create' }"
               class="inline-flex h-11 items-center gap-2 rounded-full bg-bee px-5 text-xs font-extrabold text-graphite transition hover:bg-bee-deep"
             >
               <AppIcon name="plus" :size="15" :stroke="2.4" />
@@ -141,22 +169,33 @@ onBeforeUnmount(() => {
         <div class="panel p-3 sm:p-4">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div class="relative flex-1">
-              <AppIcon name="search" :size="17" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
+              <AppIcon
+                name="search"
+                :size="17"
+                class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-faint"
+              />
               <InputText
                 v-model="search"
                 class="h-11 w-full pl-11"
                 placeholder="Поиск по промпту: змейка, неон, кликер…"
                 aria-label="Поиск по каталогу"
+                @update:model-value="onSearchInput"
               />
             </div>
 
-            <div class="flex flex-wrap items-center gap-1 rounded-full border border-line bg-canvas/60 p-1">
+            <div
+              class="flex flex-wrap items-center gap-1 rounded-full border border-line bg-canvas/60 p-1"
+            >
               <button
                 v-for="option in sortOptions"
                 :key="option.value"
                 type="button"
                 class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition"
-                :class="catalog.sort === option.value ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'"
+                :class="
+                  catalog.sort === option.value
+                    ? 'bg-ink text-canvas shadow-sm'
+                    : 'text-muted hover:text-ink'
+                "
                 @click="chooseSort(option.value)"
               >
                 <AppIcon :name="option.icon" :size="13" />
@@ -171,7 +210,11 @@ onBeforeUnmount(() => {
               :key="item.value"
               type="button"
               class="rounded-full px-3 py-1.5 text-[11px] font-bold transition"
-              :class="catalog.genre === item.value ? 'bg-bee text-graphite' : 'text-muted hover:bg-canvas hover:text-ink'"
+              :class="
+                catalog.genre === item.value
+                  ? 'bg-bee text-graphite'
+                  : 'text-muted hover:bg-hover-surface hover:text-ink'
+              "
               @click="chooseGenre(item.value)"
             >
               {{ item.label }}
@@ -183,31 +226,68 @@ onBeforeUnmount(() => {
               @click="reset"
             >
               <AppIcon name="x" :size="12" />
-              Сбросить
+              Сбросить всё
             </button>
           </div>
         </div>
       </section>
 
-      <div class="mt-6 flex items-center justify-between gap-4">
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-muted">
-          <span v-if="catalog.loading" class="inline-flex items-center gap-2">
+          <span
+            v-if="catalog.loading && !catalog.items.length"
+            class="inline-flex items-center gap-2"
+          >
             <span class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
             Загружаем игры…
           </span>
           <span v-else>
-            <b class="font-bold text-ink">{{ filtered.length }}</b>
-            {{ filtered.length === 1 ? 'игра' : filtered.length < 5 ? 'игры' : 'игр' }}
-            <span v-if="search" class="text-faint">по запросу «{{ search }}»</span>
+            <b class="font-bold text-ink">{{ catalog.total }}</b>
+            {{ catalog.total === 1 ? 'игра' : catalog.total < 5 ? 'игры' : 'игр' }}
+            <span
+              v-if="catalog.items.length && catalog.items.length < catalog.total"
+              class="text-faint"
+            >
+              · показано {{ catalog.items.length }}
+            </span>
           </span>
         </p>
+
+        <div v-if="hasFilters" class="flex flex-wrap items-center gap-1.5">
+          <button
+            v-if="search"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-full border border-line bg-canvas/50 px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+            @click="clearSearch"
+          >
+            «{{ search }}»
+            <AppIcon name="x" :size="10" />
+          </button>
+          <button
+            v-if="catalog.genre"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-full border border-line bg-canvas/50 px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+            @click="chooseGenre('')"
+          >
+            {{ activeGenreLabel }}
+            <AppIcon name="x" :size="10" />
+          </button>
+        </div>
+
         <p class="hidden font-mono text-[9px] uppercase tracking-[0.13em] text-faint sm:block">
           sort: {{ catalog.sort }}
         </p>
       </div>
 
-      <div v-if="catalog.loading && !catalog.items.length" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="index in 6" :key="index" class="overflow-hidden rounded-[1.35rem] border border-line bg-surface/60">
+      <div
+        v-if="catalog.loading && !catalog.items.length"
+        class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <div
+          v-for="index in 6"
+          :key="index"
+          class="overflow-hidden rounded-[1.35rem] border border-line bg-surface/60"
+        >
           <div class="aspect-[16/10] animate-pulse bg-line/50" />
           <div class="space-y-3 p-4">
             <div class="h-4 w-4/5 animate-pulse rounded bg-line/70" />
@@ -229,19 +309,19 @@ onBeforeUnmount(() => {
         </EmptyState>
       </div>
 
-      <div v-else-if="filtered.length" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <GameCard v-for="card in filtered" :key="card.id" :card="card" />
+      <div v-else-if="catalog.items.length" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <GameCard v-for="card in catalog.items" :key="card.id" :card="card" />
       </div>
 
-      <div v-else class="mt-4">
+      <div v-else-if="hasFilters" class="mt-4">
         <EmptyState
           icon="search"
           title="Ничего не нашлось"
-          text="Попробуйте другой запрос, жанр или сбросьте фильтры. Новые игры появляются после генерации."
+          :text="`По запросу «${search || activeGenreLabel}» игр нет. Попробуйте другое слово, жанр или сбросьте фильтры.`"
         >
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-2.5 text-xs font-bold transition hover:bg-surface"
+            class="inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-2.5 text-xs font-bold transition hover:bg-hover-surface-strong"
             @click="reset"
           >
             <AppIcon name="refresh" :size="14" />
@@ -250,9 +330,28 @@ onBeforeUnmount(() => {
         </EmptyState>
       </div>
 
+      <div v-else class="mt-4">
+        <EmptyState
+          icon="wand"
+          title="Каталог пока пуст"
+          text="Опубликованных игр ещё нет. Соберите первую — она появится здесь после публикации."
+        >
+          <RouterLink
+            :to="{ name: 'create' }"
+            class="inline-flex items-center gap-2 rounded-full bg-bee px-5 py-2.5 text-xs font-extrabold text-graphite"
+          >
+            <AppIcon name="wand" :size="14" />
+            Создать игру
+          </RouterLink>
+        </EmptyState>
+      </div>
+
       <div ref="sentinel" class="h-4" />
 
-      <div v-if="catalog.loadingMore" class="mt-5 flex items-center justify-center gap-2 text-xs text-muted">
+      <div
+        v-if="catalog.loadingMore"
+        class="mt-5 flex items-center justify-center gap-2 text-xs text-muted"
+      >
         <span class="size-3 animate-spin rounded-full border-2 border-line border-t-bee-deep" />
         Ещё немного…
       </div>

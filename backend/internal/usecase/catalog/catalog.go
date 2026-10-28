@@ -7,7 +7,7 @@ import (
 )
 
 type Store interface {
-	ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error)
+	ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, int, error)
 }
 
 type UseCase struct {

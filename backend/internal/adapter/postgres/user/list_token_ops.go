@@ -8,25 +8,27 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/TolyanL/beevibe/internal/domain"
+	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
 
-func (p *Postgres) ListTokenOps(ctx context.Context, userID uuid.UUID, limit int) ([]domain.TokenOp, error) {
+func (p *Postgres) ListTokenOps(ctx context.Context, userID uuid.UUID, filter dto.ListTokenOpsInput) ([]domain.TokenOp, int, error) {
 	ctx, span := tracer.Start(ctx, "adapter postgres ListTokenOps")
 	defer span.End()
 
-	const sql = `SELECT id, user_id, game_id, delta, reason, created_at
-	             FROM token_ops WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`
+	const sql = `SELECT COUNT(*) OVER (), id, user_id, game_id, delta, reason, created_at
+	             FROM token_ops WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 
-	rows, err := transaction.TryExtractTX(ctx).Query(ctx, sql, userID, limit)
+	rows, err := transaction.TryExtractTX(ctx).Query(ctx, sql, userID, filter.Limit, filter.Offset)
 	if err != nil {
-		return nil, fmt.Errorf("txOrPool.Query: %w", err)
+		return nil, 0, fmt.Errorf("txOrPool.Query: %w", err)
 	}
 
 	defer rows.Close()
 
 	ops := make([]domain.TokenOp, 0)
+	total := 0
 
 	for rows.Next() {
 		var (
@@ -38,8 +40,8 @@ func (p *Postgres) ListTokenOps(ctx context.Context, userID uuid.UUID, limit int
 			createdAt time.Time
 		)
 
-		if err := rows.Scan(&id, &ownerID, &gameID, &delta, &reason, &createdAt); err != nil {
-			return nil, fmt.Errorf("rows.Scan: %w", err)
+		if err := rows.Scan(&total, &id, &ownerID, &gameID, &delta, &reason, &createdAt); err != nil {
+			return nil, 0, fmt.Errorf("rows.Scan: %w", err)
 		}
 
 		ops = append(ops, domain.TokenOp{
@@ -53,8 +55,8 @@ func (p *Postgres) ListTokenOps(ctx context.Context, userID uuid.UUID, limit int
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows.Err: %w", err)
+		return nil, 0, fmt.Errorf("rows.Err: %w", err)
 	}
 
-	return ops, nil
+	return ops, total, nil
 }

@@ -19,6 +19,10 @@ var (
 	ErrUnknownConfigKey      = errors.New("unknown config key")
 	ErrLLMBudgetExceeded     = errors.New("llm call budget exceeded")
 	ErrAlreadyExists         = errors.New("already exists")
+	ErrCannotRateOwnGame     = errors.New("cannot rate own game")
+	ErrNothingToCancel       = errors.New("nothing to cancel")
+	ErrTopupDisabled         = errors.New("topup is disabled")
+	ErrTopupLimitReached     = errors.New("topup limit reached")
 )
 
 type Issue struct {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -41,7 +42,7 @@ func newTestRouter(t *testing.T) (http.Handler, *usecasemocks.MockStore) {
 		usecase.Config{},
 	)
 
-	return NewRouter(New(uc)), store
+	return NewRouter(New(uc), nil), store
 }
 
 func TestGetGameServesHTML(t *testing.T) {
@@ -51,6 +52,12 @@ func TestGetGameServesHTML(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
 		ID:     uuid.New(),
 		GameID: gameID,
@@ -58,7 +65,7 @@ func TestGetGameServesHTML(t *testing.T) {
 		HTML:   gameHTML,
 	}, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/g/"+gameID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/g/zmeyka-1a2b", nil)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
@@ -83,9 +90,15 @@ func TestGetGameNotFound(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{}, domain.ErrVersionNotFound)
 
-	req := httptest.NewRequest(http.MethodGet, "/g/"+gameID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/g/zmeyka-1a2b", nil)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
@@ -95,17 +108,19 @@ func TestGetGameNotFound(t *testing.T) {
 	}
 }
 
-func TestGetGameRejectsBrokenID(t *testing.T) {
+func TestGetGameTreatsUnknownSlugAsNotFound(t *testing.T) {
 	t.Parallel()
 
-	router, _ := newTestRouter(t)
+	router, store := newTestRouter(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/g/not-a-uuid", nil)
+	store.EXPECT().GetGameBySlug(mock.Anything, "unknown-slug").Return(domain.Game{}, domain.ErrNotFound)
+
+	req := httptest.NewRequest(http.MethodGet, "/g/unknown-slug", nil)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
+	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusBadRequest, rec.Body.String())
 	}
 }
@@ -117,6 +132,12 @@ func TestDownloadGameSetsAttachment(t *testing.T) {
 
 	gameID := uuid.New()
 
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPublic,
+	}, nil)
 	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
 		ID:     uuid.New(),
 		GameID: gameID,
@@ -124,7 +145,7 @@ func TestDownloadGameSetsAttachment(t *testing.T) {
 		HTML:   gameHTML,
 	}, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/g/"+gameID.String()+"/download", nil)
+	req := httptest.NewRequest(http.MethodGet, "/g/zmeyka-1a2b/download", nil)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
@@ -135,5 +156,67 @@ func TestDownloadGameSetsAttachment(t *testing.T) {
 
 	if disposition := rec.Header().Get("Content-Disposition"); disposition != `attachment; filename="game.html"` {
 		t.Errorf("content disposition = %q, want attachment", disposition)
+	}
+}
+
+func TestGetGameServesPrivateGameToItsOwner(t *testing.T) {
+	t.Parallel()
+
+	router, store := newTestRouter(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetSessionUserID(mock.Anything, "session-token").Return(ownerID, nil).Maybe()
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+	store.EXPECT().GetLatestVersion(mock.Anything, gameID).Return(domain.Version{
+		ID:     uuid.New(),
+		GameID: gameID,
+		Number: 1,
+		HTML:   gameHTML,
+	}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/g/zmeyka-1a2b", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "session-token"})
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), "<canvas") {
+		t.Errorf("body = %q, want the game html", rec.Body.String())
+	}
+}
+
+func TestGetGameHidesPrivateGameFromGuests(t *testing.T) {
+	t.Parallel()
+
+	router, store := newTestRouter(t)
+
+	gameID := uuid.New()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Status:     domain.StatusReady,
+		Visibility: domain.VisibilityPrivate,
+	}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/g/zmeyka-1a2b", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 }

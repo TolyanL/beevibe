@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	gameColumns    = 10
+	gameColumns    = 16
 	versionColumns = 10
 )
 
@@ -37,6 +37,12 @@ func TestGetGameScansRowWithJSON(t *testing.T) {
 		[]byte(`{"tempo":6}`),
 		"ready",
 		"",
+		"public",
+		nil,
+		"Змейка",
+		"описание",
+		nil,
+		"zmeyka-1a2b",
 		createdAt,
 		createdAt,
 	))
@@ -73,7 +79,7 @@ func TestGetGameKeepsNullablesEmpty(t *testing.T) {
 	now := time.Now().UTC()
 
 	db.EXPECT().QueryRow(mock.Anything, mock.Anything, mock.Anything).Return(pgtest.Row(t,
-		gameID, uuid.New(), "змейка", nil, nil, nil, "queued", "", now, now,
+		gameID, uuid.New(), "змейка", nil, nil, nil, "queued", "", "private", nil, "", "", nil, "zmeyka-1a2b", now, now,
 	))
 
 	game, err := postgres.GetGame(ctx, gameID)
@@ -111,7 +117,7 @@ func TestGetGameWrapsBrokenJSON(t *testing.T) {
 	now := time.Now().UTC()
 
 	db.EXPECT().QueryRow(mock.Anything, mock.Anything, mock.Anything).Return(pgtest.Row(t,
-		gameID, uuid.New(), "змейка", []byte(`{broken`), nil, nil, "queued", "", now, now,
+		gameID, uuid.New(), "змейка", []byte(`{broken`), nil, nil, "queued", "", "private", nil, "", "", nil, "zmeyka-1a2b", now, now,
 	))
 
 	if _, err := postgres.GetGame(ctx, gameID); err == nil {
@@ -130,7 +136,7 @@ func TestClaimQueuedGameReturnsClaimedGame(t *testing.T) {
 	now := time.Now().UTC()
 
 	db.EXPECT().QueryRow(mock.Anything, mock.Anything).Return(pgtest.Row(t,
-		gameID, ownerID, "змейка", nil, nil, nil, "analyzing", "", now, now,
+		gameID, ownerID, "змейка", nil, nil, nil, "analyzing", "", "private", nil, "", "", nil, "zmeyka-1a2b", now, now, "",
 	))
 
 	game, err := postgres.ClaimQueuedGame(ctx)

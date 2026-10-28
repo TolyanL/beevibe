@@ -48,7 +48,7 @@ func (_m *MockStore) EXPECT() *MockStore_Expecter {
 }
 
 // ListCatalog provides a mock function for the type MockStore
-func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error) {
+func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, int, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -56,8 +56,9 @@ func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilte
 	}
 
 	var r0 []dto.CatalogCard
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, dto.CatalogFilter) ([]dto.CatalogCard, error)); ok {
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, dto.CatalogFilter) ([]dto.CatalogCard, int, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, dto.CatalogFilter) []dto.CatalogCard); ok {
@@ -67,12 +68,17 @@ func (_mock *MockStore) ListCatalog(ctx context.Context, filter dto.CatalogFilte
 			r0 = ret.Get(0).([]dto.CatalogCard)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, dto.CatalogFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, dto.CatalogFilter) int); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, dto.CatalogFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockStore_ListCatalog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListCatalog'
@@ -105,12 +111,12 @@ func (_c *MockStore_ListCatalog_Call) Run(run func(ctx context.Context, filter d
 	return _c
 }
 
-func (_c *MockStore_ListCatalog_Call) Return(catalogCards []dto.CatalogCard, err error) *MockStore_ListCatalog_Call {
-	_c.Call.Return(catalogCards, err)
+func (_c *MockStore_ListCatalog_Call) Return(catalogCards []dto.CatalogCard, n int, err error) *MockStore_ListCatalog_Call {
+	_c.Call.Return(catalogCards, n, err)
 	return _c
 }
 
-func (_c *MockStore_ListCatalog_Call) RunAndReturn(run func(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, error)) *MockStore_ListCatalog_Call {
+func (_c *MockStore_ListCatalog_Call) RunAndReturn(run func(ctx context.Context, filter dto.CatalogFilter) ([]dto.CatalogCard, int, error)) *MockStore_ListCatalog_Call {
 	_c.Call.Return(run)
 	return _c
 }

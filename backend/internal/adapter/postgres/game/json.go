@@ -19,6 +19,19 @@ func specJSON(spec *domain.GameSpec) string {
 	return string(raw)
 }
 
+func coverJSON(cover *domain.GameCover) string {
+	if cover == nil {
+		return ""
+	}
+
+	raw, err := json.Marshal(cover)
+	if err != nil {
+		return ""
+	}
+
+	return string(raw)
+}
+
 func configJSON(cfg *domain.GameConfig) string {
 	if cfg == nil {
 		return ""

@@ -71,8 +71,14 @@ const meta = computed(() => statusMeta(props.status))
       <span class="font-mono text-xs font-bold tabular-nums text-muted">{{ progress }}%</span>
     </div>
 
-    <div class="mb-5 h-1.5 overflow-hidden rounded-full bg-line" :style="{ '--pipeline-progress': `${progress}%` }">
-      <div class="pipeline-line h-full rounded-full transition-[width] duration-500" :style="{ width: `${progress}%` }" />
+    <div
+      class="mb-5 h-1.5 overflow-hidden rounded-full bg-line"
+      :style="{ '--pipeline-progress': `${progress}%` }"
+    >
+      <div
+        class="pipeline-line h-full rounded-full transition-[width] duration-500"
+        :style="{ width: `${progress}%` }"
+      />
     </div>
 
     <div class="space-y-0.5">
@@ -115,10 +121,7 @@ const meta = computed(() => statusMeta(props.status))
               {{ duration(stageMap.get(stage.id)?.durationMs) }}
             </span>
           </div>
-          <p
-            v-if="!compact && stageMap.get(stage.id)?.issues"
-            class="mt-0.5 text-[10px] text-warn"
-          >
+          <p v-if="!compact && stageMap.get(stage.id)?.issues" class="mt-0.5 text-[10px] text-warn">
             {{ stageMap.get(stage.id)?.issues }} замечаний
           </p>
         </div>

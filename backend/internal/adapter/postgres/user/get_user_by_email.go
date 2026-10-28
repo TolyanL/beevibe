@@ -14,7 +14,7 @@ func (p *Postgres) GetUserByEmail(ctx context.Context, email string) (domain.Use
 	ctx, span := tracer.Start(ctx, "adapter postgres GetUserByEmail")
 	defer span.End()
 
-	const sql = `SELECT id, email, password_hash, token_balance, created_at
+	const sql = `SELECT id, email, display_name, password_hash, token_balance, created_at
 	             FROM users WHERE email = $1`
 
 	row := userRow{}

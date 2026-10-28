@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import type { CSSProperties } from 'vue'
 import type { CatalogCard } from '@/api/types'
 import { formatHours, formatRelative } from '@/lib/format'
-import { genreLabel, mapSizeLabel, styleLabel } from '@/lib/game'
+import { gameDescription, genreLabel, mapSizeLabel, shortGameTitle, styleLabel } from '@/lib/game'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import RatingBadge from '@/components/ui/RatingBadge.vue'
 
@@ -29,19 +29,29 @@ function hash(value: string): number {
 }
 
 const style = computed<CSSProperties>(() => {
+  const cover = props.card.cover?.palette
+
+  if (cover && cover.length >= 2) {
+    return { '--thumb-a': cover[0], '--thumb-b': cover[cover.length - 1] } as CSSProperties
+  }
+
   const [a, b] = palettes[hash(props.card.id) % palettes.length] ?? palettes[0]!
+
   return { '--thumb-a': a, '--thumb-b': b } as CSSProperties
 })
 
-const genre = computed(() => genreLabel(props.card.genre))
-const styleName = computed(() => styleLabel(props.card.style))
+const title = computed(() => shortGameTitle(props.card.title, props.card.prompt))
+const description = computed(() => gameDescription(props.card.description, props.card.prompt))
+const genre = computed(() => genreLabel(props.card.genre, props.card.custom_genre))
+const styleName = computed(() => styleLabel(props.card.style, props.card.custom_style))
+const author = computed(() => props.card.author ?? '')
 const mapSize = computed(() => mapSizeLabel(props.card.map_size))
 const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
 </script>
 
 <template>
   <RouterLink
-    :to="{ name: 'play', params: { id: card.id } }"
+    :to="{ name: 'play', params: { id: card.slug } }"
     class="group flex flex-col overflow-hidden rounded-[1.35rem] border border-line bg-surface/75 transition duration-300 hover:-translate-y-1 hover:border-bee-deep/50 hover:shadow-lift"
   >
     <div class="game-thumb relative aspect-[16/10]" :style="style">
@@ -49,20 +59,33 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
 
       <div class="absolute inset-0 flex flex-col justify-between p-4">
         <div class="flex items-center justify-between gap-2">
-          <span class="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/80 backdrop-blur">
+          <span
+            v-if="genre"
+            class="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/80 backdrop-blur"
+          >
             {{ genre }}
           </span>
-          <RatingBadge :average="card.rating?.average ?? 0" :total="card.rating?.total ?? 0" size="sm" />
+          <span v-else class="size-0" />
+          <RatingBadge
+            :average="card.rating?.average ?? 0"
+            :total="card.rating?.total ?? 0"
+            size="sm"
+          />
         </div>
 
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p class="font-display text-[1.05rem] font-bold leading-tight text-white">
+            <p
+              v-if="styleName"
+              class="font-display text-[1.05rem] font-bold leading-tight text-white"
+            >
               {{ styleName }}
             </p>
-            <p class="mt-1 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">
-              <span>{{ mapSize }}</span>
-              <span class="size-0.5 rounded-full bg-white/40" />
+            <p
+              class="mt-1 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55"
+            >
+              <span v-if="mapSize">{{ mapSize }}</span>
+              <span v-if="mapSize" class="size-0.5 rounded-full bg-white/40" />
               <span>{{ playtime }}</span>
             </p>
           </div>
@@ -77,12 +100,27 @@ const playtime = computed(() => formatHours(props.card.playtime?.hours ?? 0))
     </div>
 
     <div class="flex flex-1 flex-col p-4">
-      <h3 class="line-clamp-2 text-[15px] font-bold leading-snug tracking-[-0.015em]">
-        {{ card.prompt }}
+      <h3
+        class="line-clamp-1 text-[15px] font-bold leading-snug tracking-[-0.015em]"
+        :title="title"
+      >
+        {{ title }}
       </h3>
+      <p
+        v-if="description && description !== title"
+        class="mt-1.5 line-clamp-2 text-[11px] leading-5 text-muted"
+        :title="description"
+      >
+        {{ description }}
+      </p>
       <div class="mt-auto flex items-center justify-between gap-3 pt-4">
-        <span class="text-[11px] text-faint">{{ formatRelative(card.created_at) }}</span>
-        <span class="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+        <span class="text-[11px] text-faint">
+          <span v-if="author" class="text-muted">{{ author }} · </span
+          >{{ formatRelative(card.created_at) }}
+        </span>
+        <span
+          class="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.09em] text-muted"
+        >
           Играть
           <AppIcon name="arrow-right" :size="13" />
         </span>

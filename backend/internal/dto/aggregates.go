@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/TolyanL/beevibe/internal/domain"
 )
 
 type RatingAggregate struct {
@@ -19,6 +21,7 @@ type PlaytimeAggregate struct {
 }
 
 type CatalogFilter struct {
+	Q      string
 	Sort   string
 	Genre  string
 	Limit  int
@@ -26,14 +29,21 @@ type CatalogFilter struct {
 }
 
 type CatalogCard struct {
-	ID         uuid.UUID         `json:"id"`
-	Prompt     string            `json:"prompt"`
-	Genre      string            `json:"genre"`
-	MapSize    string            `json:"map_size"`
-	Style      string            `json:"style"`
-	CreatedAt  time.Time         `json:"created_at"`
-	Rating     RatingAggregate   `json:"rating"`
-	Playtime   PlaytimeAggregate `json:"playtime"`
-	TokensCost int               `json:"tokens_cost"`
-	ModelCalls int               `json:"model_calls"`
+	ID          uuid.UUID         `json:"id"`
+	Prompt      string            `json:"prompt"`
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	Cover       *domain.GameCover `json:"cover,omitempty"`
+	Author      string            `json:"author"`
+	Slug        string            `json:"slug"`
+	Genre       string            `json:"genre"`
+	CustomGenre string            `json:"custom_genre,omitempty"`
+	CustomStyle string            `json:"custom_style,omitempty"`
+	MapSize     string            `json:"map_size"`
+	Style       string            `json:"style"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Rating      RatingAggregate   `json:"rating"`
+	Playtime    PlaytimeAggregate `json:"playtime"`
+	TokensCost  int               `json:"tokens_cost"`
+	ModelCalls  int               `json:"model_calls"`
 }

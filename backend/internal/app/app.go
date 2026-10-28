@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -19,6 +21,7 @@ import (
 	"github.com/TolyanL/beevibe/pkg/httpserver"
 	"github.com/TolyanL/beevibe/pkg/llm"
 	pgpool "github.com/TolyanL/beevibe/pkg/postgres"
+	"github.com/TolyanL/beevibe/pkg/static"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
 
@@ -43,9 +46,13 @@ func Run(ctx context.Context, c config.Config) error {
 	uc := usecase.New(store, llmClient, validatorAdapter, authAdapter, producer, usecase.Config{
 		Tokens: usecase.Tokens{
 			GrantSignup:   c.Tokens.GrantSignup,
-			GrantTopup:    c.Tokens.GrantTopup,
 			PriceGenerate: c.Tokens.PriceGenerate,
 			PricePatch:    c.Tokens.PricePatch,
+			PriceMeta:     c.Tokens.PriceMeta,
+			TopupMin:      c.Tokens.TopupMin,
+			TopupMax:      c.Tokens.TopupMax,
+			TopupDailyCap: c.Tokens.TopupDailyCap,
+			DemoTopup:     c.Tokens.DemoTopup,
 		},
 		Reasoning: usecase.LLMReasoning{
 			Analyze:  c.LLMReasoning.Analyzer,
@@ -56,6 +63,7 @@ func Run(ctx context.Context, c config.Config) error {
 			Assemble: c.LLMReasoning.Assembler,
 			Patch:    c.LLMReasoning.Patch,
 			Repair:   c.LLMReasoning.Repair,
+			Meta:     c.LLMReasoning.Meta,
 		},
 		Worker: usecase.Worker{
 			Timeout:         c.Worker.Timeout,
@@ -68,9 +76,20 @@ func Run(ctx context.Context, c config.Config) error {
 		},
 	})
 
+	spa, err := static.New(c.HTTP.StaticDir)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("static.New: %w", err)
+		}
+
+		log.Warn().Str("dir", c.HTTP.StaticDir).Msg("static dir not found, SPA serving disabled")
+
+		spa = nil
+	}
+
 	root := chi.NewRouter()
 	root.Mount("/api", v1.NewRouter(v1.New(uc)))
-	root.Mount("/", public.NewRouter(public.New(uc)))
+	root.Mount("/", public.NewRouter(public.New(uc), spa))
 
 	serverCtx, cancelServer := context.WithCancel(context.Background())
 	defer cancelServer()

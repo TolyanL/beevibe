@@ -19,6 +19,8 @@ func errorCode(err error) string {
 		return "validation_failed"
 	case errors.Is(err, domain.ErrNotEnoughTokens):
 		return "not_enough_tokens"
+	case errors.Is(err, context.Canceled):
+		return "cancelled"
 	case errors.Is(err, context.DeadlineExceeded):
 		return "timeout"
 	default:
@@ -56,6 +58,10 @@ func (u *UseCase) reasoningPatch() llm.Effort {
 
 func (u *UseCase) reasoningRepair() llm.Effort {
 	return u.reasoning.Repair
+}
+
+func (u *UseCase) reasoningMeta() llm.Effort {
+	return u.reasoning.Meta
 }
 
 func (u *UseCase) maxFixAttempts() int {

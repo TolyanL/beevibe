@@ -15,6 +15,7 @@ type Config struct {
 	WriteTimeout    time.Duration `yaml:"write_timeout"`
 	IdleTimeout     time.Duration `yaml:"idle_timeout"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
+	StaticDir       string        `yaml:"static_dir"`
 }
 
 type Server struct {

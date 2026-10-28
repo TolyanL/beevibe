@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
@@ -51,8 +54,29 @@ func (u *UseCase) Get(ctx context.Context, input dto.GetGameInput) (dto.GetGameO
 		output.MyRating = int(myRating.Value)
 	}
 
+	output.ID = game.ID
+	output.Prompt = game.Prompt
+	output.Params = game.Params
 	output.Status = string(game.Status)
+	output.FailReason = game.FailReason
+	output.Visibility = string(game.Visibility)
+	output.Title = game.Title
+	output.Slug = game.DisplaySlug()
+	output.Description = game.Description
+	output.Cover = coverOf(game)
+	output.CreatedAt = game.CreatedAt
 	output.Stages = buildStages(events)
+	output.Operation = activeOperation(game.Status, events)
+	output.Cursor = eventsCursor(events)
+
+	if game.Status == domain.StatusNeedsDecision {
+		issues, err := u.reviewIssues(ctx, game.ID)
+		if err != nil {
+			return output, err
+		}
+
+		output.ReviewIssues = issues
+	}
 	output.Spec = game.Spec
 	output.Config = game.Config
 	output.Versions = make([]dto.Version, 0, len(versions))
@@ -80,6 +104,75 @@ func (u *UseCase) Get(ctx context.Context, input dto.GetGameInput) (dto.GetGameO
 	return output, nil
 }
 
+func eventsCursor(events []domain.GenEvent) int64 {
+	cursor := int64(0)
+
+	for _, event := range events {
+		if event.Seq > cursor {
+			cursor = event.Seq
+		}
+	}
+
+	return cursor
+}
+
+func activeOperation(status domain.Status, events []domain.GenEvent) *dto.ActiveOperation {
+	last, startedAt := lastOperationStage(events)
+
+	if last == nil {
+		return nil
+	}
+
+	switch last.Stage {
+	case string(domain.StatusPatching):
+		if status != domain.StatusPatching {
+			return nil
+		}
+	case metaStage:
+		if last.Status != stageStatusRunning {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	kind := last.Operation
+	if kind == "" {
+		kind = string(domain.JobKindPatch)
+	}
+
+	return &dto.ActiveOperation{Kind: kind, StartedAt: startedAt}
+}
+
+func lastOperationStage(events []domain.GenEvent) (*dto.Stage, time.Time) {
+	var (
+		last      *dto.Stage
+		startedAt time.Time
+	)
+
+	for _, event := range events {
+		if event.Type != domain.GenEventStage {
+			continue
+		}
+
+		var stage dto.Stage
+
+		if err := json.Unmarshal(event.Payload, &stage); err != nil {
+			continue
+		}
+
+		if stage.Operation == "" && stage.Stage != metaStage {
+			continue
+		}
+
+		stageCopy := stage
+		last = &stageCopy
+		startedAt = event.CreatedAt
+	}
+
+	return last, startedAt
+}
+
 func buildStages(events []domain.GenEvent) []dto.Stage {
 	stages := make([]dto.Stage, 0)
 	index := make(map[string]int)
@@ -105,4 +198,24 @@ func buildStages(events []domain.GenEvent) []dto.Stage {
 	}
 
 	return stages
+}
+
+func (u *UseCase) reviewIssues(ctx context.Context, gameID uuid.UUID) ([]domain.Issue, error) {
+	artifacts, err := u.store.ListGameArtifacts(ctx, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("store.ListGameArtifacts: %w", err)
+	}
+
+	raw := artifacts[artifactReviewIssues]
+	if raw == "" {
+		return nil, nil
+	}
+
+	var issues []domain.Issue
+
+	if err := json.Unmarshal([]byte(raw), &issues); err != nil {
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	return issues, nil
 }

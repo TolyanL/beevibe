@@ -19,6 +19,11 @@
   --bv-yellow: #ffcc00;
   --bv-yellow-deep: #e6b800;
   --bv-ink: #141414;
+  --bv-hover-ink: #2e2e29;
+  --bv-hover-surface: rgba(23, 23, 19, 0.06);
+  --bv-hover-surface-strong: rgba(23, 23, 19, 0.1);
+  --bv-hover-text: #141414;
+  --bv-hover-accent: #8a6800;
   --bv-green: #16a34a;
   --bv-red: #dc2626;
   --bv-orange: #f97316;
@@ -37,6 +42,11 @@
   --bv-faint: #777361;
   --bv-line: rgba(246, 244, 232, 0.11);
   --bv-line-strong: rgba(246, 244, 232, 0.2);
+  --bv-hover-ink: #ffffff;
+  --bv-hover-surface: rgba(246, 244, 232, 0.08);
+  --bv-hover-surface-strong: rgba(246, 244, 232, 0.14);
+  --bv-hover-text: #fffdf7;
+  --bv-hover-accent: #ffd633;
 }
 
 @theme inline {
@@ -56,6 +66,11 @@
   --color-bee: var(--bv-yellow);
   --color-bee-deep: var(--bv-yellow-deep);
   --color-graphite: var(--bv-ink);
+  --color-hover-ink: var(--bv-hover-ink);
+  --color-hover-surface: var(--bv-hover-surface);
+  --color-hover-surface-strong: var(--bv-hover-surface-strong);
+  --color-hover-text: var(--bv-hover-text);
+  --color-hover-accent: var(--bv-hover-accent);
   --color-good: var(--bv-green);
   --color-bad: var(--bv-red);
   --color-warn: var(--bv-orange);
@@ -80,8 +95,7 @@
     margin: 0;
     background:
       radial-gradient(circle at 12% -10%, rgba(255, 204, 0, 0.17), transparent 29rem),
-      radial-gradient(circle at 92% 8%, rgba(255, 204, 0, 0.07), transparent 24rem),
-      var(--bv-bg);
+      radial-gradient(circle at 92% 8%, rgba(255, 204, 0, 0.07), transparent 24rem), var(--bv-bg);
     color: var(--bv-text);
     font-family: var(--font-sans);
     font-synthesis: none;
@@ -218,7 +232,9 @@
     background: var(--bv-yellow);
     color: var(--bv-ink);
     font-weight: 800;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset, 0 10px 28px -16px rgba(23, 23, 19, 0.8);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.45) inset,
+      0 10px 28px -16px rgba(23, 23, 19, 0.8);
   }
 
   .bee-button.p-button:not(:disabled):hover {
@@ -240,7 +256,7 @@
 
   .p-button.p-button-secondary:not(:disabled):hover {
     border-color: var(--bv-yellow-deep);
-    background: color-mix(in srgb, var(--bv-yellow) 14%, transparent);
+    background: var(--bv-hover-surface-strong);
     color: var(--bv-text);
   }
 
@@ -310,9 +326,10 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 1.2rem;
     background:
-      radial-gradient(circle at 50% 0%, rgba(255, 204, 0, 0.12), transparent 55%),
-      #11110f;
-    box-shadow: 0 28px 80px -36px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.35);
+      radial-gradient(circle at 50% 0%, rgba(255, 204, 0, 0.12), transparent 55%), #11110f;
+    box-shadow:
+      0 28px 80px -36px rgba(0, 0, 0, 0.8),
+      0 0 0 1px rgba(0, 0, 0, 0.35);
   }
 
   .stage-shell:fullscreen {
@@ -324,9 +341,16 @@
     justify-content: center;
   }
 
+  .stage-shell:fullscreen .stage-frame-wrap {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
   .stage-shell:fullscreen .stage-frame {
     flex: 1;
     width: 100%;
+    height: 100%;
     max-height: none;
     aspect-ratio: auto;
   }
@@ -402,7 +426,8 @@
     inset: 0;
     content: '';
     opacity: 0.2;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px);
     background-size: 28px 28px;
     mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
@@ -432,13 +457,30 @@
   }
 
   .text-gradient {
-    background: linear-gradient(110deg, var(--bv-text) 10%, var(--bv-muted) 60%, var(--bv-yellow-deep));
+    background: linear-gradient(
+      110deg,
+      var(--bv-text) 10%,
+      var(--bv-muted) 60%,
+      var(--bv-yellow-deep)
+    );
     background-clip: text;
     color: transparent;
   }
 
   .thin-scroll {
     scrollbar-width: thin;
+  }
+
+  .hover-row {
+    @apply transition hover:bg-hover-surface;
+  }
+
+  .hover-link {
+    @apply transition hover:text-hover-accent;
+  }
+
+  .hover-button {
+    @apply transition hover:bg-hover-surface-strong;
   }
 }
 

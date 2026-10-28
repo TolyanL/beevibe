@@ -6,9 +6,15 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'generator',
+      name: 'home',
+      component: () => import('@/pages/HomePage.vue'),
+      meta: { title: 'Игры из одной фразы' },
+    },
+    {
+      path: '/create',
+      name: 'create',
       component: () => import('@/pages/GeneratorPage.vue'),
-      meta: { title: 'Генератор' },
+      meta: { title: 'Создать игру', requiresAuth: true },
     },
     {
       path: '/catalog',

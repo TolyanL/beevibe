@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type errorBody struct {
@@ -17,8 +16,8 @@ type errorDetail struct {
 	Message string `json:"message"`
 }
 
-func parseGameID(r *http.Request) (uuid.UUID, error) {
-	return uuid.Parse(chi.URLParam(r, "id"))
+func parseGameSlug(r *http.Request) string {
+	return chi.URLParam(r, "id")
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {

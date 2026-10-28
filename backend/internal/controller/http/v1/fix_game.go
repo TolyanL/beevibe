@@ -3,9 +3,6 @@ package v1
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/render"
 )
@@ -18,8 +15,8 @@ func (h *Handlers) FixGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gameID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
+	gameID, ok := gameIDFromContext(r.Context())
+	if !ok {
 		writeError(w, errInvalidBody)
 
 		return
@@ -35,6 +32,7 @@ func (h *Handlers) FixGame(w http.ResponseWriter, r *http.Request) {
 
 	body.UserID = userID
 	body.GameID = gameID
+	body.IdempotencyKey = r.Header.Get("Idempotency-Key")
 
 	output, err := h.usecase.Game.Fix(r.Context(), body)
 	if err != nil {
@@ -45,5 +43,5 @@ func (h *Handlers) FixGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, output)
+	writeJSON(w, http.StatusAccepted, output)
 }

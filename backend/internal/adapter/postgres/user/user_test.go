@@ -11,6 +11,7 @@ import (
 
 	"github.com/TolyanL/beevibe/internal/adapter/postgres/pgtest"
 	"github.com/TolyanL/beevibe/internal/domain"
+	"github.com/TolyanL/beevibe/internal/dto"
 )
 
 func TestCreateUserInsertsRow(t *testing.T) {
@@ -28,7 +29,7 @@ func TestCreateUserInsertsRow(t *testing.T) {
 	}
 
 	db.EXPECT().Exec(mock.Anything, mock.Anything,
-		pgtest.Args(user.ID, "user@example.com", "hash", int64(1000), mock.Anything)).
+		pgtest.Args(user.ID, "user@example.com", "", "hash", int64(1000), mock.Anything)).
 		Return(pgtest.Tag(1), nil)
 
 	if err := postgres.CreateUser(ctx, user); err != nil {
@@ -89,7 +90,7 @@ func TestGetUserByIDScansRow(t *testing.T) {
 	createdAt := time.Now().UTC()
 
 	db.EXPECT().QueryRow(mock.Anything, mock.Anything, pgtest.Args(userID)).
-		Return(pgtest.Row(t, userID, "user@example.com", "hash", int64(1500), createdAt))
+		Return(pgtest.Row(t, userID, "user@example.com", "", "hash", int64(1500), createdAt))
 
 	user, err := postgres.GetUserByID(ctx, userID)
 	if err != nil {
@@ -114,7 +115,7 @@ func TestGetUserByIDMapsNoRows(t *testing.T) {
 	userID := uuid.New()
 
 	db.EXPECT().QueryRow(mock.Anything, mock.Anything, pgtest.Args(userID)).
-		Return(pgtest.RowError(t, pgx.ErrNoRows, 5))
+		Return(pgtest.RowError(t, pgx.ErrNoRows, 6))
 
 	_, err := postgres.GetUserByID(ctx, userID)
 	if !errors.Is(err, domain.ErrNotFound) {
@@ -150,7 +151,7 @@ func TestUpdateUserChecksRowsAffected(t *testing.T) {
 	postgres := New(nil)
 
 	db.EXPECT().Exec(mock.Anything, mock.Anything, pgtest.Args(
-		"user@example.com", "hash", int64(1000), mock.Anything,
+		"user@example.com", "", "hash", int64(1000), mock.Anything,
 	)).Return(pgtest.Tag(1), nil)
 
 	if err := postgres.UpdateUser(ctx, domain.User{
@@ -187,14 +188,18 @@ func TestListTokenOpsScansRows(t *testing.T) {
 	gameID := uuid.New()
 	createdAt := time.Now().UTC()
 
-	db.EXPECT().Query(mock.Anything, mock.Anything, pgtest.Args(userID, 50)).Return(pgtest.Rows(t,
-		[]any{uuid.New(), userID, &gameID, int64(-320), "generate", createdAt},
-		[]any{uuid.New(), userID, nil, int64(500), "topup", createdAt},
+	db.EXPECT().Query(mock.Anything, mock.Anything, pgtest.Args(userID, 50, 0)).Return(pgtest.Rows(t,
+		[]any{2, uuid.New(), userID, &gameID, int64(-320), "generate", createdAt},
+		[]any{2, uuid.New(), userID, nil, int64(500), "topup", createdAt},
 	), nil)
 
-	ops, err := postgres.ListTokenOps(ctx, userID, 50)
+	ops, total, err := postgres.ListTokenOps(ctx, userID, dto.ListTokenOpsInput{Limit: 50})
 	if err != nil {
 		t.Fatalf("ListTokenOps() error = %v, want nil", err)
+	}
+
+	if total != 2 {
+		t.Errorf("total = %d, want 2", total)
 	}
 
 	if len(ops) != 2 {
@@ -220,13 +225,17 @@ func TestListTokenOpsReturnsEmptySlice(t *testing.T) {
 
 	db.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything).Return(pgtest.Rows(t), nil)
 
-	ops, err := postgres.ListTokenOps(ctx, userID, 50)
+	ops, total, err := postgres.ListTokenOps(ctx, userID, dto.ListTokenOpsInput{Limit: 50})
 	if err != nil {
 		t.Fatalf("ListTokenOps() error = %v, want nil", err)
 	}
 
 	if ops == nil || len(ops) != 0 {
 		t.Fatalf("ops = %v, want empty slice", ops)
+	}
+
+	if total != 0 {
+		t.Errorf("total = %d, want 0", total)
 	}
 }
 
@@ -239,7 +248,7 @@ func TestListTokenOpsWrapsQueryError(t *testing.T) {
 	db.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, errors.New("connection reset"))
 
-	if _, err := postgres.ListTokenOps(ctx, uuid.New(), 50); err == nil {
+	if _, _, err := postgres.ListTokenOps(ctx, uuid.New(), dto.ListTokenOpsInput{Limit: 50}); err == nil {
 		t.Fatal("ListTokenOps() error = nil, want error")
 	}
 }

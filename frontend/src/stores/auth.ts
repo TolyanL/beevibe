@@ -1,6 +1,14 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { getMe, getProfile, login as loginRequest, logout as logoutRequest, register as registerRequest, topup as topupRequest } from '@/api/auth'
+import {
+  getMe,
+  getProfile,
+  login as loginRequest,
+  logout as logoutRequest,
+  register as registerRequest,
+  topup as topupRequest,
+  updateProfile as updateProfileRequest,
+} from '@/api/auth'
 import { isApiError, messageFromError } from '@/api/client'
 import type { Profile, User } from '@/api/types'
 
@@ -13,7 +21,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => user.value !== null)
   const balance = computed(() => user.value?.balance ?? 0)
-  const prices = computed(() => profile.value?.prices ?? { generate: 320_000, patch: 40_000 })
+  const prices = computed(
+    () => profile.value?.prices ?? { generate: 320_000, patch: 40_000, meta: 10_000 },
+  )
 
   function setUser(next: User | null): void {
     user.value = next
@@ -121,10 +131,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function topup(): Promise<void> {
+  async function updateDisplayName(name: string): Promise<void> {
+    const response = await updateProfileRequest(name)
+
+    if (user.value) user.value.display_name = response.user.display_name
+  }
+
+  async function topup(amount: number): Promise<void> {
     loading.value = true
     try {
-      const response = await topupRequest()
+      const response = await topupRequest(amount)
       if (user.value) user.value.balance = response.balance
       if (profile.value) profile.value.balance = response.balance
       await refreshProfile()
@@ -153,6 +169,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshMe,
     refreshProfile,
     topup,
+    updateDisplayName,
     clearError,
   }
 })

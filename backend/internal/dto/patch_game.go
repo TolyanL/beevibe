@@ -10,7 +10,8 @@ type PatchGameInput struct {
 	UserID uuid.UUID
 	GameID uuid.UUID
 
-	Text string `json:"text" validate:"required,min=2,max=4000"`
+	Text           string `json:"text" validate:"required,min=2,max=4000"`
+	IdempotencyKey string `json:"-"`
 }
 
 func (i PatchGameInput) Validate() error {
@@ -22,6 +23,5 @@ func (i PatchGameInput) Validate() error {
 }
 
 type PatchGameOutput struct {
-	VersionID   uuid.UUID `json:"versionId"`
-	TokensSpent int       `json:"tokensSpent"`
+	Status string `json:"status"`
 }

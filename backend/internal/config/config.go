@@ -29,9 +29,13 @@ type App struct {
 
 type Tokens struct {
 	GrantSignup   int64 `yaml:"grant_signup"`
-	GrantTopup    int64 `yaml:"grant_topup"`
 	PriceGenerate int64 `yaml:"price_generate"`
 	PricePatch    int64 `yaml:"price_patch"`
+	PriceMeta     int64 `yaml:"price_meta"`
+	TopupMin      int64 `yaml:"topup_min"`
+	TopupMax      int64 `yaml:"topup_max"`
+	TopupDailyCap int64 `yaml:"topup_daily_cap"`
+	DemoTopup     bool  `yaml:"demo_topup"`
 }
 
 type LLMReasoning struct {
@@ -43,6 +47,7 @@ type LLMReasoning struct {
 	Assembler llm.Effort `yaml:"assembler"`
 	Patch     llm.Effort `yaml:"patch"`
 	Repair    llm.Effort `yaml:"repair"`
+	Meta      llm.Effort `yaml:"meta"`
 }
 
 func (c LLMReasoning) Validate() error {
@@ -147,6 +152,7 @@ func Defaults() Config {
 			WriteTimeout:    0,
 			IdleTimeout:     120 * time.Second,
 			ShutdownTimeout: 10 * time.Second,
+			StaticDir:       "static",
 		},
 		Logger: logger.Config{
 			Level:  "info",
@@ -168,9 +174,13 @@ func Defaults() Config {
 		},
 		Tokens: Tokens{
 			GrantSignup:   1_000_000,
-			GrantTopup:    500_000,
 			PriceGenerate: 320_000,
 			PricePatch:    40_000,
+			PriceMeta:     10_000,
+			TopupMin:      10_000,
+			TopupMax:      1_000_000,
+			TopupDailyCap: 5_000_000,
+			DemoTopup:     true,
 		},
 		Worker: Worker{
 			Concurrency:     2,

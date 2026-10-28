@@ -14,20 +14,24 @@ const (
 	StatusReady      Status = "ready"
 	StatusFailed     Status = "failed"
 	StatusPatching   Status = "patching"
+	// StatusNeedsDecision — конвейер остановился на замечаниях ревью и ждёт,
+	// что выберет автор: оставить код или сгенерировать его заново.
+	StatusNeedsDecision Status = "needs_decision"
 )
 
 var statusTransitions = map[Status][]Status{
-	StatusQueued:     {StatusAnalyzing},
-	StatusAnalyzing:  {StatusPlanning, StatusFailed},
-	StatusPlanning:   {StatusCoding, StatusFailed},
-	StatusCoding:     {StatusAssets, StatusFailed},
-	StatusAssets:     {StatusReviewing, StatusFailed},
-	StatusReviewing:  {StatusAssembling, StatusCoding, StatusFailed},
-	StatusAssembling: {StatusChecking, StatusFailed},
-	StatusChecking:   {StatusReady, StatusFailed, StatusPatching},
-	StatusReady:      {StatusPatching, StatusFailed},
-	StatusPatching:   {StatusChecking, StatusFailed},
-	StatusFailed:     {},
+	StatusQueued:        {StatusAnalyzing},
+	StatusAnalyzing:     {StatusPlanning, StatusFailed},
+	StatusPlanning:      {StatusCoding, StatusFailed},
+	StatusCoding:        {StatusAssets, StatusFailed},
+	StatusAssets:        {StatusReviewing, StatusFailed},
+	StatusReviewing:     {StatusAssembling, StatusCoding, StatusFailed, StatusNeedsDecision},
+	StatusNeedsDecision: {},
+	StatusAssembling:    {StatusChecking, StatusFailed},
+	StatusChecking:      {StatusReady, StatusFailed, StatusPatching},
+	StatusReady:         {StatusPatching, StatusFailed},
+	StatusPatching:      {StatusChecking, StatusFailed, StatusReady},
+	StatusFailed:        {},
 }
 
 func (s Status) String() string {
@@ -36,6 +40,57 @@ func (s Status) String() string {
 
 func (s Status) IsTerminal() bool {
 	return s == StatusReady || s == StatusFailed
+}
+
+var pipelineOrder = []Status{
+	StatusAnalyzing,
+	StatusPlanning,
+	StatusCoding,
+	StatusAssets,
+	StatusReviewing,
+	StatusAssembling,
+	StatusChecking,
+}
+
+func (s Status) pipelineIndex() int {
+	for index, stage := range pipelineOrder {
+		if stage == s {
+			return index
+		}
+	}
+
+	return -1
+}
+
+// Before сообщает, что этап идёт раньше другого в конвейере.
+func (s Status) Before(other Status) bool {
+	left, right := s.pipelineIndex(), other.pipelineIndex()
+
+	if left < 0 || right < 0 {
+		return false
+	}
+
+	return left < right
+}
+
+// Next отдаёт следующий этап конвейера: пустая строка — начинать с начала.
+func (s Status) Next() Status {
+	index := s.pipelineIndex()
+	if index < 0 || index+1 >= len(pipelineOrder) {
+		return StatusAnalyzing
+	}
+
+	return pipelineOrder[index+1]
+}
+
+func (s Status) IsPipeline() bool {
+	switch s {
+	case StatusAnalyzing, StatusPlanning, StatusCoding, StatusAssets,
+		StatusReviewing, StatusAssembling, StatusChecking:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s Status) IsActive() bool {

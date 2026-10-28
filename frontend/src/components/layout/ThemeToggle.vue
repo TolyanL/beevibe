@@ -8,7 +8,7 @@ const theme = useThemeStore()
 <template>
   <button
     type="button"
-    class="grid size-10 place-items-center rounded-full border border-line bg-surface/70 text-ink transition hover:border-bee-deep hover:text-bee-deep"
+    class="grid size-10 place-items-center rounded-full border border-line bg-surface/70 text-ink transition hover:border-bee-deep hover:text-hover-accent"
     :aria-label="theme.isDark ? 'Включить светлую тему' : 'Включить тёмную тему'"
     :title="theme.isDark ? 'Светлая тема' : 'Тёмная тема'"
     @click="theme.toggle()"

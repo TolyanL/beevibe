@@ -16,7 +16,7 @@ func (p *Postgres) GetUserByIDForUpdate(ctx context.Context, userID uuid.UUID) (
 	ctx, span := tracer.Start(ctx, "adapter postgres GetUserByIDForUpdate")
 	defer span.End()
 
-	const sql = `SELECT id, email, password_hash, token_balance, created_at
+	const sql = `SELECT id, email, display_name, password_hash, token_balance, created_at
 	             FROM users WHERE id = $1 FOR UPDATE`
 
 	row := userRow{}

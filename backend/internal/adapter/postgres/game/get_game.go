@@ -15,34 +15,46 @@ import (
 )
 
 type gameRow struct {
-	ID         uuid.UUID
-	OwnerID    uuid.UUID
-	Prompt     string
-	ParamsJSON []byte
-	SpecJSON   []byte
-	ConfigJSON []byte
-	Status     string
-	FailReason string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID          uuid.UUID
+	OwnerID     uuid.UUID
+	Prompt      string
+	ParamsJSON  []byte
+	SpecJSON    []byte
+	ConfigJSON  []byte
+	Status      string
+	FailReason  string
+	Visibility  string
+	DeletedAt   *time.Time
+	Title       string
+	Description string
+	CoverJSON   []byte
+	Slug        string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (r *gameRow) Dest() []any {
 	return []any{
 		&r.ID, &r.OwnerID, &r.Prompt, &r.ParamsJSON, &r.SpecJSON, &r.ConfigJSON,
-		&r.Status, &r.FailReason, &r.CreatedAt, &r.UpdatedAt,
+		&r.Status, &r.FailReason, &r.Visibility, &r.DeletedAt,
+		&r.Title, &r.Description, &r.CoverJSON, &r.Slug, &r.CreatedAt, &r.UpdatedAt,
 	}
 }
 
 func (r *gameRow) ToDomain() (domain.Game, error) {
 	game := domain.Game{
-		ID:         r.ID,
-		OwnerID:    r.OwnerID,
-		Prompt:     r.Prompt,
-		Status:     domain.Status(r.Status),
-		FailReason: r.FailReason,
-		CreatedAt:  r.CreatedAt,
-		UpdatedAt:  r.UpdatedAt,
+		ID:          r.ID,
+		OwnerID:     r.OwnerID,
+		Prompt:      r.Prompt,
+		Status:      domain.Status(r.Status),
+		FailReason:  r.FailReason,
+		Visibility:  domain.Visibility(r.Visibility),
+		DeletedAt:   r.DeletedAt,
+		Title:       r.Title,
+		Description: r.Description,
+		Slug:        r.Slug,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
 	}
 
 	if len(r.ParamsJSON) > 0 {
@@ -59,6 +71,16 @@ func (r *gameRow) ToDomain() (domain.Game, error) {
 		}
 
 		game.Spec = &spec
+	}
+
+	if len(r.CoverJSON) > 0 {
+		var cover domain.GameCover
+
+		if err := json.Unmarshal(r.CoverJSON, &cover); err != nil {
+			return domain.Game{}, fmt.Errorf("json.Unmarshal: %w", err)
+		}
+
+		game.Cover = &cover
 	}
 
 	if len(r.ConfigJSON) > 0 {
@@ -78,8 +100,9 @@ func (p *Postgres) GetGame(ctx context.Context, gameID uuid.UUID) (domain.Game, 
 	ctx, span := tracer.Start(ctx, "adapter postgres GetGame")
 	defer span.End()
 
-	const sql = `SELECT id, owner_id, prompt, params_json, spec_json, config_json, status, fail_reason, created_at, updated_at
-	             FROM games WHERE id = $1`
+	const sql = `SELECT id, owner_id, prompt, params_json, spec_json, config_json, status, fail_reason,
+	                    visibility, deleted_at, title, description, cover_json, slug, created_at, updated_at
+	             FROM games WHERE id = $1 AND deleted_at IS NULL`
 
 	row := gameRow{}
 

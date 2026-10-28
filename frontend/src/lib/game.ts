@@ -3,7 +3,7 @@ import type { GameStatus } from '@/api/types'
 export interface StatusMeta {
   label: string
   short: string
-  tone: 'neutral' | 'live' | 'good' | 'bad'
+  tone: 'neutral' | 'live' | 'good' | 'bad' | 'warn'
   description: string
 }
 
@@ -43,6 +43,12 @@ const META: Record<GameStatus, StatusMeta> = {
     short: 'Ревью',
     tone: 'live',
     description: 'Проверяем игру на ошибки и соответствие плану.',
+  },
+  needs_decision: {
+    label: 'Нужно решение',
+    short: 'Решение',
+    tone: 'warn',
+    description: 'Ревью нашло замечания. Оставьте код как есть или сгенерируйте его заново.',
   },
   assembling: {
     label: 'Сборка',
@@ -91,11 +97,23 @@ export const PIPELINE = [
   { id: 'checking', label: 'Проверка', short: 'Проверка' },
 ] as const
 
-export function stageLabel(stage: string): string {
-  return PIPELINE.find((item) => item.id === stage)?.label ?? stage
+const OPERATION_STAGE_LABELS: Record<string, string> = {
+  patching: 'Правка игры',
+  meta: 'Название и описание',
 }
 
-export function genreLabel(genre: string): string {
+export function stageLabel(stage: string, operation?: string): string {
+  if (stage === 'patching') {
+    if (operation === 'fix') return 'Починка игры'
+    if (operation === 'meta') return 'Название и описание'
+  }
+
+  return PIPELINE.find((item) => item.id === stage)?.label ?? OPERATION_STAGE_LABELS[stage] ?? stage
+}
+
+export function genreLabel(genre: string, custom?: string): string {
+  if (genre === 'custom' && custom && custom.trim()) return custom.trim()
+
   const labels: Record<string, string> = {
     arcade: 'Аркада',
     snake: 'Змейка',
@@ -105,10 +123,24 @@ export function genreLabel(genre: string): string {
     custom: 'Своя механика',
   }
 
-  return labels[genre] ?? 'Игра'
+  return labels[genre] ?? ''
 }
 
-export function styleLabel(style: string): string {
+const STYLE_PALETTES: Record<string, [string, string]> = {
+  pixel: ['#84cc16', '#0d9488'],
+  cartoon: ['#fb7185', '#f59e0b'],
+  neon: ['#ffcc00', '#7c3aed'],
+  minimal: ['#f3f0e6', '#98917f'],
+  custom: ['#22d3ee', '#2563eb'],
+}
+
+export function stylePalette(style: string): [string, string] {
+  return STYLE_PALETTES[style] ?? ['#ffcc00', '#7c3aed']
+}
+
+export function styleLabel(style: string, custom?: string): string {
+  if (style === 'custom' && custom && custom.trim()) return custom.trim()
+
   const labels: Record<string, string> = {
     pixel: 'Пиксель',
     cartoon: 'Мультяшный',
@@ -116,7 +148,40 @@ export function styleLabel(style: string): string {
     minimal: 'Минимализм',
   }
 
-  return labels[style] ?? 'Стиль'
+  return labels[style] ?? ''
+}
+
+const shortTitleWords = 5
+
+// Каталог показывает короткое имя: название автора, иначе первые слова промпта.
+export function shortGameTitle(
+  title: string | undefined,
+  prompt: string,
+  words = shortTitleWords,
+): string {
+  const clean = (title ?? '').trim()
+  const promptText = prompt.trim()
+
+  // Сервер может подставить промпт вместо пустого названия — тогда его и сокращаем.
+  if (clean && clean !== promptText) return clean
+
+  const parts = promptText.split(/\s+/).filter(Boolean)
+
+  if (parts.length === 0) return 'Игра'
+
+  const truncated = parts.length > words
+  const head = parts
+    .slice(0, words)
+    .join(' ')
+    .replace(/[,:;.\-—]+$/, '')
+
+  return truncated ? `${head}…` : head
+}
+
+export function gameDescription(description: string | undefined, prompt: string): string {
+  const clean = (description ?? '').trim()
+
+  return clean || prompt.trim()
 }
 
 export function mapSizeLabel(size: string): string {
@@ -126,7 +191,7 @@ export function mapSizeLabel(size: string): string {
     large: 'Большая',
   }
 
-  return labels[size] ?? size
+  return labels[size] ?? ''
 }
 
 export function versionSourceLabel(source: string): string {

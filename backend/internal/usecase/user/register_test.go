@@ -27,9 +27,13 @@ func newTestUseCase(t *testing.T) (*UseCase, *usermocks.MockStore, *usermocks.Mo
 
 	uc := New(store, auth, Tokens{
 		GrantSignup:   1_000_000,
-		GrantTopup:    500_000,
+		TopupMin:      10_000,
+		TopupMax:      1_000_000,
+		TopupDailyCap: 5_000_000,
+		DemoTopup:     true,
 		PriceGenerate: 320_000,
 		PricePatch:    40_000,
+		PriceMeta:     10_000,
 	})
 
 	return uc, store, auth

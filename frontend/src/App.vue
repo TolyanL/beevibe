@@ -42,7 +42,9 @@ onMounted(() => theme.init())
 <style scoped>
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
 .page-enter-from {

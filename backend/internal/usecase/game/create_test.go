@@ -26,6 +26,7 @@ func newTestUseCase(t *testing.T) (*UseCase, *gamemocks.MockStore, *llmmocks.Moc
 		Tokens{
 			PriceGenerate: 320,
 			PricePatch:    40,
+			PriceMeta:     10,
 		},
 		Reasoning{},
 		Worker{

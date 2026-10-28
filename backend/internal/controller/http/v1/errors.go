@@ -42,6 +42,16 @@ func mapError(err error) (string, int) {
 		return "unauthorized", http.StatusUnauthorized
 	case errors.Is(err, domain.ErrForbidden):
 		return "forbidden", http.StatusForbidden
+	case errors.Is(err, domain.ErrTopupDisabled):
+		return "topup_disabled", http.StatusForbidden
+	case errors.Is(err, domain.ErrTopupLimitReached):
+		return "topup_limit_reached", http.StatusConflict
+	case errors.Is(err, domain.ErrNothingToCancel):
+		return "nothing_to_cancel", http.StatusConflict
+	case errors.Is(err, domain.ErrAlreadyExists):
+		return "already_exists", http.StatusConflict
+	case errors.Is(err, domain.ErrCannotRateOwnGame):
+		return "cannot_rate_own_game", http.StatusForbidden
 	case errors.Is(err, domain.ErrEmailTaken):
 		return "email_taken", http.StatusConflict
 	case errors.Is(err, domain.ErrNotEnoughTokens):

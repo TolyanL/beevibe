@@ -22,7 +22,7 @@ func TestRateStoresRatingAndReturnsAggregate(t *testing.T) {
 
 	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
 		ID:      gameID,
-		OwnerID: userID,
+		OwnerID: uuid.New(),
 		Status:  domain.StatusReady,
 	}, nil)
 	store.EXPECT().UpsertRating(mock.Anything, mock.MatchedBy(func(rating domain.Rating) bool {
@@ -52,26 +52,27 @@ func TestRateStoresRatingAndReturnsAggregate(t *testing.T) {
 	}
 }
 
-func TestRateRejectsForeignGame(t *testing.T) {
+func TestRateRejectsOwnerRating(t *testing.T) {
 	t.Parallel()
 
 	uc, store, _, _, _ := newTestUseCase(t)
 
+	ownerID := uuid.New()
 	gameID := uuid.New()
 
 	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
 		ID:      gameID,
-		OwnerID: uuid.New(),
+		OwnerID: ownerID,
 		Status:  domain.StatusReady,
 	}, nil)
 
 	_, err := uc.Rate(context.Background(), dto.RateGameInput{
-		UserID: uuid.New(),
+		UserID: ownerID,
 		GameID: gameID,
 		Value:  5,
 	})
-	if !errors.Is(err, domain.ErrForbidden) {
-		t.Fatalf("Rate() error = %v, want ErrForbidden", err)
+	if !errors.Is(err, domain.ErrCannotRateOwnGame) {
+		t.Fatalf("Rate() error = %v, want ErrCannotRateOwnGame", err)
 	}
 }
 
