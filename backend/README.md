@@ -13,8 +13,10 @@ are mounted at the root. The service name is `beevibe`.
 
 - **Auth** — a session cookie named `session` (HttpOnly, SameSite=Lax, 30 days).
   It is set by `register` and `login`, cleared by `logout`. Every route under
-  `/api` except `health`, `catalog`, `auth/*` requires it and answers `401`
-  without it.
+  `/api` requires it and answers `401` without it, except `health`, `catalog`,
+  `auth/*` and the public card `GET /api/games/{id}/public`.
+- **Game references** — `/api/games/{id}` accepts a slug or a uuid; the public
+  pages `/g/{id}` and `/api/games/{id}/public` take the slug only.
 - **Errors** — one shape for every failure:
 
   ```json
@@ -41,6 +43,11 @@ are mounted at the root. The service name is `beevibe`.
 | `invalid_transition`      | 409  | the status machine refused the transition               |
 | `idempotency_in_progress` | 409  | the same key is still being processed                   |
 | `fix_limit_reached`       | 409  | the repair attempts are exhausted                       |
+| `nothing_to_cancel`       | 409  | there is no running job to cancel                       |
+| `already_exists`          | 409  | the operation has already been applied                  |
+| `topup_limit_reached`     | 409  | the demo top-up daily cap is hit                        |
+| `topup_disabled`          | 403  | demo top-ups are turned off in the config               |
+| `cannot_rate_own_game`    | 403  | an author cannot rate their own game                    |
 
 ## Health
 
@@ -49,8 +56,10 @@ are mounted at the root. The service name is `beevibe`.
 No auth.
 
 ```json
-{ "status": "ok", "version": "0.2.0" }
+{ "status": "ok", "version": "0.1.0" }
 ```
+
+The version comes from `app.version` in the config.
 
 ## Auth
 
@@ -90,7 +99,14 @@ Errors: `401 unauthorized` for both a wrong password and an unknown email.
 **200**
 
 ```json
-{ "user": { "id": "uuid", "email": "user@example.com", "balance": 640000 } }
+{
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "display_name": "Fish master",
+    "balance": 640000
+  }
+}
 ```
 
 ### `GET /api/profile`
@@ -104,9 +120,12 @@ current prices (the client can show them without a second call):
   "games": [
     {
       "id": "uuid",
+      "slug": "penguin-arcade",
+      "title": "Penguin arcade",
       "prompt": "penguin arcade",
       "genre": "arcade",
       "status": "ready",
+      "visibility": "public",
       "tokens_cost": 181081,
       "model_calls": 6,
       "fixes": 0,
@@ -121,23 +140,94 @@ current prices (the client can show them without a second call):
       "created_at": "2026-10-23T22:33:00Z"
     }
   ],
-  "prices": { "generate": 320000, "patch": 40000 }
+  "prices": { "generate": 320000, "patch": 40000, "meta": 10000 }
 }
 ```
 
-`token_ops[].reason` — `signup_grant`, `generate`, `patch`, `topup`, `refund`.
+`token_ops[].reason` — `signup_grant`, `generate`, `patch`, `meta`, `topup`,
+`refund`.
+
+### `PATCH /api/profile`
+
+```json
+{ "display_name": "Fish master" }
+```
+
+The public author name shown in the catalog and on the game page instead of the
+email; up to 40 characters, an empty string clears it.
+
+**200** — `{ "user": { "id": "uuid", "email": "...", "display_name": "Fish master", "balance": 640000 } }`.
+Errors: `400 invalid_input`, `401 unauthorized`.
 
 ### `POST /api/profile/topup`
 
-No body. **200** — the new balance:
+Headers: `Idempotency-Key` (optional).
 
 ```json
-{ "balance": 1140000 }
+{ "amount": 250000 }
 ```
 
-The amount comes from `tokens.grant_topup`.
+`amount` is required and must fit `tokens.topup_min`..`tokens.topup_max`; the demo
+mode also enforces `tokens.topup_daily_cap` per user and per day. Nothing is
+charged — this is a demo top-up for the token economy.
+
+**200** — the new balance: `{ "balance": 1250000 }`.
+Errors: `400 invalid_input` for an amount out of range, `403 topup_disabled` when
+`tokens.demo_topup` is off, `409 topup_limit_reached` when the daily cap is hit.
+
+### `GET /api/me/token-ops?limit=20&offset=0`
+
+**200** — charge and grant history, newest first, plus the total count:
+
+```json
+{
+  "items": [
+    {
+      "delta": -320000,
+      "reason": "generate",
+      "game_id": "uuid",
+      "created_at": "2026-10-23T22:33:00Z"
+    }
+  ],
+  "total": 12
+}
+```
+
+`reason` — `signup_grant`, `generate`, `patch`, `meta`, `topup`, `refund`.
+Errors: `400 invalid_input`, `401 unauthorized`.
 
 ## Games
+
+### `GET /api/games?status=ready&sort=created_at&limit=20&offset=0`
+
+**200** — the current user's games (deleted ones excluded) plus the total count
+without `limit`/`offset`:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "slug": "penguin-arcade",
+      "title": "Penguin arcade",
+      "prompt": "penguin arcade about catching fish",
+      "status": "ready",
+      "visibility": "private",
+      "created_at": "2026-10-23T22:33:00Z"
+    }
+  ],
+  "total": 3
+}
+```
+
+| Query    | Rule                                                                         |
+| -------- | ---------------------------------------------------------------------------- |
+| `status` | optional: one of the game statuses                                           |
+| `sort`   | `created_at` (default) or `tokens_cost`                                      |
+| `limit`  | 1..100, defaults to 20                                                       |
+| `offset` | 0 or more                                                                    |
+
+Errors: `400 invalid_input`, `401 unauthorized`.
 
 ### `POST /api/games`
 
@@ -146,6 +236,8 @@ Headers: `Idempotency-Key` (optional).
 ```json
 {
   "prompt": "penguin arcade about catching fish",
+  "title": "Penguin arcade",
+  "description": "Catch as many fish as you can before the gull arrives.",
   "genre": "arcade",
   "tempo": 5,
   "mapSize": "small",
@@ -153,18 +245,25 @@ Headers: `Idempotency-Key` (optional).
 }
 ```
 
-| Field     | Rule                                                                     |
-| --------- | ------------------------------------------------------------------------ |
-| `prompt`  | required, 3..2000 characters                                             |
-| `genre`   | optional: `arcade`, `snake`, `clicker`, `platformer`, `puzzle`, `custom` |
-| `tempo`   | optional integer 1..10                                                   |
-| `mapSize` | optional: `small`, `medium`, `large`                                     |
-| `style`   | optional: `pixel`, `cartoon`, `neon`, `minimal`                          |
+| Field         | Rule                                                                     |
+| ------------- | ------------------------------------------------------------------------ |
+| `prompt`      | required, 3..2000 characters                                             |
+| `title`       | optional, up to 80 characters — the name shown in the catalog            |
+| `description` | optional, up to 500 characters — the catalog subtitle                    |
+| `genre`       | optional: `arcade`, `snake`, `clicker`, `platformer`, `puzzle`, `custom` |
+| `customGenre` | required when `genre` is `custom`, 2..32 characters                      |
+| `tempo`       | optional integer 1..10                                                   |
+| `mapSize`     | optional: `small`, `medium`, `large`                                     |
+| `style`       | optional: `pixel`, `cartoon`, `neon`, `minimal`, `custom`                |
+| `customStyle` | required when `style` is `custom`, 2..160 characters                     |
+
+`title` and `description` are stored with the game right away, so the catalog card
+is readable before the build finishes.
 
 **201** — the game is queued and the generation price is already debited:
 
 ```json
-{ "id": "uuid", "status": "queued" }
+{ "id": "uuid", "slug": "penguin-arcade", "status": "queued" }
 ```
 
 Errors: `400 invalid_input`, `409 not_enough_tokens`, `409 idempotency_in_progress`.
@@ -222,6 +321,63 @@ votes in that order. `my_rating` is the owner's current vote, or `0` when the
 owner has not rated the game yet.
 
 Errors: `403 forbidden`, `404 not_found`.
+
+### `DELETE /api/games/{id}`
+
+Soft delete: the game disappears from the profile and the catalog, its files and
+versions stay archived.
+
+**200** — `{ "deleted": true }`.
+Errors: `403 forbidden`, `404 not_found`, `409 generation_in_progress`.
+
+### `PATCH /api/games/{id}/visibility`
+
+```json
+{ "visibility": "public" }
+```
+
+Only a `ready` game can be published; the catalog lists `public` games only.
+
+**200** — `{ "visibility": "public" }`.
+Errors: `400 invalid_input`, `403 forbidden`, `404 not_found`,
+`409 generation_in_progress` when the game is not ready or is being edited.
+
+### `PATCH /api/games/{id}/meta`
+
+```json
+{ "title": "Neon tail", "description": "An arcade about a snake that grows." }
+```
+
+Partial update: omitted fields keep their value. Free and allowed at any game
+status, so the author can name a game while it is still building. Limits: `title`
+up to 80 characters, `description` up to 500, `cover` — palette, style and seed.
+
+**200** — the saved meta:
+
+```json
+{
+  "title": "Neon tail",
+  "description": "An arcade about a snake that grows.",
+  "cover": { "palette": ["#0f172a", "#22d3ee"], "style": "neon", "seed": "abc" }
+}
+```
+
+Errors: `400 invalid_input`, `403 forbidden`, `404 not_found`.
+
+### `POST /api/games/{id}/meta/generate`
+
+Headers: `Idempotency-Key` (optional). The model writes the title, the description
+and the cover from the built game; `tokens.price_meta` is debited up front and
+refunded if the request fails before the first model answer.
+
+Requires a `ready` game. **202** — the job is queued:
+
+```json
+{ "status": "queued", "resume_from": "analyzing" }
+```
+
+The result arrives in the SSE stream as `artifact` with `kind: "meta"`.
+Errors: `403 forbidden`, `409 not_enough_tokens`, `409 generation_in_progress`.
 
 ### `GET /api/games/{id}/stream`
 
@@ -329,6 +485,42 @@ to `worker.max_fix_attempts` times. Free.
 Errors: `400 invalid_input`, `403 forbidden`, `404 not_found`,
 `409 generation_in_progress`, `409 fix_limit_reached`.
 
+### `POST /api/games/{id}/review/accept`
+
+Available while the game waits in `needs_decision`. Keeps the generated code as is
+and returns the game to the queue from the assembly stage — no new model calls.
+
+**202** — `{ "status": "queued", "resume_from": "assembling" }`.
+Errors: `403 forbidden`, `409 generation_in_progress` when the game is not waiting
+for a review decision.
+
+### `POST /api/games/{id}/review/regenerate`
+
+Available in `needs_decision`. Keeps the spec, the plan and the assets and reruns
+the code stage only.
+
+**202** — `{ "status": "queued", "resume_from": "coding" }`.
+Errors: `403 forbidden`, `409 generation_in_progress`.
+
+### `POST /api/games/{id}/retry`
+
+Restarts a `failed` game with the same prompt and params and no new charge. The
+artifacts of finished stages are kept, so the pipeline resumes from the stage that
+broke.
+
+**202** — `{ "status": "queued", "resume_from": "coding" }`.
+Errors: `403 forbidden`, `404 not_found`, `409 generation_in_progress` when the game
+is not `failed`.
+
+### `POST /api/games/{id}/cancel`
+
+Stops a running generation or edit and waits for the worker to finish. Tokens are
+refunded only when the model has not answered yet.
+
+**200** — `{ "status": "ready" }` (the resulting status).
+Errors: `403 forbidden`, `404 not_found`, `409 generation_in_progress` when there is
+nothing to cancel.
+
 ### `POST /api/games/{id}/rate`
 
 ```json
@@ -404,9 +596,37 @@ No auth. Only `ready` games are listed.
 
 Errors: `400 invalid_input` for an unknown `sort`/`genre`.
 
+### `GET /api/games/{id}/public`
+
+No auth required; the session cookie is optional and only fills `my_rating`.
+Returns the public card of a game — metadata and aggregates, no HTML:
+
+```json
+{
+  "id": "uuid",
+  "slug": "penguin-arcade",
+  "title": "Penguin arcade",
+  "description": "Catch fish before the gull arrives.",
+  "genre": "arcade",
+  "style": "pixel",
+  "map_size": "small",
+  "created_at": "2026-10-23T22:33:00Z",
+  "author": "Fish master",
+  "rating": { "average": 4.6, "total": 18, "counts": [0, 1, 1, 4, 12] },
+  "playtime": { "sessions": 1, "seconds": 120, "hours": 0.03 },
+  "my_rating": 5,
+  "is_owner": false
+}
+```
+
+Errors: `400 invalid_input`, `404 not_found`.
+
 ## Public pages
 
-Mounted at the root, not under `/api`.
+Mounted at the root, not under `/api`. The `{id}` segment is the game **slug**;
+API routes under `/api/games/{id}` accept a slug or a uuid. A public page returns
+`404` for a private game unless the session cookie belongs to its owner — the owner
+can therefore preview an unpublished build at the same address.
 
 ### `GET /g/{id}`
 
@@ -427,3 +647,9 @@ The same document with `Content-Disposition: attachment; filename="game.html"`.
 - Lifecycle events (`game.created`, `game.ready`, `game.failed`, `game.patched`)
   are published to the Kafka topic `game.events` through the outbox; they are not
   part of the HTTP contract.
+- The same binary can serve the built SPA: `http.static_dir` points at the
+  directory with the frontend bundle, unknown paths fall back to `index.html`,
+  hashed assets get an immutable cache header. An empty or missing directory just
+  disables it, so local development can keep using the Vite server.
+- The slug is generated once, from the title or the prompt; renaming a game keeps
+  the old public link working.
