@@ -63,7 +63,7 @@ async function toggleFullscreen(): Promise<void> {
   } catch {
     toast.add({
       severity: 'error',
-      summary: 'Fullscreen недоступен',
+      summary: 'Не получилось развернуть',
       detail: 'Браузер не разрешил полноэкранный режим.',
       life: 3000,
     })
@@ -105,9 +105,7 @@ async function share(): Promise<void> {
           <span class="size-2 rounded-full bg-white/20" />
           <span class="size-2 rounded-full bg-white/20" />
         </span>
-        <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40"
-          >playable stage</span
-        >
+        <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">игра</span>
       </div>
 
       <div class="flex items-center gap-1">
@@ -142,7 +140,7 @@ async function share(): Promise<void> {
         <button
           type="button"
           class="grid size-8 place-items-center rounded-lg text-white/55 transition hover:bg-white/10 hover:text-white"
-          :title="isFullscreen ? 'Выйти из fullscreen' : 'На весь экран'"
+          :title="isFullscreen ? 'Свернуть' : 'На весь экран'"
           :aria-label="isFullscreen ? 'Выйти из полноэкранного режима' : 'Открыть на весь экран'"
           @click="toggleFullscreen"
         >

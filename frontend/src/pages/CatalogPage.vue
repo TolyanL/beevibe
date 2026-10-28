@@ -7,6 +7,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import GameCard from '@/components/catalog/GameCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import { plural } from '@/lib/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,9 +18,9 @@ let observer: IntersectionObserver | null = null
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const sortOptions: { value: CatalogSort; label: string; icon: 'clock' | 'star' | 'flame' }[] = [
-  { value: 'fresh', label: 'Свежие', icon: 'clock' },
-  { value: 'rating', label: 'По рейтингу', icon: 'star' },
-  { value: 'hours', label: 'По времени', icon: 'flame' },
+  { value: 'fresh', label: 'Сначала новые', icon: 'clock' },
+  { value: 'rating', label: 'Высокие оценки', icon: 'star' },
+  { value: 'hours', label: 'Дольше играют', icon: 'flame' },
 ]
 
 const genres: { value: Genre | ''; label: string }[] = [
@@ -34,6 +35,10 @@ const genres: { value: Genre | ''; label: string }[] = [
 
 const activeGenreLabel = computed(
   () => genres.find((item) => item.value === catalog.genre)?.label ?? '',
+)
+
+const activeSortLabel = computed(
+  () => sortOptions.find((item) => item.value === catalog.sort)?.label ?? '',
 )
 
 const hasFilters = computed(
@@ -143,13 +148,13 @@ onBeforeUnmount(() => {
         <div class="absolute -right-20 -top-24 size-64 rounded-full bg-bee/15 blur-3xl" />
         <div class="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div class="eyebrow">Публичная витрина</div>
+            <div class="eyebrow">Каталог игр</div>
             <h1 class="display-title mt-4 max-w-2xl text-4xl sm:text-5xl lg:text-6xl">
-              Игры, собранные <span class="text-bee-deep dark:text-bee">сообществом</span>
+              Игры, которые собрали <span class="text-bee-deep dark:text-bee">другие</span>
             </h1>
             <p class="mt-4 max-w-xl text-sm leading-6 text-muted">
-              Запускайте в один клик, оценивайте по пятибалльной шкале и смотрите, сколько времени
-              игроки провели внутри. Каждая игра — один HTML-файл.
+              Запускайте в один клик, ставьте оценку от 1 до 5 и смотрите, сколько времени люди
+              провели внутри. Каждая игра — один файл, который можно забрать себе.
             </p>
           </div>
 
@@ -177,7 +182,7 @@ onBeforeUnmount(() => {
               <InputText
                 v-model="search"
                 class="h-11 w-full pl-11"
-                placeholder="Поиск по промпту: змейка, неон, кликер…"
+                placeholder="Найти игру: змейка, неон, кликер…"
                 aria-label="Поиск по каталогу"
                 @update:model-value="onSearchInput"
               />
@@ -243,7 +248,7 @@ onBeforeUnmount(() => {
           </span>
           <span v-else>
             <b class="font-bold text-ink">{{ catalog.total }}</b>
-            {{ catalog.total === 1 ? 'игра' : catalog.total < 5 ? 'игры' : 'игр' }}
+            {{ plural(catalog.total, 'игра', 'игры', 'игр') }}
             <span
               v-if="catalog.items.length && catalog.items.length < catalog.total"
               class="text-faint"
@@ -275,7 +280,7 @@ onBeforeUnmount(() => {
         </div>
 
         <p class="hidden font-mono text-[9px] uppercase tracking-[0.13em] text-faint sm:block">
-          sort: {{ catalog.sort }}
+          {{ activeSortLabel }}
         </p>
       </div>
 
@@ -317,7 +322,7 @@ onBeforeUnmount(() => {
         <EmptyState
           icon="search"
           title="Ничего не нашлось"
-          :text="`По запросу «${search || activeGenreLabel}» игр нет. Попробуйте другое слово, жанр или сбросьте фильтры.`"
+          :text="`Мы не нашли игр по запросу «${search || activeGenreLabel}». Попробуйте другое слово или сбросьте фильтры.`"
         >
           <button
             type="button"
@@ -334,7 +339,7 @@ onBeforeUnmount(() => {
         <EmptyState
           icon="wand"
           title="Каталог пока пуст"
-          text="Опубликованных игр ещё нет. Соберите первую — она появится здесь после публикации."
+          text="Пока никто не опубликовал игру. Соберите свою — она появится здесь, как только вы откроете её для всех."
         >
           <RouterLink
             :to="{ name: 'create' }"

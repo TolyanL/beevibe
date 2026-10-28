@@ -22,7 +22,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
         class="flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-[0.12em] text-emerald-300"
       >
         <span class="size-1 animate-pulse-soft rounded-full bg-emerald-400" />
-        playable
+        готова
       </span>
     </div>
 

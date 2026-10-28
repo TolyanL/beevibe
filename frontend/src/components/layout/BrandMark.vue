@@ -20,7 +20,7 @@ withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
       <span
         class="mt-1 block font-mono text-[0.54rem] font-bold uppercase tracking-[0.18em] text-muted"
       >
-        game lab
+        игры из фразы
       </span>
     </span>
   </div>

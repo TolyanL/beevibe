@@ -28,11 +28,11 @@ const redirect = computed(() => {
 
   return value.startsWith('/') && !value.startsWith('//') ? value : '/create'
 })
-const title = computed(() => (isRegister.value ? 'Создайте аккаунт' : 'С возвращением'))
+const title = computed(() => (isRegister.value ? 'Заведём аккаунт' : 'С возвращением'))
 const subtitle = computed(() =>
   isRegister.value
-    ? 'Один аккаунт — генератор, каталог, оценки и история игр.'
-    : 'Войдите, чтобы продолжить сборку игр и управлять балансом.',
+    ? 'Один аккаунт: собирать игры, играть в чужие и ставить оценки.'
+    : 'Войдите, чтобы продолжить сборку и посмотреть баланс.',
 )
 
 watch(
@@ -114,22 +114,22 @@ async function submit(): Promise<void> {
 
           <div class="relative my-12">
             <p class="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-bee">
-              game generation, simplified
+              игры из одной фразы
             </p>
             <h2 class="mt-5 font-display text-4xl font-bold leading-[1.06] tracking-[-0.05em]">
               Ваша следующая игра начинается с одного предложения.
             </h2>
             <p class="mt-5 max-w-sm text-sm leading-6 text-white/45">
-              BeeVibe собирает механику, код и визуал. Вам остаётся играть, оценивать и просить
-              правки — без IDE и деплоя.
+              Агенты придумают правила, напишут код и нарисуют графику. Вам останется играть,
+              оценивать и просить правки — без движков, IDE и деплоя.
             </p>
           </div>
 
           <div class="relative grid grid-cols-3 gap-3">
             <div
               v-for="item in [
-                { value: '9', label: 'этапов' },
-                { value: '1', label: 'HTML-файл' },
+                { value: '7', label: 'этапов' },
+                { value: '1', label: 'файл с игрой' },
                 { value: '5', label: 'баллов' },
               ]"
               :key="item.label"
@@ -144,7 +144,7 @@ async function submit(): Promise<void> {
 
           <div class="relative mt-8 flex items-center gap-2 text-[10px] text-white/30">
             <AppIcon name="shield" :size="14" />
-            HttpOnly-сессия, без токенов в localStorage
+            Сессия в защищённой cookie — пароль не лежит в localStorage
           </div>
         </aside>
 
@@ -159,7 +159,7 @@ async function submit(): Promise<void> {
                 На главную
               </RouterLink>
               <span class="font-mono text-[9px] uppercase tracking-[0.14em] text-faint">
-                {{ isRegister ? 'new account' : 'sign in' }}
+                {{ isRegister ? 'регистрация' : 'вход' }}
               </span>
             </div>
 
@@ -289,7 +289,8 @@ async function submit(): Promise<void> {
             </form>
 
             <p class="mt-5 text-center text-[11px] leading-5 text-faint">
-              Продолжая, вы соглашаетесь с правилами сервиса и обработкой cookie для сессии.
+              Продолжая, вы соглашаетесь с правилами сервиса и обработкой cookie — без них сессия не
+              работает.
             </p>
 
             <div class="mt-7 flex items-center gap-3">

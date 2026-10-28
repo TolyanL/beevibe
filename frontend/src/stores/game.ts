@@ -193,7 +193,7 @@ export const useGameStore = defineStore('game', () => {
         void load(id, { silent: true })
       },
       onConnectionError: () => {
-        streamError.value = 'Связь с конвейером прервана. Переподключаемся…'
+        streamError.value = 'Связь с сервером прервалась. Переподключаемся…'
       },
     })
   }

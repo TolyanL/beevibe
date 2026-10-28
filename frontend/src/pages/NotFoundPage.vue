@@ -10,12 +10,12 @@ import AppIcon from '@/components/ui/AppIcon.vue'
         <p
           class="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-bee-deep dark:text-bee"
         >
-          404 · out of bounds
+          404 · за краем карты
         </p>
         <h1 class="display-title mt-5 text-[clamp(4rem,13vw,8.5rem)] leading-[0.82]">Стена.</h1>
         <p class="mx-auto mt-6 max-w-md text-sm leading-6 text-muted">
-          Эта страница вышла за пределы карты. Вернитесь на главную, создайте новую игру или найдите
-          готовую в каталоге.
+          Такой страницы нет — похоже, вы ушли за край карты. Вернитесь на главную, соберите свою
+          игру или поищите готовую в каталоге.
         </p>
         <div class="mt-7 flex flex-wrap justify-center gap-2.5">
           <RouterLink

@@ -138,7 +138,7 @@ onMounted(async () => {
             {{ sessionLabel(sessionSeconds) }}
           </span>
           <span class="font-mono text-[9px] uppercase tracking-[0.13em] text-faint"
-            >public play</span
+            >публичная игра</span
           >
         </div>
       </div>
@@ -198,7 +198,7 @@ onMounted(async () => {
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="mono-label">Об игре</p>
-              <h2 class="mt-1 font-display text-xl font-bold">Из промпта — в playable</h2>
+              <h2 class="mt-1 font-display text-xl font-bold">Из идеи — в игру</h2>
             </div>
             <AppIcon name="gamepad" :size="20" class="text-muted" />
           </div>
@@ -206,7 +206,7 @@ onMounted(async () => {
           <p class="mt-4 text-[14px] leading-7 text-muted">
             {{
               description ||
-              'Игра сгенерирована BeeVibe и доступна по публичной ссылке. Запускайте прямо в браузере, оценка и история — в каталоге.'
+              'Эту игру собрала BeeVibe: она открывается прямо в браузере, без установки. Оценки и другие игры — в каталоге.'
             }}
           </p>
 
@@ -248,7 +248,7 @@ onMounted(async () => {
             v-else
             class="mt-4 rounded-xl border border-line bg-canvas/35 px-4 py-3 text-xs text-muted"
           >
-            Оценки доступны из каталога после загрузки карточки игры.
+            Оценки подтягиваются вместе с карточкой игры — подождите пару секунд.
           </div>
 
           <div v-if="card && !card.is_owner" class="mt-5 border-t border-line pt-4">
@@ -290,8 +290,8 @@ onMounted(async () => {
           </p>
 
           <p v-if="!card" class="mt-4 text-[11px] leading-5 text-faint">
-            Оценка хранится в аккаунте и меняет средний рейтинг в каталоге. Пять — восторг, один —
-            совсем не зашло.
+            Оценка хранится в аккаунте и меняет средний рейтинг в каталоге. Пять — «восторг», один —
+            «совсем не зашло».
           </p>
         </aside>
       </div>

@@ -38,21 +38,25 @@ const activeGame = computed(() => {
 })
 
 const steps = [
-  { icon: 'wand', title: 'Опишите идею', text: 'Одно предложение о механике, герое и настроении.' },
+  {
+    icon: 'wand',
+    title: 'Расскажите идею',
+    text: 'Одно предложение: герой, механика, настроение.',
+  },
   {
     icon: 'code',
-    title: 'Конвейер собирает',
-    text: 'Восемь агентов пишут спецификацию, код и визуал.',
+    title: 'Агенты собирают',
+    text: 'Семь этапов: разбор идеи, план, код, графика, ревью, сборка, проверка.',
   },
   {
     icon: 'gamepad',
     title: 'Играйте сразу',
-    text: 'Готовый HTML запускается в браузере без сборки.',
+    text: 'Игра открывается в браузере — один файл, ничего устанавливать не нужно.',
   },
   {
     icon: 'refresh',
-    title: 'Правьте промптом',
-    text: 'Патч, настройки, починка и откат к любой версии.',
+    title: 'Правьте словами',
+    text: 'Скажите, что поменять: новая версия соберётся сама, старые останутся.',
   },
 ] as const
 
@@ -89,7 +93,7 @@ onMounted(async () => {
           class="relative grid items-center gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]"
         >
           <div>
-            <div class="eyebrow">BeeVibe game lab</div>
+            <div class="eyebrow">BeeVibe · лаборатория игр</div>
             <h1
               class="display-title mt-3 text-[2.6rem] leading-[0.95] sm:text-[3.4rem] lg:text-[3.9rem]"
             >
@@ -97,8 +101,8 @@ onMounted(async () => {
               <span class="text-bee-deep dark:text-bee">одной фразы</span>
             </h1>
             <p class="mt-4 max-w-xl text-sm leading-6 text-muted sm:text-[15px]">
-              Опишите идею — конвейер из восьми агентов соберёт playable: механику, код и визуал.
-              Правки — промптом, результат — в браузере, без установок и деплоя.
+              Опишите идею одной фразой — агенты придумают правила, напишут код и нарисуют графику.
+              Через пару минут можно играть, а правки просить словами.
             </p>
 
             <div class="mt-6 flex flex-wrap items-center gap-2.5">
@@ -160,12 +164,12 @@ onMounted(async () => {
                   class="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-faint"
                 >
                   <AppIcon name="bolt" :size="12" />
-                  pipeline
+                  сборка
                 </span>
                 <span
                   class="rounded-full bg-bee/15 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-bee-deep dark:text-bee"
                 >
-                  live
+                  живая
                 </span>
               </div>
               <div class="mt-3 space-y-2">
@@ -195,7 +199,9 @@ onMounted(async () => {
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div class="eyebrow">Как это работает</div>
-            <h2 class="mt-2 font-display text-xl font-bold sm:text-2xl">Четыре шага до playable</h2>
+            <h2 class="mt-2 font-display text-xl font-bold sm:text-2xl">
+              Как из фразы получается игра
+            </h2>
           </div>
           <RouterLink
             :to="{ name: 'create' }"
@@ -258,7 +264,8 @@ onMounted(async () => {
           </span>
           <p class="text-sm font-bold">Каталог пока пуст</p>
           <p class="max-w-sm text-xs leading-5 text-muted">
-            Опубликованных игр ещё нет — станьте первым: опишите идею, и конвейер соберёт playable.
+            Пока никто не опубликовал игру. Соберите первую — она появится здесь, как только вы
+            откроете её для всех.
           </p>
           <RouterLink
             :to="{ name: 'create' }"
@@ -295,9 +302,9 @@ onMounted(async () => {
       >
         <div>
           <p class="mono-label">Своя игра</p>
-          <h2 class="mt-1 font-display text-xl font-bold">Опишите идею — остальное соберём мы</h2>
+          <h2 class="mt-1 font-display text-xl font-bold">Расскажите, во что хотите сыграть</h2>
           <p class="mt-1 text-xs text-muted">
-            Первая генерация бесплатна: стартовый баланс {{ formatNumber(1_000_000) }} токенов.
+            Первая игра — за наш счёт: при регистрации даём {{ formatNumber(1_000_000) }} токенов.
           </p>
         </div>
         <RouterLink

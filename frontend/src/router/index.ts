@@ -86,7 +86,7 @@ router.beforeEach(async (to) => {
 
 router.afterEach((to) => {
   const title = typeof to.meta.title === 'string' ? to.meta.title : ''
-  document.title = title ? `${title} — BeeVibe` : 'BeeVibe — игры из промпта'
+  document.title = title ? `${title} — BeeVibe` : 'BeeVibe — игры из одной фразы'
 })
 
 export default router

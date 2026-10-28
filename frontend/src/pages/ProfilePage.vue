@@ -53,8 +53,8 @@ const emailInitial = computed(() => auth.user?.email?.slice(0, 1).toUpperCase() 
 
 const reasonLabels: Record<string, string> = {
   signup_grant: 'Стартовый бонус',
-  generate: 'Генерация игры',
-  patch: 'Патч',
+  generate: 'Сборка игры',
+  patch: 'Правка игры',
   topup: 'Пополнение',
   refund: 'Возврат',
 }
@@ -221,7 +221,7 @@ onMounted(() => {
             </p>
           </div>
           <div class="bg-canvas/45 p-4">
-            <p class="mono-label">Готовы</p>
+            <p class="mono-label">Готовых</p>
             <p class="mt-2 font-display text-2xl font-bold">{{ formatNumber(readyGames) }}</p>
           </div>
           <div class="bg-canvas/45 p-4">
@@ -386,8 +386,8 @@ onMounted(() => {
               </div>
             </div>
             <p class="mt-3 text-xs leading-5 text-muted">
-              Добавьте в промпт героя, цель, управление и стиль. Чем конкретнее идея, тем меньше
-              правок понадобится после первой сборки.
+              Добавьте в описание героя, цель, управление и стиль — чем конкретнее идея, тем меньше
+              правок понадобится после сборки.
             </p>
             <div class="mt-4 flex flex-wrap gap-1.5">
               <span
@@ -438,7 +438,7 @@ onMounted(() => {
               >
                 <div>
                   <p class="text-xs font-bold">Новая игра</p>
-                  <p class="mt-0.5 text-[10px] text-faint">полный проход конвейера</p>
+                  <p class="mt-0.5 text-[10px] text-faint">полная сборка с нуля</p>
                 </div>
                 <span class="font-mono text-xs font-bold">{{
                   formatTokens(profile?.prices.generate ?? 0)
@@ -448,8 +448,8 @@ onMounted(() => {
                 class="flex items-center justify-between rounded-xl border border-line bg-canvas/35 px-3.5 py-3"
               >
                 <div>
-                  <p class="text-xs font-bold">Патч</p>
-                  <p class="mt-0.5 text-[10px] text-faint">правка существующей игры</p>
+                  <p class="text-xs font-bold">Правка</p>
+                  <p class="mt-0.5 text-[10px] text-faint">изменение готовой игры</p>
                 </div>
                 <span class="font-mono text-xs font-bold">{{
                   formatTokens(profile?.prices.patch ?? 0)
@@ -543,7 +543,7 @@ onMounted(() => {
       :draggable="false"
     >
       <p class="text-xs leading-5 text-muted">
-        Демо-пополнение без реальной оплаты: сумма ограничена сервером, действует суточный лимит.
+        Это демо-токены: реальных денег не нужно. На пополнение есть суточный лимит.
       </p>
       <div class="mt-4 flex flex-wrap gap-2">
         <button

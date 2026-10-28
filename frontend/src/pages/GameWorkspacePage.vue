@@ -107,9 +107,9 @@ function stageTitle(stage: string): string {
     case 'coding':
       return 'кода'
     case 'assets':
-      return 'ассетов'
+      return 'графики'
     default:
-      return 'конвейера'
+      return 'сборки'
   }
 }
 
@@ -136,7 +136,7 @@ function regenerateCode(): void {
   confirm.require({
     header: 'Сгенерировать код заново?',
     message:
-      'Спека, план и ассеты сохранятся — заново пойдёт только этап кода. Это займёт время, но не полный проход конвейера.',
+      'Спека, план и графика останутся — заново пройдёт только этап кода. Это быстрее полной сборки.',
     acceptLabel: 'Перегенерировать код',
     rejectLabel: 'Оставить как есть',
     accept: async () => {
@@ -336,7 +336,7 @@ async function saveConfig(): Promise<void> {
 function rollback(version: GameVersion): void {
   confirm.require({
     header: 'Откатить версию?',
-    message: `Игра вернётся к версии #${version.number}. Текущий playable будет заменён.`,
+    message: `Игра вернётся к версии #${version.number}. Сейчас в игре другая версия — эта заменит её.`,
     acceptLabel: 'Откатить',
     rejectLabel: 'Отмена',
     accept: async () => {
@@ -489,7 +489,7 @@ async function retryGame(): Promise<void> {
       summary: 'Сборка перезапущена',
       detail: label
         ? `Продолжаем с этапа «${label}» — пройденные шаги сохранены.`
-        : 'Конвейер начнёт с первого этапа.',
+        : 'Сборка начнётся с первого этапа.',
       life: 3200,
     })
   } catch (err) {
@@ -759,11 +759,10 @@ onBeforeUnmount(() => {
                   <AppIcon name="alert" :size="20" />
                 </span>
                 <div class="flex-1">
-                  <h2 class="font-display text-lg font-bold">Ревью нашло замечания</h2>
+                  <h2 class="font-display text-lg font-bold">Проверка нашла замечания</h2>
                   <p class="mt-1.5 text-xs leading-5 text-muted">
-                    Конвейер остановился, чтобы не тратить время на перегенерацию без вашего
-                    согласия. Оставьте код как есть — соберём версию из него, — или перегенерируйте
-                    только код.
+                    Сборка остановилась, чтобы не переделывать игру без вашего согласия. Примите код
+                    как есть — соберём версию из него, — или попросите переписать код.
                   </p>
 
                   <ul v-if="reviewIssues.length" class="mt-3 space-y-1.5">
@@ -802,8 +801,8 @@ onBeforeUnmount(() => {
                   </div>
 
                   <p class="mt-3 text-[10px] leading-4 text-faint">
-                    «Оставить как есть» продолжает с этапа {{ stageTitle('assembling') }} — быстро и
-                    без новых вызовов модели. Перегенерация начинается с этапа кода.
+                    «Оставить как есть» продолжит с этапа {{ stageTitle('assembling') }} — быстро и
+                    без вызова модели. Перегенерация начнётся с этапа кода.
                   </p>
                 </div>
               </div>
@@ -817,10 +816,10 @@ onBeforeUnmount(() => {
                   <AppIcon name="alert" :size="20" />
                 </span>
                 <div class="flex-1">
-                  <h2 class="font-display text-lg font-bold">Конвейер остановился</h2>
+                  <h2 class="font-display text-lg font-bold">Сборка остановилась</h2>
                   <p class="mt-1.5 text-xs leading-5 text-muted">
-                    Игра не собралась. Запустите починку — агент получит контекст ошибки и попробует
-                    собрать новую версию.
+                    Игра не собралась. Запустите починку — агент посмотрит на ошибку и попробует
+                    снова.
                   </p>
                   <div class="mt-4 flex flex-wrap gap-2">
                     <Button
@@ -854,14 +853,14 @@ onBeforeUnmount(() => {
               v-if="game.isGenerating && !operation"
               :started-at="profileGame?.created_at"
               label="Нейросеть собирает игру"
-              hint="этапы конвейера ниже"
+              hint="этапы ниже"
               :expected-seconds="240"
             />
 
             <div v-if="game.isActive" class="panel overflow-hidden">
               <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
                 <div>
-                  <p class="mono-label">Live build</p>
+                  <p class="mono-label">Сейчас идёт</p>
                   <h2 class="mt-1 font-display text-lg font-bold">
                     {{ game.isGenerating ? 'Сборка в реальном времени' : 'Правка в работе' }}
                   </h2>
@@ -909,7 +908,7 @@ onBeforeUnmount(() => {
                         {{ game.stages.filter((item) => item.issues).length }}
                       </p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-                        issues
+                        замечания
                       </p>
                     </div>
                   </div>
@@ -973,7 +972,7 @@ onBeforeUnmount(() => {
                 <span
                   class="size-4 animate-spin rounded-full border-2 border-line border-t-bee-deep"
                 />
-                <p class="text-xs text-muted">Спецификация появится после этапа планирования.</p>
+                <p class="text-xs text-muted">Спецификация появится после этапа плана.</p>
               </div>
             </div>
 
@@ -986,7 +985,7 @@ onBeforeUnmount(() => {
                   <h2 class="mt-1 font-display text-xl font-bold">Изменить игру</h2>
                 </div>
                 <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
-                  патч · {{ formatTokens(auth.prices.patch) }} токенов
+                  правка · {{ formatTokens(auth.prices.patch) }} токенов
                 </span>
               </div>
 
@@ -1035,7 +1034,8 @@ onBeforeUnmount(() => {
 
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <p class="text-[10px] leading-4 text-faint">
-                    Патч создаёт новую версию. Старые можно вернуть в списке версий ниже.
+                    Правка создаёт новую версию — старые остаются в истории, к любой можно
+                    вернуться.
                   </p>
                   <Button
                     class="bee-button"
@@ -1044,7 +1044,7 @@ onBeforeUnmount(() => {
                     @click="sendPatch"
                   >
                     <AppIcon name="wand" :size="15" />
-                    <span class="ml-1.5">Применить патч</span>
+                    <span class="ml-1.5">Применить правку</span>
                   </Button>
                 </div>
               </div>
@@ -1111,7 +1111,7 @@ onBeforeUnmount(() => {
                   class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4"
                 >
                   <p class="text-[10px] leading-4 text-faint">
-                    Тюнинг применяется к игре без вызова LLM и создаёт новую версию.
+                    Настройки применяются без модели и тоже создают новую версию.
                   </p>
                   <Button
                     class="p-button-secondary"
@@ -1210,8 +1210,7 @@ onBeforeUnmount(() => {
                 class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5"
               >
                 <p class="text-[10px] leading-4 text-faint">
-                  Ручная правка бесплатна. В каталоге и на публичной странице показывается название,
-                  пока его нет — промпт.
+                  Ручная правка бесплатна. В каталоге видно название, а пока его нет — ваша идея.
                 </p>
                 <div class="flex flex-wrap gap-2">
                   <Button
@@ -1290,7 +1289,7 @@ onBeforeUnmount(() => {
             <div v-if="game.spec" class="panel p-5 sm:p-6">
               <div class="flex items-start justify-between gap-4">
                 <div>
-                  <p class="mono-label">Game spec</p>
+                  <p class="mono-label">Спецификация</p>
                   <h2 class="mt-1 font-display text-xl font-bold">Что за игра</h2>
                 </div>
                 <span
@@ -1468,7 +1467,7 @@ onBeforeUnmount(() => {
                   <span class="font-mono text-muted">{{ game.game.cost.fixes }}</span>
                 </p>
                 <p class="flex items-center justify-between gap-2">
-                  <span>Промпт</span>
+                  <span>Идея</span>
                   <span class="font-mono text-muted">{{ promptText.length }} симв.</span>
                 </p>
               </div>

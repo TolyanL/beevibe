@@ -65,7 +65,7 @@ const meta = computed(() => statusMeta(props.status))
   <div>
     <div class="mb-4 flex items-center justify-between gap-4">
       <div>
-        <p class="mono-label">Конвейер</p>
+        <p class="mono-label">Этапы сборки</p>
         <p class="mt-1 text-sm font-bold">{{ meta.label }}</p>
       </div>
       <span class="font-mono text-xs font-bold tabular-nums text-muted">{{ progress }}%</span>

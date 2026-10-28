@@ -180,7 +180,7 @@ async function submit(): Promise<void> {
 
     toast.add({
       severity: 'success',
-      summary: 'Конвейер запущен',
+      summary: 'Сборка запущена',
       detail: 'Игра появится в рабочем пространстве через несколько минут.',
       life: 3500,
     })
@@ -212,13 +212,13 @@ onMounted(() => {
 
         <div class="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="animate-rise">
-            <div class="eyebrow">Конвейер агентов</div>
+            <div class="eyebrow">Сборка игры</div>
             <h1 class="display-title mt-3 text-[clamp(2.2rem,4.6vw,3.4rem)]">
               Собери игру из фразы
             </h1>
             <p class="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              Опишите идею — восемь агентов соберут спецификацию, код и визуал, а вы получите
-              playable в браузере. Правки промптом, версии и публичная ссылка — сразу.
+              Опишите идею — агенты придумают правила, напишут код и нарисуют графику. Получится
+              страница с игрой: открыть в браузере, править словами, показать друзьям.
             </p>
           </div>
 
@@ -262,7 +262,7 @@ onMounted(() => {
           <div class="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,.65fr)]">
             <form class="p-5 sm:p-7 lg:p-8" @submit.prevent="submit">
               <div class="flex items-center justify-between gap-3">
-                <label for="prompt" class="mono-label">Промпт игры</label>
+                <label for="prompt" class="mono-label">Идея игры</label>
                 <span class="font-mono text-[10px] tabular-nums text-faint"
                   >{{ prompt.length }} / {{ maxPrompt }}</span
                 >
@@ -280,7 +280,7 @@ onMounted(() => {
               />
 
               <div class="mt-3 flex flex-wrap items-center gap-2">
-                <span class="mr-1 text-[11px] font-semibold text-faint">Быстрый старт:</span>
+                <span class="mr-1 text-[11px] font-semibold text-faint">Начните с примера:</span>
                 <button
                   v-for="example in examples"
                   :key="example.label"
@@ -293,7 +293,7 @@ onMounted(() => {
               </div>
 
               <div class="mt-6">
-                <label class="mono-label mb-2 block">Название (необязательно)</label>
+                <label class="mono-label mb-2 block">Название (по желанию)</label>
                 <InputText
                   v-model="title"
                   maxlength="80"
@@ -456,8 +456,8 @@ onMounted(() => {
                 </div>
 
                 <p class="mt-2 text-[10px] leading-4 text-faint">
-                  Название и описание можно изменить в воркспейсе после сборки — вручную или
-                  автогенерацией.
+                  Название и описание можно будет изменить после сборки — вручную или попросить у
+                  модели.
                 </p>
               </div>
 
@@ -485,7 +485,7 @@ onMounted(() => {
                   :disabled="!canSubmit"
                 >
                   <AppIcon name="spark" :size="17" />
-                  <span class="ml-2">{{ submitting ? 'Запускаем…' : 'Запустить конвейер' }}</span>
+                  <span class="ml-2">{{ submitting ? 'Запускаем…' : 'Собрать игру' }}</span>
                   <AppIcon name="arrow-right" :size="16" class="ml-2" />
                 </Button>
               </div>
@@ -513,20 +513,20 @@ onMounted(() => {
                   class="flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white/40"
                 >
                   <span class="size-1.5 animate-pulse-soft rounded-full bg-bee" />
-                  внутри конвейера
+                  внутри сборки
                 </p>
                 <h3 class="mt-5 font-display text-2xl font-bold leading-tight">
-                  От идеи до playable за один проход
+                  От идеи до игры — один проход
                 </h3>
 
                 <div class="mt-7 space-y-0">
                   <div
                     v-for="(step, index) in [
-                      'Анализ промпта',
-                      'План и механика',
-                      'Генерация HTML',
+                      'Разбор идеи',
+                      'План и правила',
+                      'Код игры',
                       'Ревью и сборка',
-                      'Playable-релиз',
+                      'Готовая игра',
                     ]"
                     :key="step"
                     class="flex gap-3"
@@ -550,16 +550,16 @@ onMounted(() => {
                   </div>
                   <ul class="mt-3 space-y-2 text-[11px] leading-4 text-white/45">
                     <li class="flex gap-2">
-                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> готовую игру без
-                      сборки
+                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> игру, которая
+                      открывается в браузере
                     </li>
                     <li class="flex gap-2">
-                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> правки промптом и
-                      настройками
+                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> правки словами и
+                      готовыми настройками
                     </li>
                     <li class="flex gap-2">
-                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> версии, откат и
-                      публичную ссылку
+                      <AppIcon name="check" :size="12" class="mt-0.5 text-bee" /> историю версий,
+                      откат и публичную ссылку
                     </li>
                   </ul>
                 </div>

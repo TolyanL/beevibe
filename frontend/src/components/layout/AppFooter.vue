@@ -7,6 +7,7 @@ import BrandMark from './BrandMark.vue'
 const auth = useAuthStore()
 const router = useRouter()
 const loggingOut = ref(false)
+const year = new Date().getFullYear()
 
 async function logout(): Promise<void> {
   loggingOut.value = true
@@ -26,8 +27,8 @@ async function logout(): Promise<void> {
         <div class="max-w-sm">
           <BrandMark />
           <p class="mt-4 text-sm leading-6 text-muted">
-            Промпт превращается в self-contained HTML5-игру: конвейер агентов, playable-превью,
-            правки и каталог.
+            Одна фраза — и в браузере появляется игра: агенты пишут правила, код и графику. Дальше —
+            правки словами и общий каталог, где игры можно потрогать.
           </p>
         </div>
 
@@ -70,8 +71,7 @@ async function logout(): Promise<void> {
       <div
         class="mt-10 flex flex-col gap-2 border-t border-line/60 pt-5 text-[11px] text-faint sm:flex-row sm:items-center sm:justify-between"
       >
-        <p>BeeVibe · игры, которые собираются из идеи</p>
-        <p class="font-mono uppercase tracking-[0.13em]">Vue · OpenVue · Tailwind</p>
+        <p>© {{ year }} BeeVibe</p>
       </div>
     </div>
   </footer>
