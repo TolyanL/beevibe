@@ -1,0 +1,17 @@
+.git
+.github
+.agents
+.opencode
+.pi
+_dev
+_templates
+
+**/node_modules
+frontend/dist
+frontend/dist-ssr
+
+backend/bin
+**/configs/config.yaml
+**/.env
+**/*.log
+**/coverage.out
