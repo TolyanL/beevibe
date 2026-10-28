@@ -237,6 +237,7 @@ export interface CatalogPage {
 export interface CreateGameInput {
   prompt: string
   title?: string
+  description?: string
   customGenre?: string
   customStyle?: string
   genre?: Genre
