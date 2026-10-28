@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -19,6 +21,7 @@ import (
 	"github.com/TolyanL/beevibe/pkg/httpserver"
 	"github.com/TolyanL/beevibe/pkg/llm"
 	pgpool "github.com/TolyanL/beevibe/pkg/postgres"
+	"github.com/TolyanL/beevibe/pkg/static"
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
 
@@ -73,9 +76,20 @@ func Run(ctx context.Context, c config.Config) error {
 		},
 	})
 
+	spa, err := static.New(c.HTTP.StaticDir)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("static.New: %w", err)
+		}
+
+		log.Warn().Str("dir", c.HTTP.StaticDir).Msg("static dir not found, SPA serving disabled")
+
+		spa = nil
+	}
+
 	root := chi.NewRouter()
 	root.Mount("/api", v1.NewRouter(v1.New(uc)))
-	root.Mount("/", public.NewRouter(public.New(uc)))
+	root.Mount("/", public.NewRouter(public.New(uc), spa))
 
 	serverCtx, cancelServer := context.WithCancel(context.Background())
 	defer cancelServer()

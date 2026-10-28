@@ -9,6 +9,8 @@ http:
   write_timeout: 0s
   idle_timeout: 120s
   shutdown_timeout: 10s
+  # Built SPA (frontend/dist): a missing or empty directory disables SPA serving
+  static_dir: static
 
 logger:
   level: info

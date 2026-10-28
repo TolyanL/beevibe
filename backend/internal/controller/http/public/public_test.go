@@ -42,7 +42,7 @@ func newTestRouter(t *testing.T) (http.Handler, *usecasemocks.MockStore) {
 		usecase.Config{},
 	)
 
-	return NewRouter(New(uc)), store
+	return NewRouter(New(uc), nil), store
 }
 
 func TestGetGameServesHTML(t *testing.T) {

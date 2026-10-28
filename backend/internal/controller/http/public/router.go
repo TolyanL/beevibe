@@ -10,11 +10,15 @@ import (
 	"github.com/TolyanL/beevibe/pkg/logger"
 )
 
-func NewRouter(h *Handlers) http.Handler {
+func NewRouter(h *Handlers, spa http.Handler) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Recoverer)
 	r.Use(logger.Middleware)
+
+	if spa != nil {
+		r.NotFound(spa.ServeHTTP)
+	}
 
 	r.Group(func(r chi.Router) {
 		r.Use(h.OptionalAuth)
