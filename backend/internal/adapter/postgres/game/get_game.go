@@ -15,22 +15,22 @@ import (
 )
 
 type gameRow struct {
-	ID         uuid.UUID
-	OwnerID    uuid.UUID
-	Prompt     string
-	ParamsJSON []byte
-	SpecJSON   []byte
-	ConfigJSON []byte
-	Status     string
-	FailReason string
+	ID          uuid.UUID
+	OwnerID     uuid.UUID
+	Prompt      string
+	ParamsJSON  []byte
+	SpecJSON    []byte
+	ConfigJSON  []byte
+	Status      string
+	FailReason  string
 	Visibility  string
 	DeletedAt   *time.Time
 	Title       string
 	Description string
 	CoverJSON   []byte
 	Slug        string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (r *gameRow) Dest() []any {
@@ -43,18 +43,18 @@ func (r *gameRow) Dest() []any {
 
 func (r *gameRow) ToDomain() (domain.Game, error) {
 	game := domain.Game{
-		ID:         r.ID,
-		OwnerID:    r.OwnerID,
-		Prompt:     r.Prompt,
-		Status:     domain.Status(r.Status),
-		FailReason: r.FailReason,
+		ID:          r.ID,
+		OwnerID:     r.OwnerID,
+		Prompt:      r.Prompt,
+		Status:      domain.Status(r.Status),
+		FailReason:  r.FailReason,
 		Visibility:  domain.Visibility(r.Visibility),
 		DeletedAt:   r.DeletedAt,
 		Title:       r.Title,
 		Description: r.Description,
 		Slug:        r.Slug,
-		CreatedAt:  r.CreatedAt,
-		UpdatedAt:  r.UpdatedAt,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
 	}
 
 	if len(r.ParamsJSON) > 0 {

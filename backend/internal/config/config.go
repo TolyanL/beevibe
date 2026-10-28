@@ -28,14 +28,14 @@ type App struct {
 }
 
 type Tokens struct {
-	GrantSignup    int64 `yaml:"grant_signup"`
-	PriceGenerate  int64 `yaml:"price_generate"`
-	PricePatch     int64 `yaml:"price_patch"`
-	PriceMeta      int64 `yaml:"price_meta"`
-	TopupMin       int64 `yaml:"topup_min"`
-	TopupMax       int64 `yaml:"topup_max"`
-	TopupDailyCap  int64 `yaml:"topup_daily_cap"`
-	DemoTopup      bool  `yaml:"demo_topup"`
+	GrantSignup   int64 `yaml:"grant_signup"`
+	PriceGenerate int64 `yaml:"price_generate"`
+	PricePatch    int64 `yaml:"price_patch"`
+	PriceMeta     int64 `yaml:"price_meta"`
+	TopupMin      int64 `yaml:"topup_min"`
+	TopupMax      int64 `yaml:"topup_max"`
+	TopupDailyCap int64 `yaml:"topup_daily_cap"`
+	DemoTopup     bool  `yaml:"demo_topup"`
 }
 
 type LLMReasoning struct {
@@ -152,6 +152,7 @@ func Defaults() Config {
 			WriteTimeout:    0,
 			IdleTimeout:     120 * time.Second,
 			ShutdownTimeout: 10 * time.Second,
+			StaticDir:       "static",
 		},
 		Logger: logger.Config{
 			Level:  "info",

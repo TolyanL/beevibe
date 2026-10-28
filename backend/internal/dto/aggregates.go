@@ -39,11 +39,11 @@ type CatalogCard struct {
 	Genre       string            `json:"genre"`
 	CustomGenre string            `json:"custom_genre,omitempty"`
 	CustomStyle string            `json:"custom_style,omitempty"`
-	MapSize    string            `json:"map_size"`
-	Style      string            `json:"style"`
-	CreatedAt  time.Time         `json:"created_at"`
-	Rating     RatingAggregate   `json:"rating"`
-	Playtime   PlaytimeAggregate `json:"playtime"`
-	TokensCost int               `json:"tokens_cost"`
-	ModelCalls int               `json:"model_calls"`
+	MapSize     string            `json:"map_size"`
+	Style       string            `json:"style"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Rating      RatingAggregate   `json:"rating"`
+	Playtime    PlaytimeAggregate `json:"playtime"`
+	TokensCost  int               `json:"tokens_cost"`
+	ModelCalls  int               `json:"model_calls"`
 }

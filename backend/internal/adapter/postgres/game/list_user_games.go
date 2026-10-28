@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 	"github.com/TolyanL/beevibe/pkg/transaction"
+	"github.com/google/uuid"
 )
 
 const (
