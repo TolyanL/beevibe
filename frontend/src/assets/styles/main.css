@@ -306,6 +306,69 @@
     text-transform: uppercase;
   }
 
+  .p-toast .p-toast-message {
+    border: 1px solid var(--bv-line-strong);
+    border-radius: 1rem;
+    background: var(--bv-elevated);
+    color: var(--bv-text);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .p-toast .p-toast-summary {
+    color: var(--bv-text);
+    font-weight: 800;
+  }
+
+  .p-toast .p-toast-detail {
+    margin-top: 2px;
+    color: var(--bv-muted);
+  }
+
+  .p-toast .p-toast-message-icon {
+    color: var(--bv-text);
+  }
+
+  .p-toast .p-toast-message-success .p-toast-message-icon {
+    color: var(--bv-green);
+  }
+
+  .p-toast .p-toast-message-success {
+    border-color: color-mix(in srgb, var(--bv-green) 42%, transparent);
+  }
+
+  .p-toast .p-toast-message-info .p-toast-message-icon {
+    color: #3b82f6;
+  }
+
+  .p-toast .p-toast-message-info {
+    border-color: color-mix(in srgb, #3b82f6 42%, transparent);
+  }
+
+  .p-toast .p-toast-message-warn .p-toast-message-icon {
+    color: var(--bv-orange);
+  }
+
+  .p-toast .p-toast-message-warn {
+    border-color: color-mix(in srgb, var(--bv-orange) 42%, transparent);
+  }
+
+  .p-toast .p-toast-message-error .p-toast-message-icon {
+    color: var(--bv-red);
+  }
+
+  .p-toast .p-toast-message-error {
+    border-color: color-mix(in srgb, var(--bv-red) 42%, transparent);
+  }
+
+  .p-toast .p-toast-close-button {
+    color: var(--bv-muted);
+  }
+
+  .p-toast .p-toast-close-button:hover {
+    background: var(--bv-hover-surface);
+    color: var(--bv-text);
+  }
+
   .p-rating .p-rating-option {
     color: var(--bv-line-strong);
   }
