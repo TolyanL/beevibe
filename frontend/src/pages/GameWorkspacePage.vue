@@ -215,6 +215,7 @@ const canPatch = computed(
   () => patchText.value.trim().length >= 3 && !game.actionPending && !game.operation,
 )
 const showMaintenance = computed(() => game.isReady && !game.loading)
+const canEditMeta = computed(() => Boolean(game.game) && !game.loading)
 const editTabs = computed<
   { value: EditTab; label: string; icon: 'wand' | 'settings' | 'refresh' }[]
 >(() => [
@@ -1151,13 +1152,13 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <div v-if="showMaintenance" class="panel overflow-hidden">
+            <div v-if="canEditMeta" class="panel overflow-hidden">
               <div
                 class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4"
               >
                 <div>
-                  <p class="mono-label">Публикация</p>
-                  <h2 class="mt-1 font-display text-xl font-bold">Название и обложка</h2>
+                  <p class="mono-label">Карточка игры</p>
+                  <h2 class="mt-1 font-display text-xl font-bold">Название и описание</h2>
                 </div>
                 <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
                   мета · {{ formatTokens(auth.prices.meta) }} токенов
@@ -1210,13 +1211,14 @@ onBeforeUnmount(() => {
                 class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5"
               >
                 <p class="text-[10px] leading-4 text-faint">
-                  Ручная правка бесплатна. В каталоге видно название, а пока его нет — ваша идея.
+                  Ручная правка бесплатна и доступна в любой момент, даже пока идёт сборка.
+                  Автогенерация названия появится после сборки.
                 </p>
                 <div class="flex flex-wrap gap-2">
                   <Button
                     class="p-button-secondary"
                     :loading="metaGenerating || isMetaOperation"
-                    :disabled="Boolean(operation)"
+                    :disabled="Boolean(operation) || !game.isReady"
                     @click="generateMeta"
                   >
                     <AppIcon name="spark" :size="14" />
