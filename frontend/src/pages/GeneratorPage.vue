@@ -25,6 +25,7 @@ const style = ref<GameStyle>('neon')
 const customGenre = ref('')
 const customStyle = ref('')
 const title = ref('')
+const description = ref('')
 const mapSize = ref<MapSize>('medium')
 const tempo = ref(6)
 const advanced = ref(false)
@@ -34,7 +35,12 @@ const error = ref('')
 const maxPrompt = 2000
 const currentPrice = computed(() => auth.prices.generate)
 const previewTitle = computed(() => shortGameTitle(title.value, prompt.value))
-const previewDescription = computed(() => prompt.value.trim())
+const previewDescription = computed(
+  () =>
+    description.value.trim() ||
+    prompt.value.trim() ||
+    'Пара слов о том, во что играть, — её видно в каталоге',
+)
 const previewGenre = computed(() => genreLabel(genre.value, customGenre.value))
 const previewStyle = computed(() => styleLabel(style.value, customStyle.value))
 const previewCover = computed(() => {
@@ -42,7 +48,6 @@ const previewCover = computed(() => {
 
   return { background: `linear-gradient(135deg, ${palette[0]}, ${palette[1]})` }
 })
-const hasPreview = computed(() => prompt.value.trim().length >= 3)
 const activeGame = computed(() => {
   const busy = [
     'queued',
@@ -170,6 +175,7 @@ async function submit(): Promise<void> {
     const id = await game.create({
       prompt: prompt.value.trim(),
       title: title.value.trim() || undefined,
+      description: description.value.trim() || undefined,
       genre: genre.value,
       style: style.value,
       customGenre: genre.value === 'custom' ? customGenre.value.trim() : undefined,
@@ -261,7 +267,44 @@ onMounted(() => {
         <div class="panel overflow-hidden">
           <div class="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,.65fr)]">
             <form class="p-5 sm:p-7 lg:p-8" @submit.prevent="submit">
-              <div class="flex items-center justify-between gap-3">
+              <div class="grid gap-4">
+                <div>
+                  <label for="game-title" class="mono-label mb-2 block"
+                    >Название (по желанию)</label
+                  >
+                  <InputText
+                    id="game-title"
+                    v-model="title"
+                    maxlength="80"
+                    class="w-full"
+                    placeholder="Например: Кристаллы"
+                  />
+                </div>
+                <div>
+                  <div class="mb-2 flex items-center justify-between">
+                    <label for="game-description" class="mono-label">Описание (по желанию)</label>
+                    <span class="font-mono text-[10px] tabular-nums text-faint"
+                      >{{ description.length }} / 500</span
+                    >
+                  </div>
+                  <Textarea
+                    id="game-description"
+                    v-model="description"
+                    rows="2"
+                    auto-resize
+                    maxlength="500"
+                    class="w-full text-[13px] leading-6"
+                    placeholder="Например: аркада про змейку, которая растёт от съеденных кристаллов"
+                  />
+                </div>
+              </div>
+
+              <p class="mt-2 text-[10px] leading-4 text-faint">
+                Можно оставить пустыми — название и описание придумаем после сборки вместе с
+                обложкой.
+              </p>
+
+              <div class="mt-6 flex items-center justify-between gap-3">
                 <label for="prompt" class="mono-label">Идея игры</label>
                 <span class="font-mono text-[10px] tabular-nums text-faint"
                   >{{ prompt.length }} / {{ maxPrompt }}</span
@@ -290,16 +333,6 @@ onMounted(() => {
                 >
                   {{ example.label }}
                 </button>
-              </div>
-
-              <div class="mt-6">
-                <label class="mono-label mb-2 block">Название (по желанию)</label>
-                <InputText
-                  v-model="title"
-                  maxlength="80"
-                  class="w-full"
-                  placeholder="Например: Кристаллы"
-                />
               </div>
 
               <div class="mt-4 grid gap-4 sm:grid-cols-2">
@@ -418,49 +451,6 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div v-if="hasPreview" class="mt-6 rounded-2xl border border-line bg-canvas/45 p-3.5">
-                <p class="mono-label">Так игра появится в каталоге</p>
-
-                <div class="mt-2.5 overflow-hidden rounded-xl border border-line bg-surface/80">
-                  <div
-                    class="relative flex aspect-[16/6] max-h-56 items-end p-3"
-                    :style="previewCover"
-                  >
-                    <div class="dot-grid absolute inset-0 opacity-40" />
-                    <span
-                      v-if="previewGenre"
-                      class="relative rounded-full border border-white/15 bg-black/35 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/85 backdrop-blur"
-                    >
-                      {{ previewGenre }}
-                    </span>
-                  </div>
-
-                  <div class="p-3">
-                    <p
-                      class="line-clamp-1 text-[14px] font-bold leading-snug"
-                      :title="previewTitle"
-                    >
-                      {{ previewTitle }}
-                    </p>
-                    <p class="mt-1 line-clamp-2 text-[11px] leading-5 text-muted">
-                      {{ previewDescription }}
-                    </p>
-                    <p
-                      class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint"
-                    >
-                      <span v-if="previewStyle">{{ previewStyle }}</span>
-                      <span v-if="previewStyle" class="size-0.5 rounded-full bg-faint" />
-                      <span>черновик · не опубликована</span>
-                    </p>
-                  </div>
-                </div>
-
-                <p class="mt-2 text-[10px] leading-4 text-faint">
-                  Название и описание можно будет изменить после сборки — вручную или попросить у
-                  модели.
-                </p>
-              </div>
-
               <div
                 class="mt-6 flex flex-col justify-between gap-4 border-t border-line pt-5 sm:flex-row sm:items-center"
               >
@@ -540,6 +530,44 @@ onMounted(() => {
                       <span v-if="index < 4" class="my-1 h-7 w-px bg-white/10" />
                     </div>
                     <p class="pt-0.5 text-[12px] font-semibold text-white/65">{{ step }}</p>
+                  </div>
+                </div>
+
+                <div class="mt-7 rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-white/70">Карточка в каталоге</span>
+                    <AppIcon name="grid" :size="14" class="text-bee" />
+                  </div>
+
+                  <div
+                    class="mt-2.5 overflow-hidden rounded-xl border border-white/10 bg-[#0b0b09]"
+                  >
+                    <div class="relative flex aspect-[16/7] items-end p-2.5" :style="previewCover">
+                      <div class="dot-grid absolute inset-0 opacity-30" />
+                      <span
+                        class="relative rounded-full border border-white/15 bg-black/35 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.12em] text-white/80 backdrop-blur"
+                      >
+                        {{ previewGenre || 'жанр' }}
+                      </span>
+                    </div>
+                    <div class="p-3">
+                      <p
+                        class="line-clamp-1 text-[13px] font-bold leading-snug"
+                        :title="previewTitle"
+                      >
+                        {{ previewTitle }}
+                      </p>
+                      <p class="mt-1 line-clamp-2 text-[10px] leading-4 text-white/45">
+                        {{ previewDescription }}
+                      </p>
+                      <p
+                        class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[8px] uppercase tracking-[0.1em] text-white/35"
+                      >
+                        <span>{{ previewStyle || 'стиль' }}</span>
+                        <span class="size-0.5 rounded-full bg-white/30" />
+                        <span>черновик</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
 

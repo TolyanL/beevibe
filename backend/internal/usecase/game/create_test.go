@@ -143,3 +143,32 @@ func TestCreateReturnsConflictWhileIdempotencyInProgress(t *testing.T) {
 		t.Fatalf("Create() error = %v, want ErrIdempotencyInProgress", err)
 	}
 }
+
+func TestCreateStoresTitleAndDescription(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, outbox := newTestUseCase(t)
+
+	userID := uuid.New()
+	user := domain.User{ID: userID, Email: "user@example.com", TokenBalance: 1000}
+
+	store.EXPECT().GetUserByIDForUpdate(mock.Anything, userID).Return(user, nil)
+	store.EXPECT().UpdateUser(mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().InsertTokenOp(mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().CreateGame(mock.Anything, mock.MatchedBy(func(game domain.Game) bool {
+		return game.Title == "Неоновый хвост" &&
+			game.Description == "Аркада про змейку, которая растёт от кристаллов." &&
+			game.Prompt == "змейка"
+	})).Return(nil)
+	outbox.EXPECT().InsertOutboxEvent(mock.Anything, mock.Anything).Return(nil)
+
+	_, err := uc.Create(context.Background(), dto.CreateGameInput{
+		UserID:      userID,
+		Prompt:      "змейка",
+		Title:       " Неоновый хвост ",
+		Description: "Аркада про змейку, которая растёт от кристаллов.",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v, want nil", err)
+	}
+}
