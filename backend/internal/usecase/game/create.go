@@ -43,8 +43,8 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 		return output, fmt.Errorf("domain.NewGame: %w", err)
 	}
 
-	if input.Title != "" {
-		if err := game.SetMeta(input.Title, "", nil); err != nil {
+	if input.Title != "" || input.Description != "" {
+		if err := game.SetMeta(input.Title, input.Description, nil); err != nil {
 			return output, fmt.Errorf("game.SetMeta: %w", err)
 		}
 	}
