@@ -241,6 +241,7 @@ cd frontend
 bun run type-check   # vue-tsc
 bun run check        # oxlint + ESLint, zero warnings
 bun run format:check # oxfmt
+bun run test         # vitest: api layer and page behaviour
 bun run build        # type-check + production bundle
 ```
 

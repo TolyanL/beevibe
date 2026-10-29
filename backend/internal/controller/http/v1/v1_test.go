@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -92,11 +93,15 @@ func (e *testEnv) expectSession(userID uuid.UUID) {
 }
 
 func (e *testEnv) gamePath(gameID uuid.UUID) string {
-	slug := gameID.String()
+	slug := gameSlugOf(gameID)
 
 	e.store.EXPECT().GetGameBySlug(mock.Anything, slug).Return(domain.Game{ID: gameID}, nil).Maybe()
 
 	return "/games/" + slug
+}
+
+func gameSlugOf(gameID uuid.UUID) string {
+	return "game-" + strings.ReplaceAll(gameID.String(), "-", "")[:8]
 }
 
 func (e *testEnv) do(req *http.Request) *httptest.ResponseRecorder {

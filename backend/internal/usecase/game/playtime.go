@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -24,11 +25,21 @@ func (u *UseCase) RecordPlaytime(ctx context.Context, input dto.RecordPlaytimeIn
 	seconds := domain.ClampPlaytime(input.Seconds)
 	userID := input.UserID
 
+	game, err := u.store.GetGame(ctx, input.GameID)
+	if err != nil {
+		return output, fmt.Errorf("store.GetGame: %w", err)
+	}
+
+	if !visibleTo(game, &userID) {
+		return output, domain.ErrNotFound
+	}
+
 	session := domain.PlaySession{
-		ID:      uuid.New(),
-		GameID:  input.GameID,
-		UserID:  &userID,
-		Seconds: seconds,
+		ID:        uuid.New(),
+		GameID:    input.GameID,
+		UserID:    &userID,
+		Seconds:   seconds,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	if err := u.store.InsertPlaySession(ctx, session); err != nil {

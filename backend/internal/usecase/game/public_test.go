@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -21,12 +22,13 @@ func TestGetPublicCardReturnsCardWithoutViewer(t *testing.T) {
 	createdAt := time.Now().UTC()
 
 	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
-		ID:        gameID,
-		OwnerID:   uuid.New(),
-		Prompt:    "змейка в неоне",
-		Params:    domain.GameParams{Genre: domain.GenreSnake, Style: domain.StyleNeon, MapSize: domain.MapSizeMedium},
-		Status:    domain.StatusReady,
-		CreatedAt: createdAt,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Prompt:     "змейка в неоне",
+		Params:     domain.GameParams{Genre: domain.GenreSnake, Style: domain.StyleNeon, MapSize: domain.MapSizeMedium},
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
+		CreatedAt:  createdAt,
 	}, nil)
 	store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{
 		ID:          uuid.New(),
@@ -67,10 +69,11 @@ func TestGetPublicCardIncludesViewerRating(t *testing.T) {
 	gameID := uuid.New()
 
 	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
-		ID:      gameID,
-		OwnerID: uuid.New(),
-		Prompt:  "змейка",
-		Status:  domain.StatusReady,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Prompt:     "змейка",
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
 	}, nil)
 	store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{
 		ID:          uuid.New(),
@@ -104,10 +107,11 @@ func TestGetPublicCardMarksOwner(t *testing.T) {
 	gameID := uuid.New()
 
 	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
-		ID:      gameID,
-		OwnerID: ownerID,
-		Prompt:  "змейка",
-		Status:  domain.StatusReady,
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Prompt:     "змейка",
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
 	}, nil)
 	store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{
 		ID:          uuid.New(),
@@ -137,10 +141,11 @@ func TestGetPublicCardToleratesMissingViewerRating(t *testing.T) {
 	gameID := uuid.New()
 
 	store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
-		ID:      gameID,
-		OwnerID: uuid.New(),
-		Prompt:  "змейка",
-		Status:  domain.StatusReady,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Prompt:     "змейка",
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
 	}, nil)
 	store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{
 		ID:          uuid.New(),
@@ -158,5 +163,59 @@ func TestGetPublicCardToleratesMissingViewerRating(t *testing.T) {
 
 	if output.MyRating != 0 {
 		t.Errorf("myRating = %d, want 0", output.MyRating)
+	}
+}
+
+func TestGetPublicCardHidesPrivateGameFromStranger(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	viewerID := uuid.New()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "chernovik-1a2b").Return(domain.Game{
+		ID:         uuid.New(),
+		OwnerID:    uuid.New(),
+		Prompt:     "черновик",
+		Visibility: domain.VisibilityPrivate,
+		Status:     domain.StatusReady,
+	}, nil)
+
+	if _, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "chernovik-1a2b", ViewerID: &viewerID}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("GetPublicCard() error = %v, want ErrNotFound", err)
+	}
+
+	if _, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "chernovik-1a2b"}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("GetPublicCard() error = %v, want ErrNotFound for anonymous viewer", err)
+	}
+}
+
+func TestGetPublicCardShowsDraftToOwner(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGameBySlug(mock.Anything, "chernovik-1a2b").Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Prompt:     "черновик",
+		Visibility: domain.VisibilityPrivate,
+		Status:     domain.StatusCoding,
+	}, nil)
+	store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{ID: ownerID, DisplayName: "Автор"}, nil)
+	store.EXPECT().GetRatingAggregate(mock.Anything, gameID).Return(dto.RatingAggregate{}, nil)
+	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{}, nil)
+	store.EXPECT().GetRating(mock.Anything, gameID, ownerID).Return(domain.Rating{}, domain.ErrNotFound)
+
+	output, err := uc.GetPublicCard(context.Background(), dto.GetGamePublicCardInput{Slug: "chernovik-1a2b", ViewerID: &ownerID})
+	if err != nil {
+		t.Fatalf("GetPublicCard() error = %v, want nil", err)
+	}
+
+	if !output.IsOwner {
+		t.Error("isOwner = false, want true for the owner of a draft")
 	}
 }

@@ -38,3 +38,6 @@ jobs:
 
       - name: 🧪 Lint oxlint & eslint
         run: bun run check
+
+      - name: 🧪 Unit tests
+        run: bun run test

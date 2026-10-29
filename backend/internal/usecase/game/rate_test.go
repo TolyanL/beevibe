@@ -21,9 +21,10 @@ func TestRateStoresRatingAndReturnsAggregate(t *testing.T) {
 	gameID := uuid.New()
 
 	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
-		ID:      gameID,
-		OwnerID: uuid.New(),
-		Status:  domain.StatusReady,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
 	}, nil)
 	store.EXPECT().UpsertRating(mock.Anything, mock.MatchedBy(func(rating domain.Rating) bool {
 		return rating.GameID == gameID && rating.UserID == userID && rating.Value == domain.Rating5
@@ -99,8 +100,15 @@ func TestRecordPlaytimeStoresSession(t *testing.T) {
 	userID := uuid.New()
 	gameID := uuid.New()
 
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
+	}, nil)
 	store.EXPECT().InsertPlaySession(mock.Anything, mock.MatchedBy(func(session domain.PlaySession) bool {
-		return session.GameID == gameID && session.Seconds == 120 && session.UserID != nil && *session.UserID == userID
+		return session.GameID == gameID && session.Seconds == 120 && session.UserID != nil &&
+			*session.UserID == userID && !session.CreatedAt.IsZero()
 	})).Return(nil)
 	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{Seconds: 900}, nil)
 
@@ -126,6 +134,12 @@ func TestRecordPlaytimeStoresMaxSessionLength(t *testing.T) {
 	userID := uuid.New()
 	gameID := uuid.New()
 
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
+	}, nil)
 	store.EXPECT().InsertPlaySession(mock.Anything, mock.MatchedBy(func(session domain.PlaySession) bool {
 		return session.Seconds == domain.MaxPlaytimeSeconds
 	})).Return(nil)
@@ -213,5 +227,100 @@ func TestRollbackRejectsGameInProgress(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrGenerationInProgress) {
 		t.Fatalf("Rollback() error = %v, want ErrGenerationInProgress", err)
+	}
+}
+
+func TestRateHidesUnpublishedGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPrivate,
+		Status:     domain.StatusReady,
+	}, nil)
+
+	if _, err := uc.Rate(context.Background(), dto.RateGameInput{
+		UserID: uuid.New(),
+		GameID: gameID,
+		Value:  5,
+	}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("Rate() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestRateHidesGameThatIsNotReady(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusCoding,
+	}, nil)
+
+	if _, err := uc.Rate(context.Background(), dto.RateGameInput{
+		UserID: uuid.New(),
+		GameID: gameID,
+		Value:  5,
+	}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("Rate() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestRecordPlaytimeHidesUnpublishedGame(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPrivate,
+		Status:     domain.StatusReady,
+	}, nil)
+
+	if _, err := uc.RecordPlaytime(context.Background(), dto.RecordPlaytimeInput{
+		UserID:  uuid.New(),
+		GameID:  gameID,
+		Seconds: 60,
+	}); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("RecordPlaytime() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestRecordPlaytimeLetsOwnerTrackDraft(t *testing.T) {
+	t.Parallel()
+
+	uc, store, _, _, _ := newTestUseCase(t)
+
+	ownerID := uuid.New()
+	gameID := uuid.New()
+
+	store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    ownerID,
+		Visibility: domain.VisibilityPrivate,
+		Status:     domain.StatusCoding,
+	}, nil)
+	store.EXPECT().InsertPlaySession(mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().GetPlaytimeAggregate(mock.Anything, gameID).Return(dto.PlaytimeAggregate{Seconds: 60}, nil)
+
+	if _, err := uc.RecordPlaytime(context.Background(), dto.RecordPlaytimeInput{
+		UserID:  ownerID,
+		GameID:  gameID,
+		Seconds: 60,
+	}); err != nil {
+		t.Fatalf("RecordPlaytime() error = %v, want nil", err)
 	}
 }
