@@ -56,7 +56,7 @@ are mounted at the root. The service name is `beevibe`.
 No auth.
 
 ```json
-{ "status": "ok", "version": "0.1.0" }
+{ "status": "ok", "version": "1.1.1" }
 ```
 
 The version comes from `app.version` in the config.
