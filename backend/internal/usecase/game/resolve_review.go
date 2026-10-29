@@ -15,8 +15,6 @@ const (
 	reviewRegenerate = "regenerate"
 )
 
-// ResolveReview применяет решение автора по замечаниям ревью: принять текущий
-// код и собрать версию или перегенерировать только код, не повторяя весь путь.
 func (u *UseCase) ResolveReview(ctx context.Context, input dto.ResolveReviewInput) (dto.ResolveReviewOutput, error) {
 	ctx, span := tracer.Start(ctx, "usecase game ResolveReview")
 	defer span.End()

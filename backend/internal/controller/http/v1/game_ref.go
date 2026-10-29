@@ -19,8 +19,6 @@ func gameIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return gameID, ok
 }
 
-// ResolveGame пускает к ручкам игры и по uuid, и по slug: ссылки в интерфейсе
-// читаемые, а старые адреса с идентификатором продолжают работать.
 func (h *Handlers) ResolveGame(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ref := chi.URLParam(r, "id")

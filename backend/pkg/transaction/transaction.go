@@ -45,8 +45,7 @@ func Wrap(ctx context.Context, fn func(ctx context.Context) error) error {
 	return nil
 }
 
-// NOTE: the seam exists for the adapter tests: they put a mocked DBTX into the
-// context instead of spawning a real pool.
+// NOTE: the seam lets adapter tests inject a mocked DBTX instead of a real pool.
 func WithDBTX(ctx context.Context, db postgres.DBTX) context.Context {
 	return context.WithValue(ctx, dbtxKey{}, db)
 }

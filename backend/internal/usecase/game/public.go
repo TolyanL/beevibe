@@ -110,8 +110,6 @@ func (u *UseCase) gameBySlug(ctx context.Context, slug string) (domain.Game, err
 	return game, nil
 }
 
-// visibleTo пускает автора к своей игре в любом статусе: превью в рабочем
-// пространстве не должно зависеть от публикации.
 func visibleTo(game domain.Game, viewerID *uuid.UUID) bool {
 	if game.IsPublic() {
 		return true

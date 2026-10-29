@@ -125,9 +125,6 @@ func (u *UseCase) RunPipeline(ctx context.Context, game domain.Game) error {
 	return nil
 }
 
-// restorePipeline поднимает артефакты прошлых попыток и говорит, с какого
-// этапа продолжать: перезапуск после сбоя не должен тратить токены на уже
-// пройденные шаги.
 func (u *UseCase) restorePipeline(ctx context.Context, p *pipeline) (domain.Status, error) {
 	events, err := u.store.ListGenEvents(ctx, p.game.ID, 0)
 	if err != nil {

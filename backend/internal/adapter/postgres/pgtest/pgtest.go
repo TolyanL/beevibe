@@ -14,7 +14,6 @@ import (
 	"github.com/TolyanL/beevibe/pkg/transaction"
 )
 
-// DB — мок соединения, положенный в контекст: адаптеры берут его через transaction.TryExtractTX.
 func DB(t *testing.T) (*dbtxmocks.MockDBTX, context.Context) {
 	t.Helper()
 
@@ -23,7 +22,6 @@ func DB(t *testing.T) (*dbtxmocks.MockDBTX, context.Context) {
 	return db, transaction.WithDBTX(context.Background(), db)
 }
 
-// Row — мок pgx.Row, чей Scan раскладывает значения по destination-указателям.
 func Row(t *testing.T, values ...any) *pgmocks.MockRow {
 	t.Helper()
 
@@ -35,7 +33,6 @@ func Row(t *testing.T, values ...any) *pgmocks.MockRow {
 	return row
 }
 
-// RowError — мок pgx.Row, чей Scan завершается ошибкой.
 func RowError(t *testing.T, err error, destinations int) *pgmocks.MockRow {
 	t.Helper()
 
@@ -45,7 +42,6 @@ func RowError(t *testing.T, err error, destinations int) *pgmocks.MockRow {
 	return row
 }
 
-// RowsError — мок pgx.Rows, который отдаёт ошибку итерации.
 func RowsError(t *testing.T, err error) *pgmocks.MockRows {
 	t.Helper()
 
@@ -57,7 +53,6 @@ func RowsError(t *testing.T, err error) *pgmocks.MockRows {
 	return rows
 }
 
-// Rows — мок pgx.Rows: Next выдаёт ровно len(sets) строк, затем false.
 func Rows(t *testing.T, sets ...[]any) *pgmocks.MockRows {
 	t.Helper()
 
@@ -88,8 +83,7 @@ func Rows(t *testing.T, sets ...[]any) *pgmocks.MockRows {
 	return rows
 }
 
-// Args — сопоставление вариативных аргументов запроса: mock.Anything в values
-// работает как wildcard, остальные значения сравниваются как есть.
+// NOTE: mock.Anything matches any argument, the rest are compared as is.
 func Args(values ...any) any {
 	return mock.MatchedBy(func(args []any) bool {
 		if len(args) != len(values) {
@@ -110,12 +104,10 @@ func Args(values ...any) any {
 	})
 }
 
-// Tag — тег команды pgx с указанным числом затронутых строк.
 func Tag(rows int64) pgconn.CommandTag {
 	return pgconn.NewCommandTag(fmt.Sprintf("INSERT 0 %d", rows))
 }
 
-// UniqueViolation — ошибка нарушения уникальности, как её отдаёт pgx.
 func UniqueViolation(constraint string) error {
 	return &pgconn.PgError{Code: "23505", ConstraintName: constraint}
 }

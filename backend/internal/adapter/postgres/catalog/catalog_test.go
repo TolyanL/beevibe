@@ -153,8 +153,7 @@ func TestListCatalogScansEverySelectedColumn(t *testing.T) {
 	gameID := uuid.New()
 	ownerID := uuid.New()
 
-	// Строка собирается из тех же значений, что отдаёт SQL: тест падает,
-	// если колонка в запросе появилась, а в Scan её забыли.
+	// NOTE: the row mirrors the SQL: a column in the query but not in Scan fails here.
 	db.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything).Return(pgtest.Rows(t,
 		[]any{1, gameID, "промпт", "Название", "Описание", nil, "slug-1a2b", "bee", ownerID,
 			"snake", "", "", "medium", "neon", time.Now().UTC(), 4.5, 4,

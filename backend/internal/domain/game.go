@@ -235,8 +235,6 @@ func (g Game) DisplayTitle() string {
 	return g.Prompt
 }
 
-// NeedsDecision останавливает конвейер на замечаниях ревью: автор сам
-// решает, оставить текущий код или сгенерировать его заново.
 func (g *Game) NeedsDecision() error {
 	if !canTransition(g.Status, StatusNeedsDecision) {
 		return fmt.Errorf("%w: %s -> %s", ErrInvalidTransition, g.Status, StatusNeedsDecision)
@@ -248,8 +246,6 @@ func (g *Game) NeedsDecision() error {
 	return nil
 }
 
-// ScheduleResume возвращает игру в очередь с указанием, с какого этапа
-// продолжить: так решение по ревью не стоит полного прохода конвейера.
 func (g *Game) ScheduleResume(stage Status) error {
 	if !stage.IsPipeline() {
 		return fmt.Errorf("%w: %s is not a pipeline stage", ErrInvalidInput, stage)
@@ -263,8 +259,6 @@ func (g *Game) ScheduleResume(stage Status) error {
 	return nil
 }
 
-// ResumeAt ставит игру на конкретный этап конвейера: перезапуск после сбоя
-// продолжает работу с упавшего этапа, а не с нуля.
 func (g *Game) ResumeAt(stage Status) error {
 	if !stage.IsPipeline() {
 		return fmt.Errorf("%w: %s is not a pipeline stage", ErrInvalidInput, stage)

@@ -3,19 +3,17 @@ package domain
 type Status string
 
 const (
-	StatusQueued     Status = "queued"
-	StatusAnalyzing  Status = "analyzing"
-	StatusPlanning   Status = "planning"
-	StatusCoding     Status = "coding"
-	StatusAssets     Status = "assets"
-	StatusReviewing  Status = "reviewing"
-	StatusAssembling Status = "assembling"
-	StatusChecking   Status = "checking"
-	StatusReady      Status = "ready"
-	StatusFailed     Status = "failed"
-	StatusPatching   Status = "patching"
-	// StatusNeedsDecision — конвейер остановился на замечаниях ревью и ждёт,
-	// что выберет автор: оставить код или сгенерировать его заново.
+	StatusQueued        Status = "queued"
+	StatusAnalyzing     Status = "analyzing"
+	StatusPlanning      Status = "planning"
+	StatusCoding        Status = "coding"
+	StatusAssets        Status = "assets"
+	StatusReviewing     Status = "reviewing"
+	StatusAssembling    Status = "assembling"
+	StatusChecking      Status = "checking"
+	StatusReady         Status = "ready"
+	StatusFailed        Status = "failed"
+	StatusPatching      Status = "patching"
 	StatusNeedsDecision Status = "needs_decision"
 )
 
@@ -62,7 +60,6 @@ func (s Status) pipelineIndex() int {
 	return -1
 }
 
-// Before сообщает, что этап идёт раньше другого в конвейере.
 func (s Status) Before(other Status) bool {
 	left, right := s.pipelineIndex(), other.pipelineIndex()
 
@@ -73,7 +70,6 @@ func (s Status) Before(other Status) bool {
 	return left < right
 }
 
-// Next отдаёт следующий этап конвейера: пустая строка — начинать с начала.
 func (s Status) Next() Status {
 	index := s.pipelineIndex()
 	if index < 0 || index+1 >= len(pipelineOrder) {

@@ -39,7 +39,6 @@ const confirm = useConfirm()
 const auth = useAuthStore()
 const game = useGameStore()
 
-// В адресе игры живёт slug; uuid остаётся только внутри API.
 const id = computed(() => String(route.params.id ?? ''))
 const gameSlug = computed(() => game.game?.slug ?? id.value)
 const profileGame = computed(() => {

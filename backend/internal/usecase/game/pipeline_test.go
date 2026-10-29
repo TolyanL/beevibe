@@ -189,7 +189,6 @@ func TestRunPipelinePausesWhenReviewFindsIssues(t *testing.T) {
 		t.Fatalf("RunPipeline() error = %v, want nil: a review stop is not a failure", err)
 	}
 
-	// Код не перегенерируется и версия не создаётся, пока автор не решит.
 	llmMock.AssertNumberOfCalls(t, "Complete", 5)
 	store.AssertNotCalled(t, "CreateVersion", mock.Anything, mock.Anything)
 }
@@ -206,7 +205,6 @@ func TestRunPipelineResumesFromFailedStage(t *testing.T) {
 		Status:  domain.StatusAnalyzing,
 	}
 
-	// Прошлая попытка дошла до этапа кода и упала.
 	store.EXPECT().ListGenEvents(mock.Anything, game.ID, int64(0)).Return([]domain.GenEvent{
 		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"analyzing","status":"done"}`)},
 		{Type: domain.GenEventStage, Payload: []byte(`{"stage":"planning","status":"done"}`)},
@@ -248,7 +246,6 @@ func TestRunPipelineResumesFromFailedStage(t *testing.T) {
 		t.Fatalf("RunPipeline() error = %v, want nil", err)
 	}
 
-	// Анализатор и планировщик не должны вызываться повторно.
 	llmMock.AssertNotCalled(t, "Prompt", "analyzer")
 	llmMock.AssertNotCalled(t, "Prompt", "planner")
 }

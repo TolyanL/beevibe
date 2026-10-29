@@ -53,7 +53,7 @@ export function openGameStream(gameId: string, handlers: GameStreamHandlers): ()
   })
 
   source.addEventListener('error', (event) => {
-    // A server-sent `error` event has data; a transport error does not.
+    // NOTE: a server-sent error event carries data; a transport error does not.
     if (event instanceof MessageEvent && event.data) {
       const payload = parse<ErrorEventPayload>(event as MessageEvent<string>)
       if (payload) handlers.onError(payload, seqOf(event))

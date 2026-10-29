@@ -37,7 +37,6 @@ func TestResolveGameIDRejectsUUID(t *testing.T) {
 
 	raw := uuid.New().String()
 
-	// uuid больше не адрес игры: он ищется только как slug и не находится.
 	store.EXPECT().GetGameBySlug(mock.Anything, raw).Return(domain.Game{}, domain.ErrNotFound)
 
 	if _, err := uc.ResolveGameID(context.Background(), raw); !errors.Is(err, domain.ErrNotFound) {

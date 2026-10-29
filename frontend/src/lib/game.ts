@@ -154,7 +154,6 @@ export function styleLabel(style: string, custom?: string): string {
 
 const shortTitleWords = 5
 
-// Каталог показывает короткое имя: название автора, иначе первые слова промпта.
 export function shortGameTitle(
   title: string | undefined,
   prompt: string,
@@ -163,7 +162,6 @@ export function shortGameTitle(
   const clean = (title ?? '').trim()
   const promptText = prompt.trim()
 
-  // Сервер может подставить промпт вместо пустого названия — тогда его и сокращаем.
   if (clean && clean !== promptText) return clean
 
   const parts = promptText.split(/\s+/).filter(Boolean)

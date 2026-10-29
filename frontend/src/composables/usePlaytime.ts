@@ -2,10 +2,7 @@ import { onBeforeUnmount, ref, watch } from 'vue'
 import { recordPlaytime } from '@/api/games'
 import { useAuthStore } from '@/stores/auth'
 
-/**
- * Counts visible play time and flushes it to the backend in small batches.
- * The backend endpoint is authenticated, so guests simply get a local timer.
- */
+// NOTE: the playtime endpoint needs a session, so guests only keep a local timer.
 export function usePlaytime(gameId: () => string | undefined, active: () => boolean) {
   const auth = useAuthStore()
   const seconds = ref(0)

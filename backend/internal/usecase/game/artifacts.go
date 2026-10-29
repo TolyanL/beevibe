@@ -16,11 +16,9 @@ const (
 	artifactHTML         = "html"
 )
 
-// errNeedsDecision останавливает конвейер без провала: дальше решает автор.
+// NOTE: stops the pipeline without failing it: the author decides next.
 var errNeedsDecision = errors.New("pipeline needs a decision")
 
-// resumeStage возвращает этап, с которого нужно продолжить конвейер: следующим
-// после последнего успешно завершённого.
 func resumeStage(events []domain.GenEvent) domain.Status {
 	lastDone := domain.Status("")
 

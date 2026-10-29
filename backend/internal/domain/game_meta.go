@@ -18,8 +18,6 @@ type GameCover struct {
 	Seed    string   `json:"seed"`
 }
 
-// CoverFromPalette строит обложку из палитры самой игры: агент уже выбрал
-// цвета под настроение, поэтому каталогу не нужны случайные градиенты.
 func CoverFromPalette(palette []string, style, seed string) *GameCover {
 	colors := make([]string, 0, coverPaletteSize)
 

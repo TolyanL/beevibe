@@ -16,10 +16,8 @@ import (
 	"github.com/TolyanL/beevibe/pkg/postgres"
 )
 
-// DefaultPath — путь к файлу конфигурации относительно рабочего каталога.
 const DefaultPath = "configs/config.yaml"
 
-// PathEnv — переменная окружения с путём к файлу конфигурации.
 const PathEnv = "APP_CONFIG_PATH"
 
 type App struct {
@@ -95,12 +93,10 @@ type Config struct {
 	Worker       Worker            `yaml:"worker"`
 }
 
-// New — читает конфигурацию из файла, путь берётся из APP_CONFIG_PATH.
 func New() (Config, error) {
 	return Load(Path())
 }
 
-// Path — путь к файлу конфигурации: APP_CONFIG_PATH или путь по умолчанию.
 func Path() string {
 	if path := os.Getenv(PathEnv); path != "" {
 		return path
@@ -109,7 +105,6 @@ func Path() string {
 	return DefaultPath
 }
 
-// Load — читает YAML-файл конфигурации и проверяет его.
 func Load(path string) (Config, error) {
 	cfg := Defaults()
 
@@ -129,7 +124,6 @@ func Load(path string) (Config, error) {
 	return cfg, nil
 }
 
-// Defaults — значения для полей, которых нет в файле конфигурации.
 func Defaults() Config {
 	return Config{
 		App: App{
@@ -191,7 +185,6 @@ func Defaults() Config {
 	}
 }
 
-// Validate — проверяет значения, без которых сервис не может стартовать.
 func (c Config) Validate() error {
 	if c.App.Name == "" {
 		return fmt.Errorf("app.name is required")

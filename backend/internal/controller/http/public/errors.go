@@ -23,7 +23,5 @@ func parseGameSlug(r *http.Request) string {
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
-	//nolint:errcheck
 	json.NewEncoder(w).Encode(errorBody{Error: errorDetail{Code: code, Message: message}})
 }

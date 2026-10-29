@@ -91,7 +91,6 @@ func (e *testEnv) expectSession(userID uuid.UUID) {
 	e.store.EXPECT().GetSessionUserID(mock.Anything, sessionToken).Return(userID, nil).Once()
 }
 
-// gamePath отдаёт slug-адрес игры и учит middleware резолвить его в нужный id.
 func (e *testEnv) gamePath(gameID uuid.UUID) string {
 	slug := gameID.String()
 

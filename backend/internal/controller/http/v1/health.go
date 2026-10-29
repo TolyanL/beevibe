@@ -25,8 +25,6 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
-	//nolint:errcheck
 	json.NewEncoder(w).Encode(payload)
 }
 

@@ -89,7 +89,7 @@ async function share(): Promise<void> {
       toast.add({ severity: 'success', summary: 'Ссылка скопирована', life: 2200 })
     }
   } catch {
-    // A cancelled share dialog is not an error.
+    // NOTE: a cancelled share dialog is not an error.
   }
 }
 </script>

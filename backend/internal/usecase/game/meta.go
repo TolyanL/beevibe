@@ -273,8 +273,6 @@ func coverOf(game domain.Game) *domain.GameCover {
 	return domain.CoverFromPalette(game.Spec.Palette, string(game.Params.Style), game.DisplaySlug())
 }
 
-// applyCoverFromSpec даёт игре обложку из палитры, которую выбрал агент:
-// каталогу не нужны случайные градиенты по хешу id.
 func (u *UseCase) applyCoverFromSpec(ctx context.Context, game *domain.Game) error {
 	if game.Cover != nil || game.Spec == nil {
 		return nil

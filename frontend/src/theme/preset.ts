@@ -1,12 +1,7 @@
 import { definePreset } from '@openvue/themes'
 import Aura from '@openvue/themes/aura'
 
-/**
- * Beeline-yellow arcade theme for OpenVue.
- *
- * Yellow is the action colour; near-black surfaces make the playable stage
- * feel like a piece of hardware rather than another dashboard.
- */
+// NOTE: yellow is the only action colour; the stage stays near-black on purpose.
 export const BeeVibePreset = definePreset(Aura, {
   semantic: {
     primary: {

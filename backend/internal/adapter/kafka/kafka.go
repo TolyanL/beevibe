@@ -15,7 +15,7 @@ type Config struct {
 	ReadTimeout  time.Duration `yaml:"read_timeout"`
 }
 
-// NOTE: the writer is an interface so the producer can be tested without a broker.
+// NOTE: an interface so the producer is testable without a broker.
 type MessageWriter interface {
 	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
 	Close() error

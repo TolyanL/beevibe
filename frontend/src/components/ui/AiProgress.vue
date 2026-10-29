@@ -37,8 +37,7 @@ const elapsedLabel = computed(() => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 })
 
-// The exact progress of an LLM call is unknown, so the bar eases towards 95% of the
-// expected duration and never reaches the end until the operation finishes.
+// NOTE: an LLM call has no real progress, so the bar eases to 95% and waits there.
 const percent = computed(() => {
   const expected = Math.max(10, props.expectedSeconds)
   const ratio = elapsedSeconds.value / expected

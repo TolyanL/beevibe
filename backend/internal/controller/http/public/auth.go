@@ -17,8 +17,6 @@ func viewerIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return viewerID, ok
 }
 
-// OptionalAuth пропускает зрителя дальше без сессии: приватную игру
-// показываем только её автору, для остальных она остаётся невидимой.
 func (h *Handlers) OptionalAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookieName)
