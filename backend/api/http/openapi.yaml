@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BeeVibe API
-  version: 0.1.0
+  version: 1.1.1
   description: >
     API генератора браузерных игр. Авторизация — сессионная cookie `session`
     (HttpOnly, SameSite=Lax). Ошибки — единый формат `{ "error": { "code", "message" } }`.
