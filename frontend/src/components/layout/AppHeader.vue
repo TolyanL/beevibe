@@ -76,11 +76,9 @@ onBeforeUnmount(() => {
           v-for="item in nav"
           :key="item.name"
           :to="{ name: item.name }"
-          class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition hover:text-ink"
+          class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition"
           :class="
-            route.name === item.name
-              ? 'bg-ink text-canvas shadow-sm hover:text-canvas'
-              : 'text-muted'
+            route.name === item.name ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'
           "
         >
           <AppIcon :name="item.icon" :size="15" />
@@ -89,11 +87,9 @@ onBeforeUnmount(() => {
         <RouterLink
           v-if="auth.isAuthenticated"
           :to="{ name: 'profile' }"
-          class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition hover:text-ink"
+          class="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition"
           :class="
-            route.name === 'profile'
-              ? 'bg-ink text-canvas shadow-sm hover:text-canvas'
-              : 'text-muted'
+            route.name === 'profile' ? 'bg-ink text-canvas shadow-sm' : 'text-muted hover:text-ink'
           "
         >
           <AppIcon name="chart" :size="15" />
