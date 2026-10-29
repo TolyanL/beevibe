@@ -1,5 +1,7 @@
 # BeeVibe
 
+![BeeVibe](assets/brand/beevibe-cover.jpg)
+
 **A playable game from one sentence.** Describe an idea in a sentence — a pipeline of
 LLM agents turns it into a self-contained HTML5 game you can play in the browser,
 patch with words, rate and publish to a catalog.
@@ -176,7 +178,7 @@ OpenAI-compatible endpoint works:
 ```yaml
 llm:
   api_key: "sk-or-..."                     # or any string for a local server
-  model: deepseek/deepseek-chat            # e.g. a local qwen build
+  model: deepseek/deepseek-v4.1-flash-1017 # e.g. a local qwen build
   base_url: https://openrouter.ai/api/v1   # e.g. http://127.0.0.1:12286/v1
   reasoning_dialect: openrouter            # or "openai" for llama.cpp / vLLM
 ```

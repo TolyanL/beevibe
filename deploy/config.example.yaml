@@ -24,7 +24,7 @@ postgres:
 
 llm:
   api_key: ""
-  model: deepseek/deepseek-chat
+  model: deepseek/deepseek-v4.1-flash-1017
   base_url: https://openrouter.ai/api/v1
   timeout: 120s
   max_retries: 2
