@@ -1,5 +1,6 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { recordPlaytime } from '@/api/games'
+import { messageFromError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 
 // NOTE: the playtime endpoint needs a session, so guests only keep a local timer.
@@ -7,6 +8,7 @@ export function usePlaytime(gameId: () => string | undefined, active: () => bool
   const auth = useAuthStore()
   const seconds = ref(0)
   const savedSeconds = ref(0)
+  const error = ref('')
 
   let timer: ReturnType<typeof setInterval> | null = null
   let flushTimer: ReturnType<typeof setInterval> | null = null
@@ -26,8 +28,11 @@ export function usePlaytime(gameId: () => string | undefined, active: () => bool
 
     try {
       await recordPlaytime(currentGame, pending)
-    } catch {
+      error.value = ''
+    } catch (err) {
+      // NOTE: the counter is rolled back so the next flush retries the whole span.
       savedSeconds.value -= pending
+      error.value = messageFromError(err)
     }
   }
 
@@ -62,5 +67,5 @@ export function usePlaytime(gameId: () => string | undefined, active: () => bool
 
   onBeforeUnmount(stop)
 
-  return { seconds, flush }
+  return { seconds, flush, error }
 }

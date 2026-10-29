@@ -172,6 +172,7 @@ const session = usePlaytime(
   () => game.isReady,
 )
 const sessionSeconds = session.seconds
+const sessionError = session.error
 
 const configForm = reactive({
   tempo: 5,
@@ -684,6 +685,9 @@ onBeforeUnmount(() => {
               <AppIcon name="clock" :size="13" />
               сессия {{ sessionLabel(sessionSeconds) }}
             </div>
+            <p v-if="sessionError" class="font-mono text-[10px] text-red-500">
+              время игры не сохранилось
+            </p>
             <RouterLink
               v-if="game.isReady"
               :to="{ name: 'play', params: { id: gameSlug } }"
