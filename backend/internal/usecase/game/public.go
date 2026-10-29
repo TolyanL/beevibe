@@ -48,6 +48,10 @@ func (u *UseCase) GetPublicCard(ctx context.Context, input dto.GetGamePublicCard
 		return output, err
 	}
 
+	if !visibleTo(game, input.ViewerID) {
+		return output, domain.ErrNotFound
+	}
+
 	rating, err := u.store.GetRatingAggregate(ctx, game.ID)
 	if err != nil {
 		return output, fmt.Errorf("store.GetRatingAggregate: %w", err)

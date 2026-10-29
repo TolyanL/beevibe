@@ -28,6 +28,10 @@ func (u *UseCase) Rate(ctx context.Context, input dto.RateGameInput) (dto.RateGa
 		return output, domain.ErrCannotRateOwnGame
 	}
 
+	if !game.IsPublic() {
+		return output, domain.ErrNotFound
+	}
+
 	rating, err := domain.NewRating(input.GameID, input.UserID, domain.RatingValue(input.Value))
 	if err != nil {
 		return output, fmt.Errorf("domain.NewRating: %w", err)
