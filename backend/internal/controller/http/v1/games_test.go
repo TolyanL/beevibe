@@ -445,9 +445,10 @@ func TestRateGameReturnsAggregate(t *testing.T) {
 
 	env.expectSession(userID)
 	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
-		ID:      gameID,
-		OwnerID: uuid.New(),
-		Status:  domain.StatusReady,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
 	}, nil)
 	env.store.EXPECT().UpsertRating(mock.Anything, mock.MatchedBy(func(rating domain.Rating) bool {
 		return rating.Value == domain.Rating5
@@ -537,6 +538,12 @@ func TestRecordPlaytimeReturnsTotal(t *testing.T) {
 	gameID := uuid.New()
 
 	env.expectSession(userID)
+	env.store.EXPECT().GetGame(mock.Anything, gameID).Return(domain.Game{
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
+	}, nil)
 	env.store.EXPECT().InsertPlaySession(mock.Anything, mock.MatchedBy(func(session domain.PlaySession) bool {
 		return session.GameID == gameID && session.Seconds == 120
 	})).Return(nil)
@@ -616,5 +623,25 @@ func TestGameRoutesAcceptSlug(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+}
+
+func TestGameRouteRejectsDatabaseID(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	userID := uuid.New()
+	gameID := uuid.New()
+
+	env.expectSession(userID)
+	env.store.EXPECT().GetGameBySlug(mock.Anything, gameID.String()).Return(domain.Game{}, domain.ErrNotFound)
+
+	body := strings.NewReader(`{"value":5}`)
+	req := env.authorized(httptest.NewRequest(http.MethodPost, "/games/"+gameID.String()+"/rate", body))
+	rec := env.do(req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d, body %s", rec.Code, http.StatusNotFound, rec.Body.String())
 	}
 }

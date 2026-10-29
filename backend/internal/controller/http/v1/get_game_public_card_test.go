@@ -23,12 +23,13 @@ func TestGetGamePublicCardWithoutAuth(t *testing.T) {
 	createdAt := time.Now().UTC()
 
 	env.store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
-		ID:        gameID,
-		OwnerID:   uuid.New(),
-		Prompt:    "змейка в неоне",
-		Params:    domain.GameParams{Genre: domain.GenreSnake, Style: domain.StyleNeon, MapSize: domain.MapSizeMedium},
-		Status:    domain.StatusReady,
-		CreatedAt: createdAt,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Prompt:     "змейка в неоне",
+		Params:     domain.GameParams{Genre: domain.GenreSnake, Style: domain.StyleNeon, MapSize: domain.MapSizeMedium},
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
+		CreatedAt:  createdAt,
 	}, nil)
 	env.store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{
 		ID:          uuid.New(),
@@ -72,10 +73,11 @@ func TestGetGamePublicCardWithAuthIncludesMyRating(t *testing.T) {
 
 	env.expectSession(userID)
 	env.store.EXPECT().GetGameBySlug(mock.Anything, "zmeyka-1a2b").Return(domain.Game{
-		ID:      gameID,
-		OwnerID: uuid.New(),
-		Prompt:  "змейка",
-		Status:  domain.StatusReady,
+		ID:         gameID,
+		OwnerID:    uuid.New(),
+		Prompt:     "змейка",
+		Visibility: domain.VisibilityPublic,
+		Status:     domain.StatusReady,
 	}, nil)
 	env.store.EXPECT().GetUserByID(mock.Anything, mock.Anything).Return(domain.User{
 		ID:          uuid.New(),
