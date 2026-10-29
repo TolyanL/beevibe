@@ -183,6 +183,46 @@ llm:
   reasoning_dialect: openrouter            # or "openai" for llama.cpp / vLLM
 ```
 
+### Option 3 — the published image
+
+Use this when Postgres and Kafka are already running on the `beevibe_default` network
+and only the app container needs to be (re)created.
+
+#### Local model (llama.cpp/vLLM on the host)
+
+```sh
+docker run -d --network beevibe_default -p 8080:8080 \
+  -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
+  --add-host host.docker.internal:host-gateway \
+  ghcr.io/tolyanl/beevibe:v1.1.1
+```
+
+Config as now: `base_url: http://host.docker.internal:12286/v1`,
+`reasoning_dialect: openai`, `timeout: 3600s`.
+
+#### Model through an API (OpenRouter and any OpenAI-compatible)
+
+In `deploy/config.yaml`:
+
+```yaml
+llm:
+  api_key: "sk-or-..."
+  model: deepseek/deepseek-v4.1-flash-1017
+  base_url: https://openrouter.ai/api/v1
+  reasoning_dialect: openrouter
+  timeout: 300s
+  max_retries: 2
+```
+
+```sh
+docker run -d --network beevibe_default -p 8080:8080 \
+  -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
+  ghcr.io/tolyanl/beevibe:v1.1.1
+```
+
+`--add-host` is not needed; outgoing internet access and a valid key are.
+`timeout: 300s` is enough for an API, unlike `3600s` for a local model.
+
 ## Configuration
 
 `backend/configs/config.yaml` (`APP_CONFIG_PATH` overrides the path). Missing fields fall
