@@ -157,9 +157,13 @@ generated games at `/g/<slug>`. Migrations run as a one-shot service before the 
 starts, `goose` is inside the image. Kafka creates `game.events` on the first write
 (`KAFKA_NUM_PARTITIONS: 8`), so no topic-init container is needed.
 
-`deploy/config.yaml` is not committed: it holds the LLM key. Only three values differ
-from the template — log format, the Postgres and Kafka hosts inside the compose network.
-`docker compose exec app …` works for debugging; the health endpoint is `/api/health`.
+`deploy/config.yaml` is not committed: it holds the LLM key, so it never goes to git —
+start from `config.example.yaml` or `./deploy/sync-config.sh` instead. Only three values
+differ from the template — log format, the Postgres and Kafka hosts inside the compose
+network. The file has to exist **before** `docker compose up`: Docker bind-mounts a
+directory for a missing path, and the app then exits with
+`os.ReadFile: … is a directory`. `docker compose exec app …` works for debugging; the
+health endpoint is `/api/health`.
 
 ### Option 2 — local development
 
