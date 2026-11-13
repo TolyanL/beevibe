@@ -161,9 +161,10 @@ starts, `goose` is inside the image. Kafka creates `game.events` on the first wr
 start from `config.example.yaml` or `./deploy/sync-config.sh` instead. Only three values
 differ from the template — log format, the Postgres and Kafka hosts inside the compose
 network. The file has to exist **before** `docker compose up`: Docker bind-mounts a
-directory for a missing path, and the app then exits with
-`os.ReadFile: … is a directory`. `docker compose exec app …` works for debugging; the
-health endpoint is `/api/health`.
+directory for a missing path, so the app checks for the file and exits with
+`deploy/config.yaml is missing: run ./deploy/sync-config.sh` instead of a cryptic
+`is a directory`. `docker compose exec app …` works for debugging; the health endpoint is
+`/api/health`.
 
 ### Option 2 — local development
 
