@@ -15,6 +15,8 @@ type LLMReasoning = game.Reasoning
 
 type Worker = game.Worker
 
+type Fast = game.Fast
+
 type App struct {
 	Name    string
 	Version string
@@ -24,6 +26,7 @@ type Config struct {
 	Tokens    Tokens
 	Reasoning LLMReasoning
 	Worker    Worker
+	Fast      Fast
 	App       App
 }
 
@@ -51,11 +54,13 @@ func New(store Store, llmClient llm.LLM, validator game.Validator, auth user.Aut
 			store,
 			store,
 			llmClient,
+			cfg.Fast,
 			validator,
 			game.Tokens{
-				PriceGenerate: cfg.Tokens.PriceGenerate,
-				PricePatch:    cfg.Tokens.PricePatch,
-				PriceMeta:     cfg.Tokens.PriceMeta,
+				PriceGenerate:     cfg.Tokens.PriceGenerate,
+				PriceGenerateFast: cfg.Tokens.PriceGenerateFast,
+				PricePatch:        cfg.Tokens.PricePatch,
+				PriceMeta:         cfg.Tokens.PriceMeta,
 			},
 			cfg.Reasoning,
 			cfg.Worker,

@@ -86,7 +86,7 @@ func (u *UseCase) repair(ctx context.Context, p *pipeline, html string, issues [
 	return extractHTML(raw), nil
 }
 
-func (u *UseCase) repairWithIssues(ctx context.Context, html, runtimeError string) (string, error) {
+func (u *UseCase) repairWithIssues(ctx context.Context, p *pipeline, html, runtimeError string) (string, error) {
 	var (
 		attempts int
 		current  = html
@@ -116,8 +116,6 @@ func (u *UseCase) repairWithIssues(ctx context.Context, html, runtimeError strin
 		if err != nil {
 			return "", fmt.Errorf("llm.Prompt: %w", err)
 		}
-
-		p := &pipeline{}
 
 		repaired, err := u.complete(ctx, p, system, buildRepairPrompt(current, issues), temperatureCode, u.reasoningRepair())
 		if err != nil {

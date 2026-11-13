@@ -71,9 +71,10 @@ type Outbox interface {
 }
 
 type Tokens struct {
-	PriceGenerate int64
-	PricePatch    int64
-	PriceMeta     int64
+	PriceGenerate     int64
+	PriceGenerateFast int64
+	PricePatch        int64
+	PriceMeta         int64
 }
 
 type Reasoning struct {
@@ -94,6 +95,13 @@ type Worker struct {
 	MaxFixAttempts  int
 }
 
+type Fast struct {
+	LLM             llm.LLM
+	Timeout         time.Duration
+	MaxCallsPerGame int
+	MaxFixAttempts  int
+}
+
 type runningTask struct {
 	cancel  context.CancelFunc
 	replied atomic.Bool
@@ -108,6 +116,7 @@ type UseCase struct {
 	store     Store
 	outbox    Outbox
 	llm       llm.LLM
+	fast      Fast
 	validator Validator
 	tokens    Tokens
 	reasoning Reasoning
@@ -118,6 +127,7 @@ func New(
 	store Store,
 	outbox Outbox,
 	llmClient llm.LLM,
+	fast Fast,
 	validator Validator,
 	tokens Tokens,
 	reasoning Reasoning,
@@ -128,6 +138,7 @@ func New(
 		store:     store,
 		outbox:    outbox,
 		llm:       llmClient,
+		fast:      fast,
 		validator: validator,
 		tokens:    tokens,
 		reasoning: reasoning,

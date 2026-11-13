@@ -35,9 +35,10 @@ func (u *UseCase) GetProfile(ctx context.Context, input dto.GetProfileInput) (dt
 	output.Games = games
 	output.TokenOps = make([]dto.ProfileTokenOp, 0, len(ops))
 	output.Prices = dto.ProfilePrices{
-		Generate: u.tokens.PriceGenerate,
-		Patch:    u.tokens.PricePatch,
-		Meta:     u.tokens.PriceMeta,
+		Generate:     u.tokens.PriceGenerate,
+		GenerateFast: u.tokens.PriceGenerateFast,
+		Patch:        u.tokens.PricePatch,
+		Meta:         u.tokens.PriceMeta,
 	}
 
 	for _, op := range ops {

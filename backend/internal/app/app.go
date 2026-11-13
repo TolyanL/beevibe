@@ -35,24 +35,38 @@ func Run(ctx context.Context, c config.Config) error {
 
 	transaction.Init(pool)
 
-	log.Info().Str("model", c.LLM.Model).Str("llm_base_url", c.LLM.BaseURL).Msg("beevibe configured")
+	fastLLM := c.FastLLMConfig()
+
+	log.Info().
+		Str("model", c.LLM.Model).
+		Str("llm_base_url", c.LLM.BaseURL).
+		Str("fast_model", fastLLM.Model).
+		Msg("beevibe configured")
 
 	store := postgres.New(pool)
 	llmClient := llm.New(c.LLM)
+
+	fastClient := llmClient
+	// NOTE: compare the whole config, not just the model: a different per-request timeout
+	// is already a different client.
+	if fastLLM != c.LLM {
+		fastClient = llm.New(fastLLM)
+	}
 	validatorAdapter := validator.New(c.Validator)
 	authAdapter := auth.New(c.Auth)
 	producer := kafka.New(c.Kafka)
 
 	uc := usecase.New(store, llmClient, validatorAdapter, authAdapter, producer, usecase.Config{
 		Tokens: usecase.Tokens{
-			GrantSignup:   c.Tokens.GrantSignup,
-			PriceGenerate: c.Tokens.PriceGenerate,
-			PricePatch:    c.Tokens.PricePatch,
-			PriceMeta:     c.Tokens.PriceMeta,
-			TopupMin:      c.Tokens.TopupMin,
-			TopupMax:      c.Tokens.TopupMax,
-			TopupDailyCap: c.Tokens.TopupDailyCap,
-			DemoTopup:     c.Tokens.DemoTopup,
+			GrantSignup:       c.Tokens.GrantSignup,
+			PriceGenerate:     c.Tokens.PriceGenerate,
+			PriceGenerateFast: c.Tokens.PriceGenerateFast,
+			PricePatch:        c.Tokens.PricePatch,
+			PriceMeta:         c.Tokens.PriceMeta,
+			TopupMin:          c.Tokens.TopupMin,
+			TopupMax:          c.Tokens.TopupMax,
+			TopupDailyCap:     c.Tokens.TopupDailyCap,
+			DemoTopup:         c.Tokens.DemoTopup,
 		},
 		Reasoning: usecase.LLMReasoning{
 			Analyze:  c.LLMReasoning.Analyzer,
@@ -69,6 +83,12 @@ func Run(ctx context.Context, c config.Config) error {
 			Timeout:         c.Worker.Timeout,
 			MaxCallsPerGame: c.Worker.MaxCallsPerGame,
 			MaxFixAttempts:  c.Worker.MaxFixAttempts,
+		},
+		Fast: usecase.Fast{
+			LLM:             fastClient,
+			Timeout:         c.Fast.Timeout,
+			MaxCallsPerGame: c.Fast.MaxCallsPerGame,
+			MaxFixAttempts:  c.Fast.MaxFixAttempts,
 		},
 		App: usecase.App{
 			Name:    c.App.Name,

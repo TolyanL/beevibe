@@ -16,6 +16,7 @@ type CreateGameInput struct {
 	Tempo       *int   `json:"tempo"   validate:"omitempty,min=1,max=10"`
 	MapSize     string `json:"mapSize" validate:"omitempty,oneof=small medium large"`
 	Style       string `json:"style"   validate:"omitempty,oneof=pixel cartoon neon minimal custom"`
+	Speed       string `json:"speed"   validate:"omitempty,oneof=normal fast"`
 
 	CustomGenre string `json:"customGenre" validate:"required_if=Genre custom,omitempty,min=2,max=32"`
 	CustomStyle string `json:"customStyle" validate:"required_if=Style custom,omitempty,min=2,max=160"`

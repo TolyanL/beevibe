@@ -34,6 +34,18 @@ Built as the Beeline case solution for the **ITSprint 2026** hackathon.
 Seven agent stages run in a worker pool; every stage writes an artifact to Postgres, so
 a rerun can resume from where it stopped instead of paying for the whole pass again.
 
+Two speed modes are available at creation time (`speed` in the request):
+
+| Mode | Calls | Pipeline | Price |
+| --- | --- | --- | --- |
+| `normal` | 7 | analyze → plan → code → assets → review → assemble → check | full |
+| `fast` | 2 | spec+plan → the whole game as one HTML document → check | −25% |
+
+The fast mode keeps the same status vocabulary (`analyzing`, `coding`, `checking`) as a
+subsequence of the full pipeline, so resume, retry and the progress UI work in both modes.
+It has no review stage, one repair attempt and its own LLM client (`fast.llm`), and it
+streams the big generation call so a provider gateway does not cut it off.
+
 ```
 prompt
   |
@@ -51,6 +63,19 @@ prompt
   |
   v
 version ready -> playable at /g/<slug>
+```
+
+In the fast mode the same path is compressed to two calls:
+
+```
+prompt
+  |
+  v
+[1] spec+plan  -> spec JSON and the plan in one answer
+[2] one-shot   -> the whole self-contained game in one streamed HTML answer
+  |
+  v
+check -> version ready
 ```
 
 Failure at any stage marks the game `failed`; the author can repair it with a hint or

@@ -19,9 +19,9 @@ const (
 
 var statusTransitions = map[Status][]Status{
 	StatusQueued:        {StatusAnalyzing},
-	StatusAnalyzing:     {StatusPlanning, StatusFailed},
+	StatusAnalyzing:     {StatusPlanning, StatusCoding, StatusFailed},
 	StatusPlanning:      {StatusCoding, StatusFailed},
-	StatusCoding:        {StatusAssets, StatusFailed},
+	StatusCoding:        {StatusAssets, StatusChecking, StatusFailed},
 	StatusAssets:        {StatusReviewing, StatusFailed},
 	StatusReviewing:     {StatusAssembling, StatusCoding, StatusFailed, StatusNeedsDecision},
 	StatusNeedsDecision: {},

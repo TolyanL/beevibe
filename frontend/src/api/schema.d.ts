@@ -1642,6 +1642,11 @@ export interface components {
       prices?: {
         /** Format: int64 */
         generate?: number
+        /**
+         * Format: int64
+         * @description Цена быстрой сборки (два вызова модели вместо семи)
+         */
+        generate_fast?: number
         /** Format: int64 */
         patch?: number
       }
@@ -1663,6 +1668,13 @@ export interface components {
       customGenre?: string
       /** @description Свободный текст стиля (например «аниме-нуар, бумажный коллаж»), обязателен при style=custom */
       customStyle?: string
+      /**
+       * @description Скорость сборки. normal — полный конвейер из семи этапов с ревью и сборкой.
+       *     fast — два вызова модели (спека с планом, затем игра одним файлом), без ревью:
+       *     дешевле и в разы быстрее, качество ниже.
+       * @enum {string}
+       */
+      speed?: 'normal' | 'fast'
     }
     CreateGameResponse: {
       /** Format: uuid */
@@ -1737,6 +1749,8 @@ export interface components {
         map_size?: string
         style?: string
         custom_style?: string
+        /** @description Режим скорости, выбранный при создании; пусто у старых игр (normal) */
+        speed?: string
       }
       /** @enum {string} */
       status?:

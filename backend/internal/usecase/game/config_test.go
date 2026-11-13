@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -116,6 +117,8 @@ func TestErrorCodeMapsDomainErrors(t *testing.T) {
 		{name: "validation failed", err: domain.ErrValidationFailed, want: "validation_failed"},
 		{name: "not enough tokens", err: domain.ErrNotEnoughTokens, want: "not_enough_tokens"},
 		{name: "timeout", err: context.DeadlineExceeded, want: "timeout"},
+		{name: "timeout behind an llm error", err: fmt.Errorf("%w: %w",
+			domain.ErrLLMUnavailable, context.DeadlineExceeded), want: "timeout"},
 		{name: "unknown", err: errors.New("boom"), want: "generation_failed"},
 	}
 

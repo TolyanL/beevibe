@@ -19,8 +19,10 @@ func TestGameStartStageTransitions(t *testing.T) {
 	}{
 		{name: "queued to analyzing", from: StatusQueued, to: StatusAnalyzing},
 		{name: "analyzing to planning", from: StatusAnalyzing, to: StatusPlanning},
+		{name: "analyzing to coding (fast mode)", from: StatusAnalyzing, to: StatusCoding},
 		{name: "planning to coding", from: StatusPlanning, to: StatusCoding},
 		{name: "coding to assets", from: StatusCoding, to: StatusAssets},
+		{name: "coding to checking (fast mode)", from: StatusCoding, to: StatusChecking},
 		{name: "assets to reviewing", from: StatusAssets, to: StatusReviewing},
 		{name: "reviewing to assembling", from: StatusReviewing, to: StatusAssembling},
 		{name: "reviewing back to coding", from: StatusReviewing, to: StatusCoding},

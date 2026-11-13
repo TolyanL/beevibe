@@ -337,3 +337,96 @@ func readFile(t *testing.T, path string) []byte {
 
 	return data
 }
+
+func TestCompleteStreamsDeltas(t *testing.T) {
+	t.Parallel()
+
+	var sawStream atomic.Bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request: %v", err)
+		}
+
+		if stream, ok := body["stream"].(bool); ok && stream {
+			sawStream.Store(true)
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+
+		chunks := []string{
+			`data: {"choices":[{"delta":{"role":"assistant"}}]}`,
+			`data: {"choices":[{"delta":{"content":"<!DOCTYPE html>"}}]}`,
+			`data: {"choices":[{"delta":{"content":"<html></html>"}}]}`,
+			`data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":20}}`,
+			`data: [DONE]`,
+		}
+
+		for _, chunk := range chunks {
+			_, _ = w.Write([]byte(chunk + "\n\n"))
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		APIKey:  "test-key",
+		Model:   "test-model",
+		BaseURL: server.URL,
+		Timeout: 5 * time.Second,
+	})
+
+	response, err := client.Complete(t.Context(), Request{Prompt: "игра", Stream: true})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !sawStream.Load() {
+		t.Fatal("request did not ask for a stream")
+	}
+
+	if response.Text != "<!DOCTYPE html><html></html>" {
+		t.Errorf("text = %q, want the assembled deltas", response.Text)
+	}
+
+	if response.TotalTokens() != 30 {
+		t.Errorf("tokens = %d, want 30", response.TotalTokens())
+	}
+}
+
+func TestCompleteStreamsRetriesOnEmptyStream(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+
+		if calls.Add(1) == 1 {
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+
+			return
+		}
+
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"готово\"}}]}\n\ndata: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		APIKey:       "test-key",
+		Model:        "test-model",
+		BaseURL:      server.URL,
+		Timeout:      5 * time.Second,
+		MaxRetries:   1,
+		RetryBackoff: time.Millisecond,
+	})
+
+	response, err := client.Complete(t.Context(), Request{Prompt: "игра", Stream: true})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if response.Text != "готово" {
+		t.Errorf("text = %q, want the retried stream", response.Text)
+	}
+}

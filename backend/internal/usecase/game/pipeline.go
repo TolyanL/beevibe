@@ -33,6 +33,15 @@ type pipeline struct {
 	calls  int
 }
 
+func (p *pipeline) fast() bool {
+	return p.game.Params.Speed.IsFast()
+}
+
+type stageStep struct {
+	stage domain.Status
+	run   func(context.Context, *pipeline) error
+}
+
 func (u *UseCase) RunNextQueuedGame(ctx context.Context) (bool, error) {
 	ctx, span := tracer.Start(ctx, "usecase game RunNextQueuedGame")
 	defer span.End()
@@ -72,18 +81,20 @@ func (u *UseCase) RunPipeline(ctx context.Context, game domain.Game) error {
 	ctx, span := tracer.Start(ctx, "usecase game RunPipeline")
 	defer span.End()
 
-	ctx, cancel := context.WithTimeout(ctx, u.worker.Timeout)
+	p := &pipeline{game: game}
+
+	ctx, cancel := context.WithTimeout(ctx, u.timeout(p))
 	defer cancel()
 
 	ctx, release := u.trackTask(game.ID, cancel, ctx)
 	defer release()
 
-	p := &pipeline{game: game}
-
 	resume, err := u.restorePipeline(ctx, p)
 	if err != nil {
 		return u.abort(ctx, p, err)
 	}
+
+	resume = resumeStageFor(p, resume)
 
 	if resume != domain.StatusAnalyzing {
 		if err := p.game.ResumeAt(resume); err != nil {
@@ -95,20 +106,7 @@ func (u *UseCase) RunPipeline(ctx context.Context, game domain.Game) error {
 		}
 	}
 
-	steps := []struct {
-		stage domain.Status
-		run   func(context.Context, *pipeline) error
-	}{
-		{domain.StatusAnalyzing, u.stepAnalyze},
-		{domain.StatusPlanning, u.stepPlan},
-		{domain.StatusCoding, u.stepCode},
-		{domain.StatusAssets, u.stepAssets},
-		{domain.StatusReviewing, u.stepReview},
-		{domain.StatusAssembling, u.stepAssemble},
-		{domain.StatusChecking, u.stepCheck},
-	}
-
-	for _, step := range steps {
+	for _, step := range u.schedule(p) {
 		if step.stage.Before(resume) {
 			continue
 		}
@@ -390,37 +388,44 @@ func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("u.complete: %w", err)
 	}
 
-	html := extractHTML(raw)
+	html, err := u.fixUntilClean(ctx, p, extractHTML(raw))
+	if err != nil {
+		return fmt.Errorf("u.fixUntilClean: %w", err)
+	}
 
-	for attempt := range u.worker.MaxFixAttempts {
+	p.html = html
+
+	if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactHTML, html); err != nil {
+		return fmt.Errorf("store.SaveGameArtifact: %w", err)
+	}
+
+	return u.emitStageEvent(ctx, p.game.ID, domain.StatusAssembling, "done", time.Since(start).Milliseconds(), 0)
+}
+
+func (u *UseCase) fixUntilClean(ctx context.Context, p *pipeline, html string) (string, error) {
+	attempts := u.maxFixAttemptsFor(p)
+
+	for attempt := range attempts {
 		issues, err := u.validator.Check(ctx, html)
 		if err != nil {
-			return fmt.Errorf("validator.Check: %w", err)
+			return "", fmt.Errorf("validator.Check: %w", err)
 		}
 
 		if len(issues) == 0 {
-			p.html = html
-
-			if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactHTML, html); err != nil {
-				return fmt.Errorf("store.SaveGameArtifact: %w", err)
-			}
-
-			return u.emitStageEvent(ctx, p.game.ID, domain.StatusAssembling, "done", time.Since(start).Milliseconds(), 0)
+			return html, nil
 		}
 
-		if attempt == u.worker.MaxFixAttempts-1 {
-			return fmt.Errorf("%w: %s", domain.ErrValidationFailed, issues[0].Message)
+		if attempt == attempts-1 {
+			return "", fmt.Errorf("%w: %s", domain.ErrValidationFailed, issues[0].Message)
 		}
 
-		repaired, err := u.repair(ctx, p, html, issues)
+		html, err = u.repair(ctx, p, html, issues)
 		if err != nil {
-			return fmt.Errorf("u.repair: %w", err)
+			return "", fmt.Errorf("u.repair: %w", err)
 		}
-
-		html = repaired
 	}
 
-	return fmt.Errorf("%w: validation issues remain", domain.ErrValidationFailed)
+	return "", fmt.Errorf("%w: validation issues remain", domain.ErrValidationFailed)
 }
 
 func (u *UseCase) stepCheck(ctx context.Context, p *pipeline) error {
@@ -497,16 +502,38 @@ func (u *UseCase) complete(
 	temperature float64,
 	effort llm.Effort,
 ) (string, error) {
-	if p.calls >= u.worker.MaxCallsPerGame {
-		return "", domain.ErrLLMBudgetExceeded
-	}
-
-	resp, err := u.llm.Complete(ctx, llm.Request{
+	return u.completeRequest(ctx, p, llm.Request{
 		System:      system,
 		Prompt:      prompt,
 		Temperature: temperature,
 		Reasoning:   effort,
 	})
+}
+
+// NOTE: the whole game in one answer is the longest call of the fast mode; a streamed answer
+// survives the provider gateway that kills an idle request.
+func (u *UseCase) completeStream(
+	ctx context.Context,
+	p *pipeline,
+	system, prompt string,
+	temperature float64,
+	effort llm.Effort,
+) (string, error) {
+	return u.completeRequest(ctx, p, llm.Request{
+		System:      system,
+		Prompt:      prompt,
+		Temperature: temperature,
+		Reasoning:   effort,
+		Stream:      true,
+	})
+}
+
+func (u *UseCase) completeRequest(ctx context.Context, p *pipeline, req llm.Request) (string, error) {
+	if p.calls >= u.maxCalls(p) {
+		return "", domain.ErrLLMBudgetExceeded
+	}
+
+	resp, err := u.client(p).Complete(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("llm.Complete: %w", err)
 	}
@@ -570,7 +597,7 @@ func (u *UseCase) failGame(ctx context.Context, p *pipeline, cause error) error 
 		}
 
 		if !u.replied(p.game.ID) {
-			if err := u.refundInTx(ctx, p.game.OwnerID, p.game.ID, u.tokens.PriceGenerate); err != nil {
+			if err := u.refundInTx(ctx, p.game.OwnerID, p.game.ID, u.generatePrice(p.game.Params.Speed)); err != nil {
 				return fmt.Errorf("u.refundInTx: %w", err)
 			}
 		}

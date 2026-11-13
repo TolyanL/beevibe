@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { GameStage } from '@/api/types'
-import { PIPELINE, statusMeta } from '@/lib/game'
+import { pipelineFor, statusMeta } from '@/lib/game'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     stages: GameStage[]
     status: string
+    speed?: string
     compact?: boolean
   }>(),
-  { compact: false },
+  { compact: false, speed: 'normal' },
 )
+
+const pipeline = computed(() => pipelineFor(props.speed))
 
 const stageMap = computed(() => {
   const map = new Map<string, GameStage>()
@@ -20,8 +23,8 @@ const stageMap = computed(() => {
 })
 
 const currentIndex = computed(() => {
-  if (props.status === 'ready') return PIPELINE.length
-  const index = PIPELINE.findIndex((item) => item.id === props.status)
+  if (props.status === 'ready') return pipeline.value.length
+  const index = pipeline.value.findIndex((item) => item.id === props.status)
   return index < 0 ? 0 : index
 })
 
@@ -29,11 +32,11 @@ const progress = computed(() => {
   if (props.status === 'ready') return 100
   if (props.status === 'failed') {
     const done = props.stages.filter((stage) => stage.status === 'done').length
-    return Math.round((done / PIPELINE.length) * 100)
+    return Math.round((done / pipeline.value.length) * 100)
   }
 
   const done = props.stages.filter((stage) => stage.status === 'done').length
-  return Math.max(Math.round((done / PIPELINE.length) * 100), currentIndex.value * 10)
+  return Math.max(Math.round((done / pipeline.value.length) * 100), currentIndex.value * 10)
 })
 
 type StageState = 'done' | 'active' | 'pending' | 'failed'
@@ -83,7 +86,7 @@ const meta = computed(() => statusMeta(props.status))
 
     <div class="space-y-0.5">
       <div
-        v-for="(stage, index) in PIPELINE"
+        v-for="(stage, index) in pipeline"
         :key="stage.id"
         class="relative flex items-start gap-3 rounded-xl px-2 py-2.5 transition"
         :class="stateOf(stage.id, index) === 'active' ? 'bg-bee/10' : ''"

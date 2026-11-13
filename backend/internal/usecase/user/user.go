@@ -41,14 +41,15 @@ type Auth interface {
 }
 
 type Tokens struct {
-	GrantSignup   int64
-	PriceGenerate int64
-	PricePatch    int64
-	PriceMeta     int64
-	TopupMin      int64
-	TopupMax      int64
-	TopupDailyCap int64
-	DemoTopup     bool
+	GrantSignup       int64
+	PriceGenerate     int64
+	PriceGenerateFast int64
+	PricePatch        int64
+	PriceMeta         int64
+	TopupMin          int64
+	TopupMax          int64
+	TopupDailyCap     int64
+	DemoTopup         bool
 }
 
 type UseCase struct {

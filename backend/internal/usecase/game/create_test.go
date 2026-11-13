@@ -22,11 +22,13 @@ func newTestUseCase(t *testing.T) (*UseCase, *gamemocks.MockStore, *llmmocks.Moc
 	validator := gamemocks.NewMockValidator(t)
 	outbox := gamemocks.NewMockOutbox(t)
 
-	uc := New(store, outbox, llmMock, validator,
+	uc := New(store, outbox, llmMock, Fast{},
+		validator,
 		Tokens{
-			PriceGenerate: 320,
-			PricePatch:    40,
-			PriceMeta:     10,
+			PriceGenerate:     320,
+			PriceGenerateFast: 240,
+			PricePatch:        40,
+			PriceMeta:         10,
 		},
 		Reasoning{},
 		Worker{

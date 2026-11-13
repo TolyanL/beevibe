@@ -28,9 +28,10 @@ type ProfileTokenOp struct {
 }
 
 type ProfilePrices struct {
-	Generate int64 `json:"generate"`
-	Patch    int64 `json:"patch"`
-	Meta     int64 `json:"meta"`
+	Generate     int64 `json:"generate"`
+	GenerateFast int64 `json:"generate_fast"`
+	Patch        int64 `json:"patch"`
+	Meta         int64 `json:"meta"`
 }
 
 type GetProfileInput struct {

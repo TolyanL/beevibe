@@ -49,13 +49,15 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 		}
 	}
 
+	price := u.generatePrice(params.Speed)
+
 	err = transaction.Wrap(ctx, func(ctx context.Context) error {
 		user, err := u.store.GetUserByIDForUpdate(ctx, input.UserID)
 		if err != nil {
 			return fmt.Errorf("store.GetUserByIDForUpdate: %w", err)
 		}
 
-		if err := user.Debit(u.tokens.PriceGenerate); err != nil {
+		if err := user.Debit(price); err != nil {
 			return fmt.Errorf("user.Debit: %w", err)
 		}
 
@@ -67,7 +69,7 @@ func (u *UseCase) Create(ctx context.Context, input dto.CreateGameInput) (dto.Cr
 			return fmt.Errorf("store.CreateGame: %w", err)
 		}
 
-		op, err := domain.NewTokenOp(user.ID, &game.ID, -u.tokens.PriceGenerate, domain.ReasonGenerate)
+		op, err := domain.NewTokenOp(user.ID, &game.ID, -price, domain.ReasonGenerate)
 		if err != nil {
 			return fmt.Errorf("domain.NewTokenOp: %w", err)
 		}
@@ -130,11 +132,17 @@ func (u *UseCase) replayCreateGame(ctx context.Context, input dto.CreateGameInpu
 }
 
 func buildParams(input dto.CreateGameInput) (domain.GameParams, error) {
-	params := domain.GameParams{
-		Genre:   domain.Genre(input.Genre),
-		MapSize: domain.MapSize(input.MapSize),
-		Style:   domain.Style(input.Style),
+	params := domain.GameParams{}
+
+	speed, err := domain.NewSpeed(input.Speed)
+	if err != nil {
+		return params, fmt.Errorf("domain.NewSpeed: %w", err)
 	}
+
+	params.Genre = domain.Genre(input.Genre)
+	params.MapSize = domain.MapSize(input.MapSize)
+	params.Style = domain.Style(input.Style)
+	params.Speed = speed
 
 	customGenre, err := domain.NewCustomGenre(input.CustomGenre)
 	if err != nil {

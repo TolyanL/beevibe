@@ -231,3 +231,65 @@ func TestPathFallsBackToDefault(t *testing.T) {
 		t.Errorf("Path() = %q, want %q", got, DefaultPath)
 	}
 }
+
+func TestFastLLMConfigInheritsTheMainClient(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{
+		LLM: llm.Config{
+			APIKey:           "main-key",
+			Model:            "main-model",
+			BaseURL:          "https://main.example/v1",
+			Timeout:          600 * time.Second,
+			MaxRetries:       1,
+			RetryBackoff:     2 * time.Second,
+			ReasoningDialect: llm.ReasoningDialectOpenRouter,
+			DebugDir:         "/tmp/dump",
+		},
+		Fast: Fast{LLM: llm.Config{Model: "xiaomi/mimo-v2.6-flash"}},
+	}
+
+	fast := cfg.FastLLMConfig()
+
+	if fast.Model != "xiaomi/mimo-v2.6-flash" {
+		t.Errorf("model = %q, want the fast model", fast.Model)
+	}
+
+	if fast.APIKey != "main-key" || fast.BaseURL != "https://main.example/v1" {
+		t.Errorf("fast = %+v, want the credentials of the main client", fast)
+	}
+
+	if fast.Timeout != 600*time.Second || fast.MaxRetries != 1 || fast.DebugDir != "/tmp/dump" {
+		t.Errorf("fast = %+v, want the limits of the main client", fast)
+	}
+}
+
+func TestFastLLMConfigWithoutModelKeepsTheMainClient(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{LLM: llm.Config{APIKey: "main-key", Model: "main-model"}}
+
+	if got := cfg.FastLLMConfig(); got.Model != "main-model" || got.APIKey != "main-key" {
+		t.Errorf("FastLLMConfig() = %+v, want the main client", got)
+	}
+}
+
+func TestDefaultsUseTheDiscountedFastPrice(t *testing.T) {
+	t.Parallel()
+
+	defaults := Defaults()
+
+	if defaults.Tokens.PriceGenerateFast >= defaults.Tokens.PriceGenerate {
+		t.Errorf("fast price = %d, want it below the normal price %d",
+			defaults.Tokens.PriceGenerateFast, defaults.Tokens.PriceGenerate)
+	}
+
+	if defaults.Fast.MaxCallsPerGame != 4 || defaults.Fast.MaxFixAttempts != 2 {
+		t.Errorf("fast = %+v, want 4 calls and 2 validation passes", defaults.Fast)
+	}
+
+	if defaults.FastLLMConfig().Timeout <= defaults.Fast.Timeout {
+		t.Errorf("fast client timeout = %s, want it above the pipeline timeout %s",
+			defaults.FastLLMConfig().Timeout, defaults.Fast.Timeout)
+	}
+}

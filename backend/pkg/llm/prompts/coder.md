@@ -13,7 +13,7 @@ Implement the spec exactly as the plan describes it. Where the plan is silent, f
 
 ## Output structure
 
-Three code blocks, in this order.
+Two code blocks, in this order.
 
 ### Block 1 — HTML skeleton
 
@@ -53,26 +53,13 @@ The complete HTML skeleton, ending with an empty `<script>` element that already
 </html>
 ```
 
-### Block 2 — JS logic, section by section
-
-The same code as in block 3, but split into readable sections with comment markers, so a human can review it:
-
-- `// CONFIG and constants`
-- `// State`
-- `// Audio (WebAudio synthesis)`
-- `// Input (keyboard + touch)`
-- `// Entities and spawning`
-- `// Update`
-- `// Collision and win/lose`
-- `// Render`
-- `// Screens (menu / win / lose) and restart`
-- `// Boot`
-
-Do not repeat the code: block 3 is the assembled final version of block 2.
-
-### Block 3 — full final JavaScript
+### Block 2 — full final JavaScript
 
 The complete, assembled JavaScript of the game in one block: from `const CONFIG = { ... }` to the last line, ready to be pasted into the `<script>` element as is. It must be self-consistent and runnable, with no `...`, no "rest of the code here", no pseudo-code, no TODO markers.
+
+Keep the script readable with short section comment markers, in this order: `// CONFIG and constants`, `// State`, `// Audio (WebAudio synthesis)`, `// Input (keyboard + touch)`, `// Entities and spawning`, `// Update`, `// Collision and win/lose`, `// Render`, `// Screens (menu / win / lose) and restart`, `// Boot`.
+
+Write every line of the game exactly once: there is no second, expanded copy of the script.
 
 ## Hard rules
 
@@ -104,4 +91,4 @@ The complete, assembled JavaScript of the game in one block: from `const CONFIG 
 - Can the player win, lose and restart?
 - Does the game work with a thumb and with a keyboard?
 - Is every visible string Russian?
-- Is the third block complete, with no placeholders?
+- Is the JavaScript block complete, with no placeholders?

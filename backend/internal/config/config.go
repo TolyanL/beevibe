@@ -26,14 +26,15 @@ type App struct {
 }
 
 type Tokens struct {
-	GrantSignup   int64 `yaml:"grant_signup"`
-	PriceGenerate int64 `yaml:"price_generate"`
-	PricePatch    int64 `yaml:"price_patch"`
-	PriceMeta     int64 `yaml:"price_meta"`
-	TopupMin      int64 `yaml:"topup_min"`
-	TopupMax      int64 `yaml:"topup_max"`
-	TopupDailyCap int64 `yaml:"topup_daily_cap"`
-	DemoTopup     bool  `yaml:"demo_topup"`
+	GrantSignup       int64 `yaml:"grant_signup"`
+	PriceGenerate     int64 `yaml:"price_generate"`
+	PriceGenerateFast int64 `yaml:"price_generate_fast"`
+	PricePatch        int64 `yaml:"price_patch"`
+	PriceMeta         int64 `yaml:"price_meta"`
+	TopupMin          int64 `yaml:"topup_min"`
+	TopupMax          int64 `yaml:"topup_max"`
+	TopupDailyCap     int64 `yaml:"topup_daily_cap"`
+	DemoTopup         bool  `yaml:"demo_topup"`
 }
 
 type LLMReasoning struct {
@@ -79,6 +80,13 @@ type Worker struct {
 	MaxFixAttempts  int           `yaml:"max_fix_attempts"`
 }
 
+type Fast struct {
+	LLM             llm.Config    `yaml:"llm"`
+	Timeout         time.Duration `yaml:"timeout"`
+	MaxCallsPerGame int           `yaml:"max_calls_per_game"`
+	MaxFixAttempts  int           `yaml:"max_fix_attempts"`
+}
+
 type Config struct {
 	App          App               `yaml:"app"`
 	Auth         auth.Config       `yaml:"auth"`
@@ -91,6 +99,7 @@ type Config struct {
 	Tokens       Tokens            `yaml:"tokens"`
 	Validator    validator.Config  `yaml:"validator"`
 	Worker       Worker            `yaml:"worker"`
+	Fast         Fast              `yaml:"fast"`
 }
 
 func New() (Config, error) {
@@ -167,14 +176,15 @@ func Defaults() Config {
 			ReasoningDialect: llm.ReasoningDialectOpenRouter,
 		},
 		Tokens: Tokens{
-			GrantSignup:   1_000_000,
-			PriceGenerate: 320_000,
-			PricePatch:    40_000,
-			PriceMeta:     10_000,
-			TopupMin:      10_000,
-			TopupMax:      1_000_000,
-			TopupDailyCap: 5_000_000,
-			DemoTopup:     true,
+			GrantSignup:       1_000_000,
+			PriceGenerate:     320_000,
+			PriceGenerateFast: 240_000,
+			PricePatch:        40_000,
+			PriceMeta:         10_000,
+			TopupMin:          10_000,
+			TopupMax:          1_000_000,
+			TopupDailyCap:     5_000_000,
+			DemoTopup:         true,
 		},
 		Worker: Worker{
 			Concurrency:     2,
@@ -182,7 +192,58 @@ func Defaults() Config {
 			MaxCallsPerGame: 12,
 			MaxFixAttempts:  2,
 		},
+		Fast: Fast{
+			// NOTE: the streamed one-shot call writes the whole game, so its HTTP client has to
+			// outlive the pipeline budget below; the pipeline deadline stays the one that trips.
+			LLM: llm.Config{
+				Model:   "xiaomi/mimo-v2.6-flash",
+				Timeout: 1500 * time.Second,
+			},
+			Timeout:         1200 * time.Second,
+			MaxCallsPerGame: 4,
+			MaxFixAttempts:  2,
+		},
 	}
+}
+
+// NOTE: the fast block inherits every empty llm field from the main client, so a mode that only
+// swaps the model needs a single yaml line.
+func (c Config) FastLLMConfig() llm.Config {
+	fast := c.Fast.LLM
+
+	if fast.Model == "" {
+		return c.LLM
+	}
+
+	if fast.APIKey == "" {
+		fast.APIKey = c.LLM.APIKey
+	}
+
+	if fast.BaseURL == "" {
+		fast.BaseURL = c.LLM.BaseURL
+	}
+
+	if fast.Timeout <= 0 {
+		fast.Timeout = c.LLM.Timeout
+	}
+
+	if fast.MaxRetries == 0 {
+		fast.MaxRetries = c.LLM.MaxRetries
+	}
+
+	if fast.RetryBackoff <= 0 {
+		fast.RetryBackoff = c.LLM.RetryBackoff
+	}
+
+	if fast.ReasoningDialect == "" {
+		fast.ReasoningDialect = c.LLM.ReasoningDialect
+	}
+
+	if fast.DebugDir == "" {
+		fast.DebugDir = c.LLM.DebugDir
+	}
+
+	return fast
 }
 
 func (c Config) Validate() error {
@@ -208,6 +269,10 @@ func (c Config) Validate() error {
 
 	if err := c.LLMReasoning.Validate(); err != nil {
 		return fmt.Errorf("LLMReasoning.Validate: %w", err)
+	}
+
+	if err := c.Fast.LLM.Validate(); err != nil {
+		return fmt.Errorf("fast.LLM.Validate: %w", err)
 	}
 
 	return nil

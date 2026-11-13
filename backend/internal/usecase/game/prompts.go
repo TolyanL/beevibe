@@ -36,6 +36,15 @@ func buildAnalyzePrompt(game domain.Game) string {
 	return b.String()
 }
 
+func buildSpecPlanPrompt(game domain.Game) string {
+	var b strings.Builder
+
+	b.WriteString(buildAnalyzePrompt(game))
+	b.WriteString("\n\nAnswer with one fenced json block holding the spec, then the implementation plan as plain markdown after the fence.")
+
+	return b.String()
+}
+
 func buildCodePrompt(p *pipeline) string {
 	spec, err := marshalSpec(p.spec)
 	if err != nil {
@@ -49,6 +58,15 @@ func buildCodePrompt(p *pipeline) string {
 	b.WriteString("\n\nImplementation plan:\n")
 	b.WriteString(p.plan)
 	writeCanonicalConfig(&b, p)
+
+	return b.String()
+}
+
+func buildOneShotPrompt(p *pipeline) string {
+	var b strings.Builder
+
+	b.WriteString(buildCodePrompt(p))
+	b.WriteString("\n\nImplement every asset the spec lists: inline SVG sprites or canvas painters, and WebAudio sounds.\n")
 
 	return b.String()
 }

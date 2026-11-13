@@ -1194,6 +1194,10 @@ components:
             generate:
               type: integer
               format: int64
+            generate_fast:
+              type: integer
+              format: int64
+              description: Цена быстрой сборки (два вызова модели вместо семи)
             patch:
               type: integer
               format: int64
@@ -1235,6 +1239,13 @@ components:
           type: string
           maxLength: 160
           description: Свободный текст стиля (например «аниме-нуар, бумажный коллаж»), обязателен при style=custom
+        speed:
+          type: string
+          enum: [normal, fast]
+          description: |
+            Скорость сборки. normal — полный конвейер из семи этапов с ревью и сборкой.
+            fast — два вызова модели (спека с планом, затем игра одним файлом), без ревью:
+            дешевле и в разы быстрее, качество ниже.
 
     CreateGameResponse:
       type: object
@@ -1376,6 +1387,9 @@ components:
               type: string
             custom_style:
               type: string
+            speed:
+              type: string
+              description: Режим скорости, выбранный при создании; пусто у старых игр (normal)
         status:
           type: string
           enum: [queued, analyzing, planning, coding, assets, reviewing, assembling, checking, patching, needs_decision, ready, failed]

@@ -6,7 +6,7 @@ import Textarea from 'openvue/textarea'
 import Select from 'openvue/select'
 import InputText from 'openvue/inputtext'
 import { useToast } from 'openvue/usetoast'
-import type { GameStyle, Genre, MapSize } from '@/api/types'
+import type { GameSpeed, GameStyle, Genre, MapSize } from '@/api/types'
 import { messageFromError } from '@/api/client'
 import { formatNumber, formatTokens } from '@/lib/format'
 import { genreLabel, shortGameTitle, styleLabel, stylePalette } from '@/lib/game'
@@ -28,12 +28,33 @@ const title = ref('')
 const description = ref('')
 const mapSize = ref<MapSize>('medium')
 const tempo = ref(6)
+const speed = ref<GameSpeed>('normal')
 const advanced = ref(false)
 const submitting = ref(false)
 const error = ref('')
 
 const maxPrompt = 2000
-const currentPrice = computed(() => auth.prices.generate)
+
+const speedOptions = computed(() => [
+  {
+    value: 'fast' as GameSpeed,
+    label: 'Быстро',
+    eta: '≈ 4–6 минут',
+    hint: 'Модель проходит идею и план, затем пишет игру одним файлом. Без ревью — дешевле и в разы быстрее.',
+    price: auth.prices.generate_fast,
+  },
+  {
+    value: 'normal' as GameSpeed,
+    label: 'Обычный',
+    eta: '≈ 15–20 минут',
+    hint: 'Полный конвейер: план, код, графика, ревью и сборка. Больше проверок и выше качество.',
+    price: auth.prices.generate,
+  },
+])
+
+const currentPrice = computed(() =>
+  speed.value === 'fast' ? auth.prices.generate_fast : auth.prices.generate,
+)
 const previewTitle = computed(() => shortGameTitle(title.value, prompt.value))
 const previewDescription = computed(
   () =>
@@ -182,6 +203,7 @@ async function submit(): Promise<void> {
       customStyle: style.value === 'custom' ? customStyle.value.trim() : undefined,
       mapSize: mapSize.value,
       tempo: tempo.value,
+      speed: speed.value,
     })
 
     toast.add({
@@ -433,6 +455,38 @@ onMounted(() => {
                   </div>
                 </div>
               </Transition>
+
+              <div class="mt-4">
+                <label class="mono-label">Скорость сборки</label>
+                <div class="mt-2.5 grid gap-2 sm:grid-cols-2">
+                  <button
+                    v-for="option in speedOptions"
+                    :key="option.value"
+                    type="button"
+                    class="rounded-2xl border px-4 py-3 text-left transition"
+                    :class="
+                      speed === option.value
+                        ? 'border-bee-deep bg-bee/[0.08]'
+                        : 'border-line bg-canvas/40 hover:border-line-strong'
+                    "
+                    :aria-pressed="speed === option.value"
+                    @click="speed = option.value"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-sm font-bold">{{ option.label }}</span>
+                      <span
+                        class="rounded-full border border-line px-2 py-0.5 font-mono text-[10px] font-bold text-bee-deep dark:text-bee"
+                      >
+                        {{ formatTokens(option.price) }}
+                      </span>
+                    </div>
+                    <p class="mt-1.5 text-[11px] leading-4 text-muted">{{ option.hint }}</p>
+                    <p class="mt-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                      {{ option.eta }}
+                    </p>
+                  </button>
+                </div>
+              </div>
 
               <div
                 v-if="error"

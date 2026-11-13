@@ -87,7 +87,13 @@ export function statusMeta(status: GameStatus | string): StatusMeta {
   return META[status as GameStatus] ?? META.queued
 }
 
-export const PIPELINE = [
+export interface PipelineStage {
+  id: string
+  label: string
+  short: string
+}
+
+const PIPELINE_FULL: readonly PipelineStage[] = [
   { id: 'queued', label: 'Очередь', short: 'Очередь' },
   { id: 'analyzing', label: 'Разбор идеи', short: 'Разбор' },
   { id: 'planning', label: 'План и правила', short: 'План' },
@@ -97,6 +103,19 @@ export const PIPELINE = [
   { id: 'assembling', label: 'Сборка', short: 'Сборка' },
   { id: 'checking', label: 'Проверка', short: 'Проверка' },
 ] as const
+
+const PIPELINE_FAST: readonly PipelineStage[] = [
+  { id: 'queued', label: 'Очередь', short: 'Очередь' },
+  { id: 'analyzing', label: 'Идея и план', short: 'План' },
+  { id: 'coding', label: 'Код игры', short: 'Код' },
+  { id: 'checking', label: 'Проверка', short: 'Проверка' },
+] as const
+
+export const PIPELINE = PIPELINE_FULL
+
+export function pipelineFor(speed?: string): readonly PipelineStage[] {
+  return speed === 'fast' ? PIPELINE_FAST : PIPELINE_FULL
+}
 
 const OPERATION_STAGE_LABELS: Record<string, string> = {
   patching: 'Правка игры',
@@ -109,7 +128,9 @@ export function stageLabel(stage: string, operation?: string): string {
     if (operation === 'meta') return 'Название и описание'
   }
 
-  return PIPELINE.find((item) => item.id === stage)?.label ?? OPERATION_STAGE_LABELS[stage] ?? stage
+  return (
+    PIPELINE_FULL.find((item) => item.id === stage)?.label ?? OPERATION_STAGE_LABELS[stage] ?? stage
+  )
 }
 
 export function genreLabel(genre: string, custom?: string): string {

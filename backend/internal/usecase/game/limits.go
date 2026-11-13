@@ -11,6 +11,12 @@ import (
 
 func errorCode(err error) string {
 	switch {
+	case errors.Is(err, context.Canceled):
+		return "cancelled"
+	// NOTE: an LLM error wraps the context error too, and a deadline must read as a timeout,
+	// not as a provider outage.
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
 	case errors.Is(err, domain.ErrLLMUnavailable):
 		return "llm_unavailable"
 	case errors.Is(err, domain.ErrLLMBudgetExceeded):
@@ -19,10 +25,6 @@ func errorCode(err error) string {
 		return "validation_failed"
 	case errors.Is(err, domain.ErrNotEnoughTokens):
 		return "not_enough_tokens"
-	case errors.Is(err, context.Canceled):
-		return "cancelled"
-	case errors.Is(err, context.DeadlineExceeded):
-		return "timeout"
 	default:
 		return "generation_failed"
 	}

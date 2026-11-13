@@ -166,7 +166,7 @@ if err != nil {
 - Creation order: pool → clients → metrics → usecase → controllers → workers. Shutdown is strictly the reverse: controllers first, then adapters.
 - `internal/config/config.go` is a `Config` aggregate of the layers' config structs. Each layer owns its config struct with `yaml` tags; the file `configs/config.yaml` holds the values, `configs/config.example.yaml` is the committed template.
 - A mandatory parameter is checked on startup; an optional one has a default in `internal/config.Defaults()`. A parameter with neither is not allowed.
-- A new parameter → a field in the layer's config + a line in `configs/config.example.yaml` in the existing section (`app`, `http`, `logger`, `postgres`, `llm`, `llm_reasoning`, `tokens`, `worker`, `kafka`, `auth`, `validator`).
+- A new parameter → a field in the layer's config + a line in `configs/config.example.yaml` in the existing section (`app`, `http`, `logger`, `postgres`, `llm`, `llm_reasoning`, `tokens`, `worker`, `fast`, `kafka`, `auth`, `validator`).
 - `cmd/*/main.go` — only `config.New` → `logger.Init` → `otel.Init` → `app.Run`. `log.Fatal` is allowed only here.
 
 ## 4. Transactions
@@ -416,4 +416,5 @@ Facts about this service:
 - Module `github.com/TolyanL/beevibe`, Go 1.27, binary `cmd/app`, service name `beevibe`.
 - Configuration: `configs/config.yaml` (gitignored), template `configs/config.example.yaml`, override with `APP_CONFIG_PATH`. Missing fields fall back to `internal/config.Defaults()`.
 - Kafka: topic `game.events` (8 partitions), consumer group `beevibe`, outbox table `outbox`, projection `game_event_log`.
+- Two generation speed modes, chosen per request (`speed`: `normal` | `fast`) and stored in `games.params_json`: `normal` is the seven-stage pipeline, `fast` is two LLM calls (spec+plan, then the whole game in one streamed HTML answer) with no review stage, its own client from the `fast` config section and a 25% lower price.
 - Infrastructure containers are prefixed `beevibe_` (`beevibe_db`, `beevibe_kafka`, `beevibe_kafka_ui`, volume `beevibe_postgres_data`).

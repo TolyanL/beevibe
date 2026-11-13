@@ -57,9 +57,14 @@ type GameParams struct {
 	Style       Style       `json:"style,omitempty"`
 	CustomGenre CustomLabel `json:"custom_genre,omitempty"`
 	CustomStyle CustomLabel `json:"custom_style,omitempty"`
+	Speed       Speed       `json:"speed,omitempty"`
 }
 
 func (p GameParams) Validate() error {
+	if !p.Speed.Valid() {
+		return fmt.Errorf("%w: unknown speed %q", ErrInvalidInput, p.Speed)
+	}
+
 	if p.Genre == GenreCustom {
 		if err := p.CustomGenre.validate(CustomGenreMaxLength, false); err != nil {
 			return fmt.Errorf("custom genre: %w", err)

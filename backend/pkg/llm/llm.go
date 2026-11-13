@@ -46,6 +46,7 @@ type Request struct {
 	Prompt      string  `json:"prompt"`
 	Temperature float64 `json:"temperature"`
 	Reasoning   Effort  `json:"reasoning"`
+	Stream      bool    `json:"stream,omitempty"`
 }
 
 type Usage struct {

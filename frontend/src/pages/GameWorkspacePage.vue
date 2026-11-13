@@ -95,6 +95,8 @@ const operationHint = computed(() => {
 })
 
 const operationExpectedSeconds = computed(() => (game.operation?.kind === 'meta' ? 45 : 150))
+const generationExpectedSeconds = computed(() => (game.speed === 'fast' ? 300 : 900))
+const resumeFallback = computed(() => (game.speed === 'fast' ? 'checking' : 'assembling'))
 const isMetaOperation = computed(() => game.operation?.kind === 'meta')
 const reviewIssues = computed(() => game.game?.review_issues ?? [])
 const needsDecision = computed(() => game.status === 'needs_decision')
@@ -107,10 +109,14 @@ function stageTitle(stage: string): string {
       return 'кода'
     case 'assets':
       return 'графики'
+    case 'checking':
+      return 'проверки'
     default:
       return 'сборки'
   }
 }
+
+const acceptReviewStage = computed(() => (game.speed === 'fast' ? 'checking' : 'assembling'))
 
 async function acceptReview(): Promise<void> {
   try {
@@ -118,7 +124,7 @@ async function acceptReview(): Promise<void> {
     toast.add({
       severity: 'success',
       summary: 'Код принят',
-      detail: `Продолжаем с этапа «${stageLabel(resumeFrom || 'assembling')}» — перегенерации не будет.`,
+      detail: `Продолжаем с этапа «${stageLabel(resumeFrom || resumeFallback.value)}» — перегенерации не будет.`,
       life: 3400,
     })
   } catch (err) {
@@ -805,8 +811,8 @@ onBeforeUnmount(() => {
                   </div>
 
                   <p class="mt-3 text-[10px] leading-4 text-faint">
-                    «Оставить как есть» продолжит с этапа {{ stageTitle('assembling') }} — быстро и
-                    без вызова модели. Перегенерация начнётся с этапа кода.
+                    «Оставить как есть» продолжит с этапа {{ stageTitle(acceptReviewStage) }} —
+                    быстро и без вызова модели. Перегенерация начнётся с этапа кода.
                   </p>
                 </div>
               </div>
@@ -858,7 +864,7 @@ onBeforeUnmount(() => {
               :started-at="profileGame?.created_at"
               label="Нейросеть собирает игру"
               hint="этапы ниже"
-              :expected-seconds="240"
+              :expected-seconds="generationExpectedSeconds"
             />
 
             <div v-if="game.isActive" class="panel overflow-hidden">
@@ -901,7 +907,7 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">
-                        {{ game.pipelineStages.filter((item) => item.status === 'done').length }}/8
+                        {{ game.pipelineStages.filter((item) => item.status === 'done').length }}/{{ game.pipelineStageCount }}
                       </p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
                         этапов
@@ -1378,7 +1384,7 @@ onBeforeUnmount(() => {
             </section>
 
             <section v-else class="panel p-5">
-              <StageTimeline :stages="game.stages" :status="game.status" />
+              <StageTimeline :stages="game.stages" :status="game.status" :speed="game.speed" />
               <div class="mt-5 grid grid-cols-2 gap-2 border-t border-line pt-4">
                 <div class="rounded-xl border border-line bg-canvas/35 p-3">
                   <p class="mono-label">Стоимость</p>

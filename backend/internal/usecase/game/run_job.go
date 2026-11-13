@@ -124,7 +124,7 @@ func (u *UseCase) runFixJob(ctx context.Context, job domain.GameJob, game domain
 		return u.abortJob(ctx, p, job, fmt.Errorf("store.GetLatestVersion: %w", err))
 	}
 
-	html, err := u.repairWithIssues(ctx, latest.HTML, job.Instruction)
+	html, err := u.repairWithIssues(ctx, p, latest.HTML, job.Instruction)
 	if err != nil {
 		return u.abortJob(ctx, p, job, fmt.Errorf("u.repairWithIssues: %w", err))
 	}

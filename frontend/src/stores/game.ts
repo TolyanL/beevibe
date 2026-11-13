@@ -31,8 +31,6 @@ import type {
   Visibility,
 } from '@/api/types'
 
-const PIPELINE_STAGES = 8
-
 const PIPELINE_STAGE_NAMES = new Set([
   'analyzing',
   'planning',
@@ -42,6 +40,8 @@ const PIPELINE_STAGE_NAMES = new Set([
   'assembling',
   'checking',
 ])
+
+const FAST_SPEED = 'fast'
 
 const ACTIVE_STATUSES = new Set([
   'queued',
@@ -72,6 +72,7 @@ export const useGameStore = defineStore('game', () => {
 
   let closeStream: (() => void) | null = null
   let currentId = ''
+  let streamGameId = ''
   let streamSeq = 0
 
   const status = computed(() => game.value?.status ?? 'queued')
@@ -86,16 +87,23 @@ export const useGameStore = defineStore('game', () => {
     () => ACTIVE_STATUSES.has(status.value) && status.value !== 'patching',
   )
 
+  const speed = computed(() => game.value?.params?.speed ?? 'normal')
+  const pipelineStageCount = computed(() => (speed.value === FAST_SPEED ? 3 : 7))
+
   const stageProgress = computed(() => {
     if (isReady.value) return 100
     if (!pipelineStages.value.length) return 0
 
     const done = pipelineStages.value.filter((stage) => stage.status === 'done').length
 
-    return Math.min(100, Math.round((done / PIPELINE_STAGES) * 100))
+    return Math.min(100, Math.round((done / pipelineStageCount.value) * 100))
   })
 
   function hydrate(next: Game): void {
+    // NOTE: the event sequence belongs to one game: a baseline from the previous game would
+    // mark every event of the new one as a replay and freeze the workspace at 0%.
+    if (game.value?.id !== next.id) streamSeq = 0
+
     game.value = next
     stages.value = next.stages ?? []
     spec.value = next.spec ?? null
@@ -131,11 +139,14 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function startStream(id: string): void {
-    if (streaming.value && currentId === id) return
+    // NOTE: compare against the id the open stream belongs to: currentId already points at the
+    // new game, so the old stream used to be kept alive and the new one never opened.
+    if (streaming.value && streamGameId === id) return
 
     stopStream()
     streamError.value = ''
     streaming.value = true
+    streamGameId = id
 
     const baseline = streamSeq
     const isRunningOperation = (): boolean => status.value === 'patching'
@@ -216,6 +227,7 @@ export const useGameStore = defineStore('game', () => {
   function stopStream(): void {
     closeStream?.()
     closeStream = null
+    streamGameId = ''
     streaming.value = false
   }
 
@@ -411,6 +423,7 @@ export const useGameStore = defineStore('game', () => {
   return {
     game,
     stages,
+    speed,
     spec,
     config,
     rating,
@@ -428,6 +441,7 @@ export const useGameStore = defineStore('game', () => {
     isActive,
     isGenerating,
     pipelineStages,
+    pipelineStageCount,
     stageProgress,
     load,
     refresh,

@@ -5,6 +5,8 @@ export type MapSize = 'small' | 'medium' | 'large'
 export type GameStyle = 'pixel' | 'cartoon' | 'neon' | 'minimal' | 'custom'
 export type CatalogSort = 'rating' | 'hours' | 'fresh'
 
+export type GameSpeed = 'normal' | 'fast'
+
 export type Visibility = 'public' | 'private'
 
 export interface GameCover {
@@ -73,6 +75,7 @@ export interface Profile {
   token_ops: ProfileTokenOp[]
   prices: {
     generate: number
+    generate_fast: number
     patch: number
     meta: number
   }
@@ -190,6 +193,7 @@ export interface Game {
     style?: string
     map_size?: string
     tempo?: number
+    speed?: string
   }
   status: GameStatus
   visibility: Visibility
@@ -244,6 +248,7 @@ export interface CreateGameInput {
   tempo?: number
   mapSize?: MapSize
   style?: GameStyle
+  speed?: GameSpeed
 }
 
 export interface CreateGameResponse {

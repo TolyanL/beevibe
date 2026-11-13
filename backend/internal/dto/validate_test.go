@@ -51,6 +51,15 @@ func TestCreateGameInputValidate(t *testing.T) {
 			input:   CreateGameInput{Prompt: "змейка", Style: "retro"},
 			wantErr: true,
 		},
+		{
+			name:  "fast speed",
+			input: CreateGameInput{Prompt: "змейка", Speed: "fast"},
+		},
+		{
+			name:    "unknown speed",
+			input:   CreateGameInput{Prompt: "змейка", Speed: "turbo"},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
