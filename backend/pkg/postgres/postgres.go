@@ -57,6 +57,12 @@ func New(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("pgxpool.NewWithConfig: %w", err)
 	}
 
+	if err := p.Ping(ctx); err != nil {
+		p.Close()
+
+		return nil, fmt.Errorf("pool.Ping: %w", err)
+	}
+
 	return p, nil
 }
 
