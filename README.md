@@ -149,7 +149,7 @@ APP_PORT=8080 docker compose up -d --wait
 
 `docker compose up -d` uses `ghcr.io/tolyanl/beevibe:latest`; add `--build` to build from
 the working tree instead, or pin a version with
-`IMAGE=ghcr.io/tolyanl/beevibe:v1.2.0 docker compose up -d`. `--wait` blocks until the
+`IMAGE=ghcr.io/tolyanl/beevibe:v1.3.0 docker compose up -d`. `--wait` blocks until the
 `/api/health` healthcheck passes.
 
 The app lands on `http://localhost:8080`: the SPA at `/`, the API under `/api`,
@@ -236,13 +236,13 @@ Postgres and Kafka, applies the migrations and then the app (Option 1). The
 # stack already up (docker compose up -d db kafka migrate)
 docker run -d --name beevibe_app --network beevibe_default -p 8080:8080 \
   -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
-  ghcr.io/tolyanl/beevibe:v1.2.0
+  ghcr.io/tolyanl/beevibe:v1.3.0
 
 # local model on the host: reach it through host.docker.internal
 docker run -d --name beevibe_app --network beevibe_default -p 8080:8080 \
   -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
   --add-host host.docker.internal:host-gateway \
-  ghcr.io/tolyanl/beevibe:v1.2.0
+  ghcr.io/tolyanl/beevibe:v1.3.0
 ```
 
 `$PWD` must be the repository root, where `deploy/config.yaml` lives; use an absolute
@@ -252,7 +252,7 @@ Check that it is really up — the SPA at `/` answers 200 even with a dead datab
 trust the API, not the page:
 
 ```sh
-curl -s localhost:8080/api/health      # {"status":"ok","version":"1.2.0"}
+curl -s localhost:8080/api/health      # {"status":"ok","version":"1.3.0"}
 curl -s localhost:8080/api/catalog     # {"items":[],"total":0}
 ```
 
@@ -349,10 +349,10 @@ same by hand):
 # 1. bump app.version everywhere (config.example.yaml, config.go Defaults, openapi,
 #    frontend/package.json) — the workflow refuses a tag that disagrees with it
 # 2. tag and push
-git tag v1.2.0 && git push origin v1.2.0
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
-Published tags per release: `v1.2.0`, `1.2.0`, `1.2` and `latest`. The job logs into ghcr
+Published tags per release: `v1.3.0`, `1.3.0`, `1.3` and `latest`. The job logs into ghcr
 with `GITHUB_TOKEN` (`packages: write`), so no PAT or repository secret is needed — the
 package only has to be linked to the repository once (Settings → Packages). Nothing is
 pushed until the build succeeds, and the `app.version` ↔ tag check keeps the tag,
