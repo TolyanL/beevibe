@@ -1,0 +1,82 @@
+name: docker
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag to publish, must match app.version (e.g. v1.2.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/tolyanl/beevibe
+
+jobs:
+  publish:
+    name: Build & push
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏷️ Resolve and verify the tag
+        id: tag
+        env:
+          EVENT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            tag="${EVENT_TAG}"
+          fi
+
+          version=$(sed -n 's/^[[:space:]]*version:[[:space:]]*//p' backend/configs/config.example.yaml | head -1 | tr -d '"')
+          echo "tag=${tag} app.version=${version}"
+
+          if [ "v${version}" != "${tag}" ]; then
+            echo "::error::tag ${tag} does not match app.version ${version} (backend/configs/config.example.yaml) — up.sh pulls the image by app.version"
+            exit 1
+          fi
+
+          echo "tag=${tag}" >>"${GITHUB_OUTPUT}"
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+
+      - name: 🔧 Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=${{ steps.tag.outputs.tag }}
+            type=semver,pattern={{version}},value=${{ steps.tag.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.tag.outputs.tag }}
+            type=raw,value=latest
+
+      - name: 🐳 Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
