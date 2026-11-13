@@ -42,6 +42,23 @@ llm:
   # Empty disables the dump; otherwise a directory for the req/resp/meta of every attempt.
   debug_dir: ""
 
+# Fast mode: spec+plan in one answer, then the whole game as one self-contained HTML document.
+# No review stage, no assembler call, one repair attempt at most.
+fast:
+  # An empty model means the main llm client: only the number of calls shrinks.
+  # Every other empty field is inherited from the llm block above.
+  llm:
+    model: xiaomi/mimo-v2.6-flash
+    # Per request; above the pipeline budget so the pipeline deadline is the one that trips.
+    # Without its own model the fast mode reuses the llm client and its timeout.
+    timeout: 1500s
+  # 0 falls back to worker.timeout. The streamed one-shot call writes the whole game,
+  # so a slow model needs room: 600s ran out inside the coding stage.
+  timeout: 1200s
+  max_calls_per_game: 4
+  # Validation passes: 2 means one repair call between them
+  max_fix_attempts: 2
+
 # Reasoning effort per request: default | none | minimal | low | medium | high | xhigh | max
 # default does not send the field, the provider default applies.
 # On commandcode any explicit effort backfires: the model thinks until max_tokens and returns
