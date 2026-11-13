@@ -26,8 +26,14 @@ llm:
   api_key: ""
   model: deepseek/deepseek-v4.1-flash-1017
   base_url: https://openrouter.ai/api/v1
-  timeout: 120s
-  max_retries: 2
+  # A reasoning model thinks for 2-3 minutes before the first content token (the coder: ~163s
+  # measured), so the per-attempt timeout has to outlive that.
+  timeout: 600s
+  # Output cap over thinking plus text; 0 does not send the field. A small cap is a trap: the
+  # coder spends ~20k tokens thinking, so a tighter limit returns empty content, finish=length.
+  max_tokens: 0
+  # A retry restarts the thinking from scratch, and a timeout is never retried at all.
+  max_retries: 1
   retry_backoff: 2s
   # Dialect of the effort field: openrouter sends "reasoning": {"effort": ...},
   # openai sends "reasoning_effort": ... (OpenAI Chat Completions and llama.cpp,
@@ -38,6 +44,8 @@ llm:
 
 # Reasoning effort per request: default | none | minimal | low | medium | high | xhigh | max
 # default does not send the field, the provider default applies.
+# On commandcode any explicit effort backfires: the model thinks until max_tokens and returns
+# empty content, so those stages must stay on default.
 llm_reasoning:
   analyzer: default
   planner: default
@@ -61,7 +69,8 @@ tokens:
 
 worker:
   concurrency: 2
-  timeout: 300s
+  # Six thinking calls back to back, ~14 minutes measured: 300s ran out inside the plan stage.
+  timeout: 1800s
   max_calls_per_game: 12
   max_fix_attempts: 2
 

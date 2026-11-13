@@ -49,6 +49,7 @@ llm:
   base_url: http://localhost:12286/v1
   timeout: 1800s
   max_retries: 6
+  max_tokens: 4096
   reasoning_dialect: openai
   debug_dir: /tmp/dump
 llm_reasoning:
@@ -81,6 +82,10 @@ worker:
 
 	if cfg.LLM.APIKey != "secret" || cfg.LLM.Model != "qwen3.8-27b" || cfg.LLM.Timeout != 1800*time.Second {
 		t.Errorf("llm = %+v, want secret qwen3.8-27b 1800s", cfg.LLM)
+	}
+
+	if cfg.LLM.MaxTokens != 4096 {
+		t.Errorf("max tokens = %d, want 4096", cfg.LLM.MaxTokens)
 	}
 
 	if cfg.LLM.ReasoningDialect != llm.ReasoningDialectOpenAI {
