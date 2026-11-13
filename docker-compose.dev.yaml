@@ -15,13 +15,13 @@ services:
     image: confluentinc/cp-kafka:latest
     container_name: beevibe_kafka
     ports:
-      - "9092:9092" # internal
-      - "9094:9094" # external
+      - "9094:9094"
     environment:
       KAFKA_NODE_ID: 0
       KAFKA_PROCESS_ROLES: "controller,broker"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "0@beevibe_kafka:9099"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 8
       KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9099,EXTERNAL://:9094"
       KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://beevibe_kafka:9092,EXTERNAL://localhost:9094"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
@@ -30,17 +30,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-
-  beevibe_kafka_init:
-    image: confluentinc/cp-kafka:latest
-    container_name: beevibe_kafka_init
-    command: |
-      bash -c "
-      kafka-topics --create --bootstrap-server beevibe_kafka:9092 --topic game.events --partitions 8 --if-not-exists
-      "
-    restart: on-failure
-    depends_on:
-      - beevibe_kafka
 
   beevibe_kafka_ui:
     image: ghcr.io/kafbat/kafka-ui:latest
