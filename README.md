@@ -134,7 +134,8 @@ Dockerfile             single image with the SPA and the API
 
 ### Option 1 — the container stack
 
-Requirements: Docker with Compose.
+Requirements: Docker with Compose. No script and no local Go/Bun toolchain — the stack
+runs the published image.
 
 ```sh
 # 1. the config the container reads (gitignored), derived from your local one
@@ -142,13 +143,19 @@ cp deploy/config.example.yaml deploy/config.yaml   # then fill llm.api_key
 #    or keep one source of truth with the local dev config:
 ./deploy/sync-config.sh
 
-# 2. build and run: app + Postgres + Kafka + topic init + migrations
-APP_PORT=8080 docker compose up -d --build
+# 2. pull the published image and run app + Postgres + Kafka + migrations
+APP_PORT=8080 docker compose up -d --wait
 ```
+
+`docker compose up -d` uses `ghcr.io/tolyanl/beevibe:latest`; add `--build` to build from
+the working tree instead, or pin a version with
+`IMAGE=ghcr.io/tolyanl/beevibe:v1.2.0 docker compose up -d`. `--wait` blocks until the
+`/api/health` healthcheck passes.
 
 The app lands on `http://localhost:8080`: the SPA at `/`, the API under `/api`,
 generated games at `/g/<slug>`. Migrations run as a one-shot service before the app
-starts, `goose` is inside the image.
+starts, `goose` is inside the image. Kafka creates `game.events` on the first write
+(`KAFKA_NUM_PARTITIONS: 8`), so no topic-init container is needed.
 
 `deploy/config.yaml` is not committed: it holds the LLM key. Only three values differ
 from the template — log format, the Postgres and Kafka hosts inside the compose network.
@@ -185,20 +192,79 @@ llm:
 
 ### Option 3 — the published image
 
-Use this when Postgres and Kafka are already running on the `beevibe_default` network
-and only the app container needs to be (re)created.
+#### The config is mandatory — the container cannot start without it
+
+The image carries only `configs/config.example.yaml`. The binary reads `APP_CONFIG_PATH`,
+which is baked into the image as `/app/configs/config.yaml`, so **the config has to live
+at `/app/configs/config.yaml` inside the container**, mounted read-only from a file on the
+host:
+
+| On the host                 | In the container               | Why                                        |
+| --------------------------- | ------------------------------ | ------------------------------------------ |
+| `deploy/config.yaml`        | `/app/configs/config.yaml:ro`  | the file you edit; gitignored, holds the key |
+
+```sh
+cp deploy/config.example.yaml deploy/config.yaml   # once, then fill llm.api_key
+#    or derive it from your local dev config, hosts rewritten for the network:
+./deploy/sync-config.sh
+```
+
+Without the mount the container dies immediately:
+
+```json
+{"level":"fatal","error":"os.ReadFile: open /app/configs/config.yaml: no such file or directory","message":"config.New"}
+```
+
+The file is read once at startup — after editing it, recreate the container
+(`docker restart beevibe_app` is enough).
+
+#### Prerequisites: network, database, migrations
+
+Everything is in `docker-compose.yml` — `docker compose up -d` creates the network, starts
+Postgres and Kafka, applies the migrations and then the app (Option 1). The
+`beevibe_default` network only exists while that compose project has containers, so the
+`docker run` below is for recreating just the app container on a running stack.
+
+#### Run only the app container
+
+```sh
+# stack already up (docker compose up -d db kafka migrate)
+docker run -d --name beevibe_app --network beevibe_default -p 8080:8080 \
+  -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
+  ghcr.io/tolyanl/beevibe:v1.2.0
+
+# local model on the host: reach it through host.docker.internal
+docker run -d --name beevibe_app --network beevibe_default -p 8080:8080 \
+  -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
+  --add-host host.docker.internal:host-gateway \
+  ghcr.io/tolyanl/beevibe:v1.2.0
+```
+
+`$PWD` must be the repository root, where `deploy/config.yaml` lives; use an absolute
+path (`-v /srv/beevibe/deploy/config.yaml:…`) if you start the container from elsewhere.
+
+Check that it is really up — the SPA at `/` answers 200 even with a dead database, so
+trust the API, not the page:
+
+```sh
+curl -s localhost:8080/api/health      # {"status":"ok","version":"1.2.0"}
+curl -s localhost:8080/api/catalog     # {"items":[],"total":0}
+```
+
+#### What each mistake looks like
+
+| Symptom | Cause |
+| ------- | ----- |
+| `failed to set up container networking: network beevibe_default not found` | the compose stack is not running on this machine — `docker compose up -d` creates the network |
+| container exits, `pool.Ping: failed to connect to … lookup db` | no `--network beevibe_default` (or `db`/`kafka` still point at the compose hosts) — the DSN host and the broker are only resolvable inside the network |
+| container runs, `/` answers 200, every API call fails with `lookup db` | same cause on the older tags that did not ping the database at startup; the page proves nothing |
+| `os.ReadFile: open /app/configs/config.yaml: no such file or directory` | the `-v …:/app/configs/config.yaml:ro` mount is missing |
+| `port is already allocated` | another container publishes 8080 — stop it or pass `-p 8081:8080` |
 
 #### Local model (llama.cpp/vLLM on the host)
 
-```sh
-docker run -d --network beevibe_default -p 8080:8080 \
-  -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
-  --add-host host.docker.internal:host-gateway \
-  ghcr.io/tolyanl/beevibe:v1.1.1
-```
-
-Config as now: `base_url: http://host.docker.internal:12286/v1`,
-`reasoning_dialect: openai`, `timeout: 3600s`.
+In `deploy/config.yaml`: `base_url: http://host.docker.internal:12286/v1`,
+`reasoning_dialect: openai`, `timeout: 3600s`; start with `--add-host` (command above).
 
 #### Model through an API (OpenRouter and any OpenAI-compatible)
 
@@ -214,13 +280,7 @@ llm:
   max_retries: 2
 ```
 
-```sh
-docker run -d --network beevibe_default -p 8080:8080 \
-  -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
-  ghcr.io/tolyanl/beevibe:v1.1.1
-```
-
-`--add-host` is not needed; outgoing internet access and a valid key are.
+No `--add-host` needed: outgoing internet access and a valid key are.
 `timeout: 300s` is enough for an API, unlike `3600s` for a local model.
 
 ## Configuration
@@ -268,6 +328,25 @@ Highlights:
 Conventions: a `session` cookie (HttpOnly) for auth, one error shape
 (`{"error": {"code", "message"}}`), `Idempotency-Key` on mutating calls that publish
 events, and domain errors mapped to HTTP codes at the boundary.
+
+## Releasing the image
+
+`.github/workflows/docker.yaml` builds the `Dockerfile` and pushes
+`ghcr.io/tolyanl/beevibe` on every `v*` tag (`workflow_dispatch` with a tag input does the
+same by hand):
+
+```sh
+# 1. bump app.version everywhere (config.example.yaml, config.go Defaults, openapi,
+#    frontend/package.json) — the workflow refuses a tag that disagrees with it
+# 2. tag and push
+git tag v1.2.0 && git push origin v1.2.0
+```
+
+Published tags per release: `v1.2.0`, `1.2.0`, `1.2` and `latest`. The job logs into ghcr
+with `GITHUB_TOKEN` (`packages: write`), so no PAT or repository secret is needed — the
+package only has to be linked to the repository once (Settings → Packages). Nothing is
+pushed until the build succeeds, and the `app.version` ↔ tag check keeps the tag,
+`app.version` and the `IMAGE=` override of `docker compose` in sync.
 
 ## Quality gates
 
