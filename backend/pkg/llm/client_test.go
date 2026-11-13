@@ -250,6 +250,80 @@ func TestCompleteSendsNoMaxTokens(t *testing.T) {
 	}
 }
 
+func TestCompleteSendsConfiguredMaxTokens(t *testing.T) {
+	t.Parallel()
+
+	var raw map[string]json.RawMessage
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
+			t.Errorf("decode request: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(okBody))
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		APIKey:    "secret-key",
+		Model:     "test-model",
+		BaseURL:   server.URL,
+		Timeout:   5 * time.Second,
+		MaxTokens: 4096,
+	})
+
+	if _, err := client.Complete(t.Context(), Request{System: "system prompt", Prompt: "user prompt"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var maxTokens int
+	if err := json.Unmarshal(raw["max_tokens"], &maxTokens); err != nil {
+		t.Fatalf("max_tokens: %v, body = %v", err, raw)
+	}
+
+	if maxTokens != 4096 {
+		t.Errorf("max_tokens: want 4096, got %d", maxTokens)
+	}
+}
+
+func TestCompleteDoesNotRetryTimeout(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+
+	done := make(chan struct{})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+
+		select {
+		case <-r.Context().Done():
+		case <-done:
+		}
+	}))
+
+	defer server.Close()
+	defer close(done)
+
+	client := New(Config{
+		APIKey:     "secret-key",
+		Model:      "test-model",
+		BaseURL:    server.URL,
+		Timeout:    50 * time.Millisecond,
+		MaxRetries: 3,
+	})
+
+	_, err := client.Complete(t.Context(), Request{System: "system prompt", Prompt: "user prompt"})
+	if !errors.Is(err, domain.ErrLLMUnavailable) {
+		t.Fatalf("error: want %v, got %v", domain.ErrLLMUnavailable, err)
+	}
+
+	if got := calls.Load(); got != 1 {
+		t.Errorf("calls: want 1, got %d", got)
+	}
+}
+
 func TestCompleteCancelledContext(t *testing.T) {
 	t.Parallel()
 

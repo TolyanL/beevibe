@@ -7,7 +7,7 @@ You repair, you do not rewrite. Every part of the file that is not related to a 
 ## Input
 
 - **HTML** — the current full HTML file of the game.
-- **ISSUES** — the findings from the reviewer. They arrive as JSON (`{"code","message","severity"}`) or as a plain list of remarks in English or Russian.
+- **ISSUES** — the findings from the reviewer. They arrive as JSON (`{"code","message","line"}`) or as a plain list of remarks in English or Russian.
 
 ## Output format
 

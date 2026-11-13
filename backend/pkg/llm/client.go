@@ -20,6 +20,7 @@ type Config struct {
 	Model            string        `yaml:"model"`
 	BaseURL          string        `yaml:"base_url"`
 	Timeout          time.Duration `yaml:"timeout"`
+	MaxTokens        int           `yaml:"max_tokens"`
 	MaxRetries       int           `yaml:"max_retries"`
 	RetryBackoff     time.Duration `yaml:"retry_backoff"`
 	ReasoningDialect string        `yaml:"reasoning_dialect"`
@@ -27,6 +28,10 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	if c.MaxTokens < 0 {
+		return fmt.Errorf("invalid max_tokens %d", c.MaxTokens)
+	}
+
 	switch c.ReasoningDialect {
 	case "", ReasoningDialectOpenRouter, ReasoningDialectOpenAI:
 		return nil

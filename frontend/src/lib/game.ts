@@ -124,7 +124,7 @@ export function genreLabel(genre: string, custom?: string): string {
     custom: 'Своя механика',
   }
 
-  return labels[genre] ?? ''
+  return labels[genre] ?? genre
 }
 
 const STYLE_PALETTES: Record<string, [string, string]> = {
@@ -149,7 +149,7 @@ export function styleLabel(style: string, custom?: string): string {
     minimal: 'Минимализм',
   }
 
-  return labels[style] ?? ''
+  return labels[style] ?? style
 }
 
 const shortTitleWords = 5

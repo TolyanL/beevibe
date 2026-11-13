@@ -161,8 +161,8 @@ func Defaults() Config {
 		LLM: llm.Config{
 			Model:            "deepseek/deepseek-chat",
 			BaseURL:          "https://openrouter.ai/api/v1",
-			Timeout:          120 * time.Second,
-			MaxRetries:       2,
+			Timeout:          600 * time.Second,
+			MaxRetries:       1,
 			RetryBackoff:     2 * time.Second,
 			ReasoningDialect: llm.ReasoningDialectOpenRouter,
 		},
@@ -178,7 +178,7 @@ func Defaults() Config {
 		},
 		Worker: Worker{
 			Concurrency:     2,
-			Timeout:         300 * time.Second,
+			Timeout:         1800 * time.Second,
 			MaxCallsPerGame: 12,
 			MaxFixAttempts:  2,
 		},

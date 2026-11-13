@@ -281,12 +281,17 @@ llm:
   model: deepseek/deepseek-v4.1-flash-1017
   base_url: https://openrouter.ai/api/v1
   reasoning_dialect: openrouter
-  timeout: 300s
-  max_retries: 2
+  timeout: 600s
+  max_tokens: 0
+  max_retries: 1
 ```
 
 No `--add-host` needed: outgoing internet access and a valid key are.
-`timeout: 300s` is enough for an API, unlike `3600s` for a local model.
+`timeout: 600s` is enough for an API, unlike `3600s` for a local model: the
+per-attempt timeout has to outlive the model's thinking, which runs for minutes
+before the first content token. `max_tokens: 0` leaves the output uncapped: a
+reasoning model spends ~20k tokens thinking before writing, so a tighter limit
+returns an empty answer with `finish_reason: length`.
 
 ## Configuration
 
@@ -298,7 +303,7 @@ back to defaults in `internal/config`; a mandatory parameter is validated on sta
 | `app`            | name and version reported by `/api/health`                                       |
 | `http`           | port, timeouts (`write_timeout: 0s` keeps SSE open), `static_dir` for the SPA     |
 | `postgres`       | DSN and pool settings                                                            |
-| `llm`            | provider, model, timeouts, retries, reasoning dialect, debug dump directory      |
+| `llm`            | provider, model, timeout/max_tokens/retries, reasoning dialect, debug dump directory |
 | `llm_reasoning`  | effort per stage: `default`, `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
 | `tokens`         | signup grant, prices (generate/patch/meta), demo top-up limits                   |
 | `worker`         | concurrency, per-game timeout, call budget, repair attempts                      |

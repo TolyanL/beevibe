@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -35,6 +37,7 @@ type chatRequest struct {
 	Model           string            `json:"model"`
 	Messages        []chatMessage     `json:"messages"`
 	Temperature     float64           `json:"temperature"`
+	MaxTokens       int               `json:"max_tokens,omitempty"`
 	Reasoning       *reasoningPayload `json:"reasoning,omitempty"`
 	ReasoningEffort string            `json:"reasoning_effort,omitempty"`
 }
@@ -107,7 +110,8 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 			break
 		}
 
-		log.Debug().Int("attempt", attempt+1).Err(err).Msg("llm complete attempt failed")
+		log.Warn().Int("attempt", attempt+1).Dur("duration", time.Since(started)).Err(err).
+			Msg("llm complete attempt failed, retrying")
 	}
 
 	span.SetError(lastErr)
@@ -127,6 +131,7 @@ func (c *Client) chatBody(req Request) ([]byte, error) {
 			{Role: "user", Content: req.Prompt},
 		},
 		Temperature: req.Temperature,
+		MaxTokens:   c.cfg.MaxTokens,
 	}
 
 	if effort := req.Reasoning.value(); effort != "" {
@@ -167,7 +172,7 @@ func (c *Client) send(ctx context.Context, body []byte) ([]byte, bool, error) {
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, true, fmt.Errorf("httpClient.Do: %w", err)
+		return nil, retryableTransport(err), fmt.Errorf("httpClient.Do: %w", err)
 	}
 
 	defer func() { _ = response.Body.Close() }()
@@ -248,6 +253,15 @@ func (c *Client) retryDelay(attempt int) time.Duration {
 	}
 
 	return delay
+}
+
+func retryableTransport(err error) bool {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return false
+	}
+
+	return !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled)
 }
 
 func retryableStatus(status int) bool {
