@@ -79,9 +79,15 @@ func TestProfileReturnsBalanceGamesAndOps(t *testing.T) {
 	env.store.EXPECT().ListUserGames(mock.Anything, userID, dto.ListUserGamesInput{Limit: 20}).Return([]dto.ProfileGame{
 		{ID: gameID, Prompt: "змейка", Status: "ready", TokensCost: 320_000},
 	}, 1, nil)
-	env.store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: 20}).Return([]domain.TokenOp{
-		{UserID: userID, GameID: &gameID, Delta: -320_000, Reason: domain.ReasonGenerate},
+	env.store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: 20}).Return([]dto.ProfileTokenOp{
+		{GameID: &gameID, GameLabel: "змейка", Delta: -320_000, Reason: "generate"},
 	}, 1, nil)
+	env.store.EXPECT().GetProfileStats(mock.Anything, userID).Return(dto.ProfileStats{
+		GamesTotal:  1,
+		GamesReady:  1,
+		TokensSpent: 320_000,
+		Fixes:       0,
+	}, nil)
 
 	req := env.authorized(httptest.NewRequest(http.MethodGet, "/profile", nil))
 	rec := env.do(req)
@@ -105,6 +111,10 @@ func TestProfileReturnsBalanceGamesAndOps(t *testing.T) {
 
 	if output.Prices.Generate != 320_000 || output.Prices.Patch != 40_000 {
 		t.Errorf("prices = %+v, want generate 320000 patch 40000", output.Prices)
+	}
+
+	if output.Stats.GamesTotal != 1 || output.Stats.GamesReady != 1 || output.Stats.TokensSpent != 320_000 {
+		t.Errorf("stats = %+v, want 1 game, 1 ready, 320000 spent", output.Stats)
 	}
 }
 

@@ -204,6 +204,20 @@ export function gameDescription(description: string | undefined, prompt: string)
   return clean || prompt.trim()
 }
 
+export function visibleGameDescription(
+  description: string | undefined,
+  prompt: string,
+  title: string,
+): string {
+  const text = gameDescription(description, prompt).trim()
+  const promptTitle = shortGameTitle(undefined, prompt)
+
+  if (!text || text === title) return ''
+  if (!description?.trim() && title === promptTitle) return ''
+
+  return text
+}
+
 export function mapSizeLabel(size: string): string {
   const labels: Record<string, string> = {
     small: 'Компактная',

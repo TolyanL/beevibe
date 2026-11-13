@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   deleteGame,
   getGame,
+  listTokenOps,
+  listUserGenerations,
   listUserGames,
   patchGame,
   rateGame,
@@ -82,5 +84,21 @@ describe('game endpoints address a game by slug', () => {
     await listUserGames({ status: 'ready', sort: 'tokens_cost', limit: 5, offset: 10 })
 
     expect(captured[0]?.url).toBe('/api/games?status=ready&sort=tokens_cost&limit=5&offset=10')
+  })
+
+  it('pages through generation history', async () => {
+    mockFetch({ items: [], total: 0 })
+
+    await listUserGenerations({ limit: 6, offset: 12 })
+
+    expect(captured[0]?.url).toBe('/api/me/generations?limit=6&offset=12')
+  })
+
+  it('pages through token operations', async () => {
+    mockFetch({ items: [], total: 0 })
+
+    await listTokenOps({ limit: 8, offset: 16 })
+
+    expect(captured[0]?.url).toBe('/api/me/token-ops?limit=8&offset=16')
   })
 })

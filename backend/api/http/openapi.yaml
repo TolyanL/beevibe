@@ -904,6 +904,45 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /me/generations:
+    get:
+      tags: [profile]
+      summary: История генераций по всем моим играм (пагинация)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Версии игр пользователя и общий счёт без учёта limit/offset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProfileGeneration"
+                  total:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /catalog:
     get:
       tags: [catalog]
@@ -1140,6 +1179,14 @@ components:
           type: string
         slug:
           type: string
+        description:
+          type: string
+        speed:
+          type: string
+          enum: [normal, fast]
+          description: Режим генерации, по умолчанию normal
+        cover:
+          $ref: "#/components/schemas/GameCover"
         genre:
           type: string
         status:
@@ -1156,6 +1203,9 @@ components:
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     ProfileTokenOp:
       type: object
@@ -1164,6 +1214,13 @@ components:
           type: string
           format: uuid
           nullable: true
+        game_slug:
+          type: string
+          nullable: true
+          description: Публичный адрес игры, есть только у операций, привязанных к игре
+        game_label:
+          type: string
+          description: Название игры или её промпт
         delta:
           type: integer
           format: int64
@@ -1174,12 +1231,59 @@ components:
           type: string
           format: date-time
 
+    ProfileGeneration:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        game_slug:
+          type: string
+        game_title:
+          type: string
+        game_prompt:
+          type: string
+        game_status:
+          type: string
+        version_number:
+          type: integer
+        source:
+          type: string
+          enum: [generate, review, patch, config, repair, rollback]
+        note:
+          type: string
+        tokens_cost:
+          type: integer
+        model_calls:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
     Profile:
       type: object
       properties:
         balance:
           type: integer
           format: int64
+        stats:
+          type: object
+          description: Счётчики по всей истории пользователя, не по одной странице
+          properties:
+            games_total:
+              type: integer
+              format: int64
+            games_ready:
+              type: integer
+              format: int64
+            tokens_spent:
+              type: integer
+              format: int64
+              description: Чистые списания за generate/patch/meta; возвраты (refund) их уменьшают
+            fixes:
+              type: integer
+              format: int64
+              description: Количество авторемонтов (source=repair) по играм пользователя
         games:
           type: array
           items:

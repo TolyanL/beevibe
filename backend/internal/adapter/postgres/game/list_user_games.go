@@ -2,8 +2,10 @@ package game
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
+	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
 	"github.com/TolyanL/beevibe/pkg/tracer"
 	"github.com/TolyanL/beevibe/pkg/transaction"
@@ -35,7 +37,11 @@ func (p *Postgres) ListUserGames(ctx context.Context, userID uuid.UUID, filter d
 	                    g.visibility,
 	                    g.title,
 	                    g.slug,
+	                    COALESCE(g.description, ''),
+	                    COALESCE(g.params_json->>'speed', 'normal'),
+	                    g.cover_json,
 	                    g.created_at,
+	                    g.updated_at,
 	                    COALESCE(v.tokens_cost, 0),
 	                    COALESCE(v.model_calls, 0),
 	                    COALESCE(v.fixes, 0)
@@ -62,12 +68,27 @@ func (p *Postgres) ListUserGames(ctx context.Context, userID uuid.UUID, filter d
 	total := 0
 
 	for rows.Next() {
-		var game dto.ProfileGame
+		var (
+			game      dto.ProfileGame
+			coverJSON []byte
+		)
 
 		if err := rows.Scan(&total, &game.ID, &game.Prompt, &game.Genre, &game.Status, &game.Visibility,
-			&game.Title, &game.Slug, &game.CreatedAt,
+			&game.Title, &game.Slug, &game.Description, &game.Speed, &coverJSON, &game.CreatedAt, &game.UpdatedAt,
 			&game.TokensCost, &game.ModelCalls, &game.Fixes); err != nil {
 			return nil, 0, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		if len(coverJSON) > 0 {
+			var cover domain.GameCover
+
+			if err := json.Unmarshal(coverJSON, &cover); err != nil {
+				return nil, 0, fmt.Errorf("json.Unmarshal: %w", err)
+			}
+
+			if len(cover.Palette) >= 2 {
+				game.Cover = &cover
+			}
 		}
 
 		games = append(games, game)

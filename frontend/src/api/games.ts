@@ -7,6 +7,7 @@ import type {
   ListUserGamesPage,
   GameJobResponse,
   PlaytimeResponse,
+  ProfileGenerationsPage,
   RateGameResponse,
   TokenOpsPage,
   VersionResponse,
@@ -154,4 +155,17 @@ export function listTokenOps(
   const suffix = params.size ? `?${params.toString()}` : ''
 
   return request<TokenOpsPage>(`/me/token-ops${suffix}`)
+}
+
+export function listUserGenerations(
+  query: { limit?: number; offset?: number } = {},
+): Promise<ProfileGenerationsPage> {
+  const params = new URLSearchParams()
+
+  if (query.limit) params.set('limit', String(query.limit))
+  if (query.offset) params.set('offset', String(query.offset))
+
+  const suffix = params.size ? `?${params.toString()}` : ''
+
+  return request<ProfileGenerationsPage>(`/me/generations${suffix}`)
 }

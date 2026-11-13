@@ -26,6 +26,7 @@ type Store interface {
 	UpdateGame(ctx context.Context, game domain.Game) error
 	UpdateGameStatus(ctx context.Context, gameID uuid.UUID, status domain.Status, failReason string) error
 	ListUserGames(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput) ([]dto.ProfileGame, int, error)
+	ListUserGenerations(ctx context.Context, userID uuid.UUID, filter dto.ListUserGenerationsInput) ([]dto.ProfileGeneration, int, error)
 	ClaimQueuedGame(ctx context.Context) (domain.Game, error)
 
 	CreateVersion(ctx context.Context, version domain.Version) error

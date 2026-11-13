@@ -1684,6 +1684,86 @@ func (_c *MockStore_ListUserGames_Call) RunAndReturn(run func(ctx context.Contex
 	return _c
 }
 
+// ListUserGenerations provides a mock function for the type MockStore
+func (_mock *MockStore) ListUserGenerations(ctx context.Context, userID uuid.UUID, filter dto.ListUserGenerationsInput) ([]dto.ProfileGeneration, int, error) {
+	ret := _mock.Called(ctx, userID, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListUserGenerations")
+	}
+
+	var r0 []dto.ProfileGeneration
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, dto.ListUserGenerationsInput) ([]dto.ProfileGeneration, int, error)); ok {
+		return returnFunc(ctx, userID, filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, dto.ListUserGenerationsInput) []dto.ProfileGeneration); ok {
+		r0 = returnFunc(ctx, userID, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.ProfileGeneration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, dto.ListUserGenerationsInput) int); ok {
+		r1 = returnFunc(ctx, userID, filter)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID, dto.ListUserGenerationsInput) error); ok {
+		r2 = returnFunc(ctx, userID, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockStore_ListUserGenerations_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUserGenerations'
+type MockStore_ListUserGenerations_Call struct {
+	*mock.Call
+}
+
+// ListUserGenerations is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+//   - filter dto.ListUserGenerationsInput
+func (_e *MockStore_Expecter) ListUserGenerations(ctx any, userID any, filter any) *MockStore_ListUserGenerations_Call {
+	return &MockStore_ListUserGenerations_Call{Call: _e.mock.On("ListUserGenerations", ctx, userID, filter)}
+}
+
+func (_c *MockStore_ListUserGenerations_Call) Run(run func(ctx context.Context, userID uuid.UUID, filter dto.ListUserGenerationsInput)) *MockStore_ListUserGenerations_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 dto.ListUserGenerationsInput
+		if args[2] != nil {
+			arg2 = args[2].(dto.ListUserGenerationsInput)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ListUserGenerations_Call) Return(profileGenerations []dto.ProfileGeneration, n int, err error) *MockStore_ListUserGenerations_Call {
+	_c.Call.Return(profileGenerations, n, err)
+	return _c
+}
+
+func (_c *MockStore_ListUserGenerations_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, filter dto.ListUserGenerationsInput) ([]dto.ProfileGeneration, int, error)) *MockStore_ListUserGenerations_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListVersions provides a mock function for the type MockStore
 func (_mock *MockStore) ListVersions(ctx context.Context, gameID uuid.UUID) ([]domain.Version, error) {
 	ret := _mock.Called(ctx, gameID)

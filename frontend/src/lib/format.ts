@@ -38,6 +38,18 @@ export function formatDate(value: string): string {
   }).format(date)
 }
 
+export function formatDateTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+
+  const time = new Intl.DateTimeFormat('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+
+  return `${formatDate(value)} · ${time}`
+}
+
 export function formatRelative(value: string): string {
   const date = new Date(value).getTime()
   if (Number.isNaN(date)) return '—'

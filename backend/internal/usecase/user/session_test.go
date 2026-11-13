@@ -139,6 +139,7 @@ func TestGetProfileReturnsBalanceGamesAndOps(t *testing.T) {
 
 	userID := uuid.New()
 	gameID := uuid.New()
+	slug := "zmeyka-1a2b"
 
 	store.EXPECT().GetUserByID(mock.Anything, userID).Return(domain.User{
 		ID:           userID,
@@ -148,9 +149,15 @@ func TestGetProfileReturnsBalanceGamesAndOps(t *testing.T) {
 	store.EXPECT().ListUserGames(mock.Anything, userID, dto.ListUserGamesInput{Limit: profileGamesLimit}).Return([]dto.ProfileGame{
 		{ID: gameID, Prompt: "змейка", Status: "ready", TokensCost: 320},
 	}, 1, nil)
-	store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: profileGamesLimit}).Return([]domain.TokenOp{
-		{UserID: userID, GameID: &gameID, Delta: -320, Reason: domain.ReasonGenerate},
+	store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: profileGamesLimit}).Return([]dto.ProfileTokenOp{
+		{GameID: &gameID, GameSlug: &slug, GameLabel: "Змейка", Delta: -320, Reason: "generate"},
 	}, 1, nil)
+	store.EXPECT().GetProfileStats(mock.Anything, userID).Return(dto.ProfileStats{
+		GamesTotal:  1,
+		GamesReady:  1,
+		TokensSpent: 320,
+		Fixes:       2,
+	}, nil)
 
 	output, err := uc.GetProfile(context.Background(), dto.GetProfileInput{UserID: userID})
 	if err != nil {
@@ -161,12 +168,20 @@ func TestGetProfileReturnsBalanceGamesAndOps(t *testing.T) {
 		t.Errorf("balance = %d, want 777", output.Balance)
 	}
 
+	if output.Stats.GamesTotal != 1 || output.Stats.GamesReady != 1 || output.Stats.TokensSpent != 320 || output.Stats.Fixes != 2 {
+		t.Errorf("stats = %+v, want 1 game, 1 ready, 320 spent, 2 fixes", output.Stats)
+	}
+
 	if len(output.Games) != 1 || output.Games[0].Prompt != "змейка" {
 		t.Errorf("games = %+v, want one game", output.Games)
 	}
 
 	if len(output.TokenOps) != 1 || output.TokenOps[0].Reason != string(domain.ReasonGenerate) {
 		t.Errorf("token ops = %+v, want one generate op", output.TokenOps)
+	}
+
+	if output.TokenOps[0].GameSlug == nil || *output.TokenOps[0].GameSlug != slug {
+		t.Errorf("token op = %+v, want game slug %s", output.TokenOps[0], slug)
 	}
 
 	if output.Prices.Generate != 320_000 || output.Prices.Patch != 40_000 {

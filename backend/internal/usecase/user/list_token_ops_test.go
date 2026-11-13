@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
 )
 
@@ -20,15 +19,15 @@ func TestListTokenOpsPagesAndDefaults(t *testing.T) {
 		name   string
 		input  dto.ListTokenOpsInput
 		want   dto.ListTokenOpsInput
-		wantOp []domain.TokenOp
+		wantOp []dto.ProfileTokenOp
 		total  int
 	}{
 		{
 			name:  "default limit",
 			input: dto.ListTokenOpsInput{},
 			want:  dto.ListTokenOpsInput{Limit: 20},
-			wantOp: []domain.TokenOp{
-				{UserID: userID, Delta: -320, Reason: domain.ReasonGenerate},
+			wantOp: []dto.ProfileTokenOp{
+				{GameID: &userID, GameLabel: "змейка", Delta: -320, Reason: "generate"},
 			},
 			total: 1,
 		},
@@ -36,7 +35,7 @@ func TestListTokenOpsPagesAndDefaults(t *testing.T) {
 			name:   "explicit paging",
 			input:  dto.ListTokenOpsInput{Limit: 5, Offset: 10},
 			want:   dto.ListTokenOpsInput{Limit: 5, Offset: 10},
-			wantOp: []domain.TokenOp{},
+			wantOp: []dto.ProfileTokenOp{},
 			total:  0,
 		},
 	}

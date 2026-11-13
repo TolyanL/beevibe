@@ -31,23 +31,20 @@ func (u *UseCase) GetProfile(ctx context.Context, input dto.GetProfileInput) (dt
 		return output, fmt.Errorf("store.ListTokenOps: %w", err)
 	}
 
+	stats, err := u.store.GetProfileStats(ctx, input.UserID)
+	if err != nil {
+		return output, fmt.Errorf("store.GetProfileStats: %w", err)
+	}
+
 	output.Balance = user.TokenBalance
+	output.Stats = stats
 	output.Games = games
-	output.TokenOps = make([]dto.ProfileTokenOp, 0, len(ops))
+	output.TokenOps = ops
 	output.Prices = dto.ProfilePrices{
 		Generate:     u.tokens.PriceGenerate,
 		GenerateFast: u.tokens.PriceGenerateFast,
 		Patch:        u.tokens.PricePatch,
 		Meta:         u.tokens.PriceMeta,
-	}
-
-	for _, op := range ops {
-		output.TokenOps = append(output.TokenOps, dto.ProfileTokenOp{
-			GameID:    op.GameID,
-			Delta:     op.Delta,
-			Reason:    string(op.Reason),
-			CreatedAt: op.CreatedAt,
-		})
 	}
 
 	return output, nil

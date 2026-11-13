@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/TolyanL/beevibe/internal/adapter/postgres/pgtest"
@@ -189,8 +190,8 @@ func TestListTokenOpsScansRows(t *testing.T) {
 	createdAt := time.Now().UTC()
 
 	db.EXPECT().Query(mock.Anything, mock.Anything, pgtest.Args(userID, 50, 0)).Return(pgtest.Rows(t,
-		[]any{2, uuid.New(), userID, &gameID, int64(-320), "generate", createdAt},
-		[]any{2, uuid.New(), userID, nil, int64(500), "topup", createdAt},
+		[]any{2, &gameID, pgtype.Text{String: "zmeyka-1a2b", Valid: true}, "Змейка", int64(-320), "generate", createdAt},
+		[]any{2, nil, pgtype.Text{}, "", int64(500), "topup", createdAt},
 	), nil)
 
 	ops, total, err := postgres.ListTokenOps(ctx, userID, dto.ListTokenOpsInput{Limit: 50})
@@ -206,12 +207,20 @@ func TestListTokenOpsScansRows(t *testing.T) {
 		t.Fatalf("ops = %d, want 2", len(ops))
 	}
 
-	if ops[0].GameID == nil || *ops[0].GameID != gameID || ops[0].Reason != domain.ReasonGenerate {
+	if ops[0].GameID == nil || *ops[0].GameID != gameID || ops[0].Reason != string(domain.ReasonGenerate) {
 		t.Errorf("first op = %+v, want game %s reason generate", ops[0], gameID)
 	}
 
-	if ops[1].GameID != nil || ops[1].Reason != domain.ReasonTopup {
+	if ops[0].GameSlug == nil || *ops[0].GameSlug != "zmeyka-1a2b" || ops[0].GameLabel != "Змейка" {
+		t.Errorf("first op = %+v, want slug zmeyka-1a2b and label Змейка", ops[0])
+	}
+
+	if ops[1].GameID != nil || ops[1].Reason != string(domain.ReasonTopup) {
 		t.Errorf("second op = %+v, want no game and reason topup", ops[1])
+	}
+
+	if ops[1].GameSlug != nil || ops[1].GameLabel != "" {
+		t.Errorf("second op = %+v, want no slug and no label", ops[1])
 	}
 }
 
@@ -250,6 +259,41 @@ func TestListTokenOpsWrapsQueryError(t *testing.T) {
 
 	if _, _, err := postgres.ListTokenOps(ctx, uuid.New(), dto.ListTokenOpsInput{Limit: 50}); err == nil {
 		t.Fatal("ListTokenOps() error = nil, want error")
+	}
+}
+
+func TestGetProfileStatsScansCounters(t *testing.T) {
+	t.Parallel()
+
+	db, ctx := pgtest.DB(t)
+	postgres := New(nil)
+
+	userID := uuid.New()
+
+	db.EXPECT().QueryRow(mock.Anything, mock.Anything, pgtest.Args(userID)).
+		Return(pgtest.Row(t, int64(6), int64(4), int64(360_000), int64(2)))
+
+	stats, err := postgres.GetProfileStats(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetProfileStats() error = %v, want nil", err)
+	}
+
+	if stats.GamesTotal != 6 || stats.GamesReady != 4 || stats.TokensSpent != 360_000 || stats.Fixes != 2 {
+		t.Errorf("stats = %+v, want 6 games, 4 ready, 360000 spent, 2 fixes", stats)
+	}
+}
+
+func TestGetProfileStatsWrapsQueryError(t *testing.T) {
+	t.Parallel()
+
+	db, ctx := pgtest.DB(t)
+	postgres := New(nil)
+
+	db.EXPECT().QueryRow(mock.Anything, mock.Anything, mock.Anything).
+		Return(pgtest.RowError(t, errors.New("connection reset"), 4))
+
+	if _, err := postgres.GetProfileStats(ctx, uuid.New()); err == nil {
+		t.Fatal("GetProfileStats() error = nil, want error")
 	}
 }
 

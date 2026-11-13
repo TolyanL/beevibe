@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/TolyanL/beevibe/internal/domain"
 	"github.com/TolyanL/beevibe/internal/dto"
 )
 
@@ -20,11 +19,12 @@ func TestListTokenOpsReturnsPage(t *testing.T) {
 	env := newTestEnv(t)
 
 	userID := uuid.New()
+	gameID := uuid.New()
 
 	env.expectSession(userID)
 	env.store.EXPECT().ListTokenOps(mock.Anything, userID, dto.ListTokenOpsInput{Limit: 10, Offset: 5}).
-		Return([]domain.TokenOp{
-			{UserID: userID, Delta: -320, Reason: domain.ReasonGenerate, CreatedAt: time.Now().UTC()},
+		Return([]dto.ProfileTokenOp{
+			{GameID: &gameID, GameLabel: "Змейка", Delta: -320, Reason: "generate", CreatedAt: time.Now().UTC()},
 		}, 30, nil)
 
 	req := env.authorized(httptest.NewRequest(http.MethodGet, "/me/token-ops?limit=10&offset=5", nil))
@@ -41,6 +41,10 @@ func TestListTokenOpsReturnsPage(t *testing.T) {
 
 	if len(output.Items) != 1 || output.Total != 30 || output.Items[0].Reason != "generate" {
 		t.Errorf("output = %+v, want one generate op with total 30", output)
+	}
+
+	if output.Items[0].GameLabel != "Змейка" {
+		t.Errorf("game label = %q, want Змейка", output.Items[0].GameLabel)
 	}
 }
 

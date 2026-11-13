@@ -58,27 +58,60 @@ export interface ProfileGame {
   model_calls: number
   fixes: number
   created_at: string
+  description?: string
+  speed?: GameSpeed | string
+  cover?: GameCover
+  updated_at?: string
 }
 
-export type TokenOpReason = 'signup_grant' | 'generate' | 'patch' | 'topup' | 'refund'
+export type TokenOpReason = 'signup_grant' | 'generate' | 'patch' | 'meta' | 'topup' | 'refund'
 
 export interface ProfileTokenOp {
   game_id?: string | null
+  game_slug?: string | null
+  game_label?: string
   delta: number
   reason: TokenOpReason
   created_at: string
+}
+
+export interface ProfileStats {
+  games_total: number
+  games_ready: number
+  tokens_spent: number
+  fixes: number
 }
 
 export interface Profile {
   balance: number
   games: ProfileGame[]
   token_ops: ProfileTokenOp[]
+  stats?: ProfileStats
   prices: {
     generate: number
     generate_fast: number
     patch: number
     meta: number
   }
+}
+
+export interface ProfileGeneration {
+  game_id: string
+  game_slug: string
+  game_title: string
+  game_prompt: string
+  game_status: GameStatus
+  version_number: number
+  source: VersionSource
+  note: string
+  tokens_cost: number
+  model_calls: number
+  created_at: string
+}
+
+export interface ProfileGenerationsPage {
+  items: ProfileGeneration[]
+  total: number
 }
 
 export type UserInfo = User

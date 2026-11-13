@@ -23,7 +23,7 @@ type Store interface {
 	DeleteSession(ctx context.Context, token string) error
 
 	InsertTokenOp(ctx context.Context, op domain.TokenOp) error
-	ListTokenOps(ctx context.Context, userID uuid.UUID, filter dto.ListTokenOpsInput) ([]domain.TokenOp, int, error)
+	ListTokenOps(ctx context.Context, userID uuid.UUID, filter dto.ListTokenOpsInput) ([]dto.ProfileTokenOp, int, error)
 	SumTopupsSince(ctx context.Context, userID uuid.UUID, since time.Time) (int64, error)
 
 	InsertIdempotencyKey(ctx context.Context, key, operation string, userID uuid.UUID) (bool, error)
@@ -32,6 +32,7 @@ type Store interface {
 	DeleteIdempotencyKey(ctx context.Context, key, operation string) error
 
 	ListUserGames(ctx context.Context, userID uuid.UUID, filter dto.ListUserGamesInput) ([]dto.ProfileGame, int, error)
+	GetProfileStats(ctx context.Context, userID uuid.UUID) (dto.ProfileStats, error)
 }
 
 type Auth interface {

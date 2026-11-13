@@ -11,7 +11,6 @@ import { messageFromError } from '@/api/client'
 import type { GameVersion } from '@/api/types'
 import { formatDate, formatTokens, plural } from '@/lib/format'
 import {
-  gameDescription as gameDescriptionOf,
   genreLabel,
   mapSizeLabel,
   shortGameTitle,
@@ -19,6 +18,7 @@ import {
   statusMeta,
   styleLabel,
   versionSourceLabel,
+  visibleGameDescription,
 } from '@/lib/game'
 import { ratingTone } from '@/lib/rating'
 import { usePlaytime } from '@/composables/usePlaytime'
@@ -49,13 +49,16 @@ const profileGame = computed(() => {
 })
 const promptText = computed(() => game.game?.prompt ?? profileGame.value?.prompt ?? 'Игра')
 const gameTitle = computed(() => shortGameTitle(game.game?.title, promptText.value))
-const gameDescription = computed(() => gameDescriptionOf(game.game?.description, promptText.value))
+const gameDescription = computed(() =>
+  visibleGameDescription(game.game?.description, promptText.value, gameTitle.value),
+)
 const versions = computed(() =>
   [...(game.game?.versions ?? [])].sort((a, b) => b.number - a.number),
 )
 const latestVersion = computed(() => versions.value[0])
 const meta = computed(() => statusMeta(game.status))
 const metaForm = reactive({ title: '', description: '' })
+const metaEditorOpen = ref(false)
 const metaSaving = ref(false)
 const metaGenerating = ref(false)
 
@@ -584,6 +587,10 @@ watch(
   },
 )
 
+watch(isMetaOperation, (active) => {
+  if (active) metaEditorOpen.value = true
+})
+
 onMounted(() => {
   void load()
   lastVersionNumber = 0
@@ -652,82 +659,32 @@ onBeforeUnmount(() => {
       </div>
 
       <template v-else-if="game.game">
-        <header class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <StatusPill :status="game.status" />
-              <span
-                v-if="operation"
-                class="inline-flex items-center gap-1.5 rounded-full border border-bee-deep/30 bg-bee/10 px-2.5 py-1 text-[10px] font-bold text-bee-deep dark:text-bee"
-              >
-                <span class="size-2 animate-pulse-soft rounded-full bg-bee" />
-                {{ operationLabel }}…
-              </span>
-              <span class="font-mono text-[9px] uppercase tracking-[0.12em] text-faint">
-                {{ genreLabel(profileGame?.genre ?? game.spec?.genre ?? '') }}
-                <span v-if="profileGame?.created_at">
-                  · {{ formatDate(profileGame.created_at) }}</span
-                >
-              </span>
-            </div>
-            <h1
-              class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]"
-            >
-              {{ gameTitle }}
-            </h1>
-            <p
-              v-if="gameDescription && gameDescription !== gameTitle"
-              class="mt-2 max-w-3xl text-[13px] leading-6 text-muted"
-            >
-              {{ gameDescription }}
-            </p>
-          </div>
-
+        <header class="mb-5">
           <div class="flex flex-wrap items-center gap-2">
-            <div
-              v-if="game.isReady"
-              class="flex items-center gap-1.5 rounded-full border border-line bg-surface/70 px-3 py-2 font-mono text-[10px] text-muted"
+            <StatusPill :status="game.status" />
+            <span
+              v-if="operation"
+              class="inline-flex items-center gap-1.5 rounded-full border border-bee-deep/30 bg-bee/10 px-2.5 py-1 text-[10px] font-bold text-bee-deep dark:text-bee"
             >
-              <AppIcon name="clock" :size="13" />
-              сессия {{ sessionLabel(sessionSeconds) }}
-            </div>
-            <p v-if="sessionError" class="font-mono text-[10px] text-red-500">
-              время игры не сохранилось
-            </p>
-            <RouterLink
-              v-if="game.isReady"
-              :to="{ name: 'play', params: { id: gameSlug } }"
-              target="_blank"
-              class="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-2 text-[11px] font-bold transition hover:border-bee-deep hover:bg-bee/10"
-            >
-              <AppIcon name="external" :size="13" />
-              Публичная страница
-            </RouterLink>
-            <button
-              v-if="game.isReady"
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[11px] font-bold transition"
-              :class="
-                isPublic
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/15'
-                  : 'border-line-strong text-muted hover:border-bee-deep hover:text-ink'
-              "
-              :disabled="Boolean(game.actionPending)"
-              @click="toggleVisibility"
-            >
-              <AppIcon :name="isPublic ? 'external' : 'shield'" :size="13" />
-              {{ isPublic ? 'В каталоге' : 'Скрыта' }}
-            </button>
-            <Button
-              v-if="game.isReady"
-              class="p-button-secondary"
-              :loading="game.actionPending === 'fix'"
-              @click="openFix"
-            >
-              <AppIcon name="refresh" :size="14" />
-              <span class="ml-1.5">Починить</span>
-            </Button>
+              <span class="size-2 animate-pulse-soft rounded-full bg-bee" />
+              {{ operationLabel }}…
+            </span>
+            <span class="font-mono text-[9px] uppercase tracking-[0.12em] text-faint">
+              {{ genreLabel(profileGame?.genre ?? game.spec?.genre ?? '') }}
+              <span v-if="profileGame?.created_at">
+                · {{ formatDate(profileGame.created_at) }}</span
+              >
+            </span>
           </div>
+          <h1
+            class="mt-3 max-w-4xl font-display text-2xl font-bold leading-tight tracking-[-0.04em] sm:text-3xl lg:text-[2.2rem]"
+            :title="promptText"
+          >
+            {{ gameTitle }}
+          </h1>
+          <p v-if="gameDescription" class="mt-2 max-w-3xl text-[13px] leading-6 text-muted">
+            {{ gameDescription }}
+          </p>
         </header>
 
         <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
@@ -907,7 +864,9 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="rounded-xl border border-line bg-canvas/45 p-3">
                       <p class="font-display text-lg font-bold">
-                        {{ game.pipelineStages.filter((item) => item.status === 'done').length }}/{{ game.pipelineStageCount }}
+                        {{ game.pipelineStages.filter((item) => item.status === 'done').length }}/{{
+                          game.pipelineStageCount
+                        }}
                       </p>
                       <p class="mt-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
                         этапов
@@ -994,9 +953,19 @@ onBeforeUnmount(() => {
                   <p class="mono-label">Правки</p>
                   <h2 class="mt-1 font-display text-xl font-bold">Изменить игру</h2>
                 </div>
-                <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
-                  правка · {{ formatTokens(auth.prices.patch) }} токенов
-                </span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                    правка · {{ formatTokens(auth.prices.patch) }} токенов
+                  </span>
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+                    @click="openFix"
+                  >
+                    <AppIcon name="refresh" :size="12" />
+                    Починить
+                  </button>
+                </div>
               </div>
 
               <div class="flex flex-wrap items-center gap-1 border-b border-line px-4 py-2.5">
@@ -1165,13 +1134,33 @@ onBeforeUnmount(() => {
               <div
                 class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4"
               >
-                <div>
+                <div class="min-w-0">
                   <p class="mono-label">Карточка игры</p>
                   <h2 class="mt-1 font-display text-xl font-bold">Название и описание</h2>
+                  <p class="mt-1 text-[11px] leading-5 text-muted">
+                    Так игру видят в каталоге и на публичной странице.
+                  </p>
                 </div>
-                <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
-                  мета · {{ formatTokens(auth.prices.meta) }} токенов
-                </span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                    мета · {{ formatTokens(auth.prices.meta) }} токенов
+                  </span>
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+                    :aria-expanded="metaEditorOpen"
+                    @click="metaEditorOpen = !metaEditorOpen"
+                  >
+                    <AppIcon name="settings" :size="12" />
+                    {{ metaEditorOpen ? 'Свернуть' : 'Редактировать' }}
+                    <AppIcon
+                      name="chevron-down"
+                      :size="12"
+                      class="transition"
+                      :class="metaEditorOpen ? 'rotate-180' : ''"
+                    />
+                  </button>
+                </div>
               </div>
 
               <div v-if="isMetaOperation" class="px-4 pt-3 sm:px-5">
@@ -1184,60 +1173,66 @@ onBeforeUnmount(() => {
                 />
               </div>
 
-              <div class="grid gap-4 p-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:p-5">
-                <div class="overflow-hidden rounded-2xl border border-line">
-                  <div class="aspect-square" :style="coverGradient" />
-                  <p
-                    class="px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-faint"
-                  >
-                    {{ game.game?.cover?.style ?? game.spec?.style ?? 'градиент' }}
+              <div v-if="metaEditorOpen">
+                <div class="grid gap-4 p-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:p-5">
+                  <div class="overflow-hidden rounded-2xl border border-line">
+                    <div class="aspect-square" :style="coverGradient" />
+                    <p
+                      class="px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-faint"
+                    >
+                      {{ game.game?.cover?.style ?? game.spec?.style ?? 'градиент' }}
+                    </p>
+                  </div>
+
+                  <div class="space-y-3">
+                    <div>
+                      <label class="mono-label mb-1.5 block">Название</label>
+                      <InputText
+                        v-model="metaForm.title"
+                        maxlength="80"
+                        class="w-full"
+                        placeholder="Например: Кристаллы"
+                      />
+                    </div>
+                    <div>
+                      <label class="mono-label mb-1.5 block">Описание</label>
+                      <Textarea
+                        v-model="metaForm.description"
+                        rows="3"
+                        maxlength="500"
+                        class="text-[13px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5"
+                >
+                  <p class="text-[10px] leading-4 text-faint">
+                    Ручная правка бесплатна и доступна в любой момент, даже пока идёт сборка.
+                    Автогенерация названия появится после сборки.
                   </p>
-                </div>
-
-                <div class="space-y-3">
-                  <div>
-                    <label class="mono-label mb-1.5 block">Название</label>
-                    <InputText
-                      v-model="metaForm.title"
-                      maxlength="80"
-                      class="w-full"
-                      placeholder="Например: Кристаллы"
-                    />
-                  </div>
-                  <div>
-                    <label class="mono-label mb-1.5 block">Описание</label>
-                    <Textarea
-                      v-model="metaForm.description"
-                      rows="3"
-                      maxlength="500"
-                      class="text-[13px]"
-                    />
+                  <div class="flex flex-wrap gap-2">
+                    <Button
+                      class="p-button-secondary"
+                      :loading="metaGenerating || isMetaOperation"
+                      :disabled="Boolean(operation) || !game.isReady"
+                      @click="generateMeta"
+                    >
+                      <AppIcon name="spark" :size="14" />
+                      <span class="ml-1.5">Сгенерировать</span>
+                    </Button>
+                    <Button class="bee-button" :loading="metaSaving" @click="saveMeta"
+                      >Сохранить</Button
+                    >
                   </div>
                 </div>
               </div>
 
-              <div
-                class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5"
-              >
-                <p class="text-[10px] leading-4 text-faint">
-                  Ручная правка бесплатна и доступна в любой момент, даже пока идёт сборка.
-                  Автогенерация названия появится после сборки.
-                </p>
-                <div class="flex flex-wrap gap-2">
-                  <Button
-                    class="p-button-secondary"
-                    :loading="metaGenerating || isMetaOperation"
-                    :disabled="Boolean(operation) || !game.isReady"
-                    @click="generateMeta"
-                  >
-                    <AppIcon name="spark" :size="14" />
-                    <span class="ml-1.5">Сгенерировать</span>
-                  </Button>
-                  <Button class="bee-button" :loading="metaSaving" @click="saveMeta"
-                    >Сохранить</Button
-                  >
-                </div>
-              </div>
+              <p v-else class="px-5 py-3 text-[10px] leading-4 text-faint">
+                Редактирование бесплатно; автогенерация названия и обложки доступна после сборки.
+              </p>
             </div>
 
             <div v-if="showMaintenance" class="panel overflow-hidden">
@@ -1402,6 +1397,76 @@ onBeforeUnmount(() => {
             <section v-if="game.isReady" class="panel p-5">
               <div class="flex items-start justify-between gap-3">
                 <div>
+                  <p class="mono-label">Публикация</p>
+                  <h2 class="mt-1 font-display text-lg font-bold">
+                    {{ isPublic ? 'В каталоге' : 'Скрыта' }}
+                  </h2>
+                </div>
+                <span
+                  class="grid size-9 place-items-center rounded-xl"
+                  :class="
+                    isPublic ? 'bg-emerald-500/10 text-emerald-500' : 'bg-canvas/50 text-muted'
+                  "
+                >
+                  <AppIcon :name="isPublic ? 'eye' : 'eye-off'" :size="18" />
+                </span>
+              </div>
+
+              <p class="mt-2 text-[11px] leading-5 text-muted">
+                {{
+                  isPublic
+                    ? 'Игру видят в каталоге и открывают по публичной ссылке.'
+                    : 'Игра не показывается в каталоге. Доступна только по прямой ссылке.'
+                }}
+              </p>
+
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="isPublic"
+                :aria-label="isPublic ? 'Скрыть игру из каталога' : 'Опубликовать игру в каталоге'"
+                class="mt-4 flex w-full items-center gap-3 rounded-2xl border border-line bg-canvas/35 p-3 text-left transition hover:border-bee-deep/50 hover:bg-hover-surface disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="Boolean(game.actionPending)"
+                @click="toggleVisibility"
+              >
+                <span
+                  class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+                  :class="isPublic ? 'bg-emerald-500' : 'bg-line-strong'"
+                >
+                  <span
+                    class="absolute top-1 size-4 rounded-full bg-white shadow-sm transition-all"
+                    :class="isPublic ? 'left-6' : 'left-1'"
+                  />
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-[11px] font-bold">Показывать в каталоге</span>
+                  <span class="mt-0.5 block text-[10px] leading-4 text-faint">
+                    {{ isPublic ? 'Да — игра видна всем' : 'Нет — только по ссылке' }}
+                  </span>
+                </span>
+                <span
+                  v-if="game.actionPending === 'visibility'"
+                  class="size-3 shrink-0 animate-spin rounded-full border-2 border-line border-t-bee-deep"
+                />
+              </button>
+
+              <RouterLink
+                v-if="isPublic"
+                :to="{ name: 'play', params: { id: gameSlug } }"
+                target="_blank"
+                class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-line-strong px-3 py-2 text-[10px] font-bold text-muted transition hover:border-bee-deep hover:text-ink"
+              >
+                <AppIcon name="external" :size="12" />
+                Открыть публичную страницу
+              </RouterLink>
+              <p v-else class="mt-3 text-center text-[10px] leading-4 text-faint">
+                Опубликуйте игру, чтобы открыть публичную страницу.
+              </p>
+            </section>
+
+            <section v-if="game.isReady" class="panel p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
                   <p class="mono-label">Оценка</p>
                   <h2 class="mt-1 font-display text-lg font-bold">Как игра?</h2>
                 </div>
@@ -1472,6 +1537,13 @@ onBeforeUnmount(() => {
                 <p class="flex items-center justify-between gap-2">
                   <span>Версия</span>
                   <span class="font-mono text-muted">#{{ latestVersion?.number ?? '—' }}</span>
+                </p>
+                <p v-if="game.isReady" class="flex items-center justify-between gap-2">
+                  <span>Сессия</span>
+                  <span class="font-mono text-muted">{{ sessionLabel(sessionSeconds) }}</span>
+                </p>
+                <p v-if="sessionError" class="text-[10px] leading-4 text-red-500">
+                  время игры не сохранилось
                 </p>
                 <p class="flex items-center justify-between gap-2">
                   <span>Починок</span>

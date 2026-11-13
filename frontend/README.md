@@ -90,7 +90,7 @@ different origin, set `VITE_GAME_BASE_URL` at build time (for example
 | `/catalog`       | Public catalog with local search, genre filters and sorting  |
 | `/login`         | Sign in                                                       |
 | `/register`      | Sign up                                                       |
-| `/profile`       | Balance, top-up, games and token operations                  |
+| `/profile`       | Balance, top-up, game cards, generation history and token operations |
 | `/games/:slug`   | Owner workspace: stage timeline, patches, versions, rating   |
 | `/play/:slug`    | Public playable page and shareable wrapper                    |
 | `/g/:slug`       | Backend-served self-contained HTML5 game (iframe)             |
@@ -103,7 +103,8 @@ different origin, set `VITE_GAME_BASE_URL` at build time (for example
 - `src/api/client.ts` — fetch wrapper, `ApiError`, error message mapping.
 - `src/api/auth.ts` — register, login, logout, `me`, profile, top-up.
 - `src/api/games.ts` — create, get, patch, config, rollback, fix, meta, rate,
-  playtime.
+  playtime, plus the paginated profile lists (`/games`, `/me/generations`,
+  `/me/token-ops`).
 - `src/api/catalog.ts` — public catalog.
 - `src/api/sse.ts` — EventSource wrapper for `stage`, `artifact`, `done` and
   `error` events with native reconnect.

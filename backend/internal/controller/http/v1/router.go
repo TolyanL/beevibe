@@ -35,6 +35,7 @@ func NewRouter(h *Handlers) http.Handler {
 
 		r.Get("/me", h.GetMe)
 		r.Get("/me/token-ops", h.ListTokenOps)
+		r.Get("/me/generations", h.ListUserGenerations)
 		r.Get("/profile", h.GetProfile)
 		r.Patch("/profile", h.UpdateProfile)
 		r.Post("/profile/topup", h.TopupTokens)

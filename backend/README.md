@@ -111,38 +111,55 @@ Errors: `401 unauthorized` for both a wrong password and an unknown email.
 
 ### `GET /api/profile`
 
-**200** — balance, the last 50 games, the last 50 token operations and the
-current prices (the client can show them without a second call):
+**200** — balance, aggregate stats, the last 20 games, the last 20 token
+operations and the current prices (the client can show them without a second call):
 
 ```json
 {
   "balance": 640000,
+  "stats": {
+    "games_total": 7,
+    "games_ready": 5,
+    "tokens_spent": 1320000,
+    "fixes": 2
+  },
   "games": [
     {
       "id": "uuid",
       "slug": "penguin-arcade",
       "title": "Penguin arcade",
+      "description": "Catch as many fish as you can before the gull arrives.",
       "prompt": "penguin arcade",
       "genre": "arcade",
       "status": "ready",
       "visibility": "public",
+      "speed": "normal",
+      "cover": { "palette": ["#ffcc00", "#7c3aed", "#22d3ee", "#fb7185", "#84cc16"], "style": "pixel", "seed": "penguin" },
       "tokens_cost": 181081,
       "model_calls": 6,
       "fixes": 0,
-      "created_at": "2026-10-23T22:33:00Z"
+      "created_at": "2026-10-23T22:33:00Z",
+      "updated_at": "2026-10-23T22:35:00Z"
     }
   ],
   "token_ops": [
     {
       "game_id": "uuid",
+      "game_slug": "penguin-arcade",
+      "game_label": "Penguin arcade",
       "delta": -320000,
       "reason": "generate",
       "created_at": "2026-10-23T22:33:00Z"
     }
   ],
-  "prices": { "generate": 320000, "patch": 40000, "meta": 10000 }
+  "prices": { "generate": 320000, "generate_fast": 240000, "patch": 40000, "meta": 10000 }
 }
 ```
+
+`stats` covers the whole history, not one page: `games_total` and `games_ready`
+count non-deleted games, `tokens_spent` is the net debit for
+`generate`/`patch`/`meta` (a `refund` reduces it), `fixes` counts versions with
+`source=repair`.
 
 `token_ops[].reason` — `signup_grant`, `generate`, `patch`, `meta`, `topup`,
 `refund`.
@@ -183,9 +200,11 @@ Errors: `400 invalid_input` for an amount out of range, `403 topup_disabled` whe
 {
   "items": [
     {
+      "game_id": "uuid",
+      "game_slug": "penguin-arcade",
+      "game_label": "Penguin arcade",
       "delta": -320000,
       "reason": "generate",
-      "game_id": "uuid",
       "created_at": "2026-10-23T22:33:00Z"
     }
   ],
@@ -193,8 +212,39 @@ Errors: `400 invalid_input` for an amount out of range, `403 topup_disabled` whe
 }
 ```
 
+`game_slug`/`game_label` are present only for operations linked to a game;
+`game_label` is the game title, or its prompt while the title is empty.
+
 `reason` — `signup_grant`, `generate`, `patch`, `meta`, `topup`, `refund`.
 Errors: `400 invalid_input`, `401 unauthorized`.
+
+### `GET /api/me/generations?limit=20&offset=0`
+
+**200** — every version of the current user's games (generation, review, patch,
+repair, config, rollback), newest first, plus the total count:
+
+```json
+{
+  "items": [
+    {
+      "game_id": "uuid",
+      "game_slug": "penguin-arcade",
+      "game_title": "Penguin arcade",
+      "game_prompt": "penguin arcade about catching fish",
+      "game_status": "ready",
+      "version_number": 3,
+      "source": "patch",
+      "note": "Made the controls smoother",
+      "tokens_cost": 40000,
+      "model_calls": 1,
+      "created_at": "2026-10-24T09:12:00Z"
+    }
+  ],
+  "total": 9
+}
+```
+
+Deleted games are excluded. Errors: `400 invalid_input`, `401 unauthorized`.
 
 ## Games
 
@@ -210,10 +260,18 @@ without `limit`/`offset`:
       "id": "uuid",
       "slug": "penguin-arcade",
       "title": "Penguin arcade",
+      "description": "Catch as many fish as you can before the gull arrives.",
       "prompt": "penguin arcade about catching fish",
+      "genre": "arcade",
       "status": "ready",
       "visibility": "private",
-      "created_at": "2026-10-23T22:33:00Z"
+      "speed": "normal",
+      "cover": { "palette": ["#ffcc00", "#7c3aed", "#22d3ee", "#fb7185", "#84cc16"], "style": "pixel", "seed": "penguin" },
+      "tokens_cost": 320000,
+      "model_calls": 7,
+      "fixes": 0,
+      "created_at": "2026-10-23T22:33:00Z",
+      "updated_at": "2026-10-23T22:35:00Z"
     }
   ],
   "total": 3

@@ -1402,6 +1402,50 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/me/generations': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** История генераций по всем моим играм (пагинация) */
+    get: {
+      parameters: {
+        query?: {
+          limit?: number
+          offset?: number
+        }
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Версии игр пользователя и общий счёт без учёта limit/offset */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': {
+              items?: components['schemas']['ProfileGeneration'][]
+              total?: number
+            }
+          }
+        }
+        400: components['responses']['BadRequest']
+        401: components['responses']['Unauthorized']
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/catalog': {
     parameters: {
       query?: never
@@ -1614,6 +1658,13 @@ export interface components {
       prompt?: string
       title?: string
       slug?: string
+      description?: string
+      /**
+       * @description Режим генерации, по умолчанию normal
+       * @enum {string}
+       */
+      speed?: 'normal' | 'fast'
+      cover?: components['schemas']['GameCover']
       genre?: string
       status?: string
       /** @enum {string} */
@@ -1623,10 +1674,16 @@ export interface components {
       fixes?: number
       /** Format: date-time */
       created_at?: string
+      /** Format: date-time */
+      updated_at?: string
     }
     ProfileTokenOp: {
       /** Format: uuid */
       game_id?: string | null
+      /** @description Публичный адрес игры, есть только у операций, привязанных к игре */
+      game_slug?: string | null
+      /** @description Название игры или её промпт */
+      game_label?: string
       /** Format: int64 */
       delta?: number
       /** @enum {string} */
@@ -1634,9 +1691,42 @@ export interface components {
       /** Format: date-time */
       created_at?: string
     }
+    ProfileGeneration: {
+      /** Format: uuid */
+      game_id?: string
+      game_slug?: string
+      game_title?: string
+      game_prompt?: string
+      game_status?: string
+      version_number?: number
+      /** @enum {string} */
+      source?: 'generate' | 'review' | 'patch' | 'config' | 'repair' | 'rollback'
+      note?: string
+      tokens_cost?: number
+      model_calls?: number
+      /** Format: date-time */
+      created_at?: string
+    }
     Profile: {
       /** Format: int64 */
       balance?: number
+      /** @description Счётчики по всей истории пользователя, не по одной странице */
+      stats?: {
+        /** Format: int64 */
+        games_total?: number
+        /** Format: int64 */
+        games_ready?: number
+        /**
+         * Format: int64
+         * @description Чистые списания за generate/patch/meta; возвраты (refund) их уменьшают
+         */
+        tokens_spent?: number
+        /**
+         * Format: int64
+         * @description Количество авторемонтов (source=repair) по играм пользователя
+         */
+        fixes?: number
+      }
       games?: components['schemas']['ProfileGame'][]
       token_ops?: components['schemas']['ProfileTokenOp'][]
       prices?: {

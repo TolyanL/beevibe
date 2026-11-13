@@ -30,17 +30,8 @@ func (u *UseCase) ListTokenOps(ctx context.Context, userID uuid.UUID, input dto.
 		return output, fmt.Errorf("store.ListTokenOps: %w", err)
 	}
 
-	output.Items = make([]dto.ProfileTokenOp, 0, len(ops))
+	output.Items = ops
 	output.Total = total
-
-	for _, op := range ops {
-		output.Items = append(output.Items, dto.ProfileTokenOp{
-			GameID:    op.GameID,
-			Delta:     op.Delta,
-			Reason:    string(op.Reason),
-			CreatedAt: op.CreatedAt,
-		})
-	}
 
 	return output, nil
 }
