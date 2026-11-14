@@ -785,7 +785,7 @@ onBeforeUnmount(() => {
                 <div class="flex-1">
                   <h2 class="font-display text-lg font-bold">Сборка остановилась</h2>
                   <p class="mt-1.5 text-xs leading-5 text-muted">
-                    Игра не собралась. Запустите починку — агент посмотрит на ошибку и попробует
+                    Игра не собралась. Запустите починку — нейросеть посмотрит на ошибку и попробует
                     снова.
                   </p>
                   <div class="mt-4 flex flex-wrap gap-2">
@@ -993,7 +993,6 @@ onBeforeUnmount(() => {
                   auto-resize
                   maxlength="2000"
                   class="text-[13px] leading-6"
-                  placeholder="Например: добавь двойной прыжок, ускорь анимацию и сделай фон темнее…"
                   @update:model-value="patchError = ''"
                 />
 
@@ -1105,16 +1104,10 @@ onBeforeUnmount(() => {
 
               <div v-show="editTab === 'fix'" class="p-4 sm:p-5">
                 <p class="text-xs leading-5 text-muted">
-                  Опишите, что сломалось. Если оставить поле пустым, агент попробует восстановить
-                  игру по коду и последним ошибкам.
+                  Опишите, что сломалось. Если оставить поле пустым, нейросеть попробует
+                  восстановить игру по коду и последним ошибкам.
                 </p>
-                <Textarea
-                  v-model="fixText"
-                  rows="4"
-                  maxlength="2000"
-                  class="mt-3 text-[13px]"
-                  placeholder="Например: после победы не перезапускается уровень, кнопка рестарта не реагирует…"
-                />
+                <Textarea v-model="fixText" rows="4" maxlength="2000" class="mt-3 text-[13px]" />
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <p class="text-[10px] leading-4 text-faint">Починка тоже создаёт новую версию.</p>
                   <Button
@@ -1187,12 +1180,7 @@ onBeforeUnmount(() => {
                   <div class="space-y-3">
                     <div>
                       <label class="mono-label mb-1.5 block">Название</label>
-                      <InputText
-                        v-model="metaForm.title"
-                        maxlength="80"
-                        class="w-full"
-                        placeholder="Например: Кристаллы"
-                      />
+                      <InputText v-model="metaForm.title" maxlength="80" class="w-full" />
                     </div>
                     <div>
                       <label class="mono-label mb-1.5 block">Описание</label>

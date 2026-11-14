@@ -245,7 +245,7 @@ onMounted(() => {
               Собери игру из фразы
             </h1>
             <p class="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              Опишите идею — агенты придумают правила, напишут код и нарисуют графику. Получится
+              Опишите идею — нейросети придумают правила, напишут код и нарисуют графику. Получится
               страница с игрой: открыть в браузере, править словами, показать друзьям.
             </p>
           </div>
@@ -294,13 +294,7 @@ onMounted(() => {
                   <label for="game-title" class="mono-label mb-2 block"
                     >Название (по желанию)</label
                   >
-                  <InputText
-                    id="game-title"
-                    v-model="title"
-                    maxlength="80"
-                    class="w-full"
-                    placeholder="Например: Кристаллы"
-                  />
+                  <InputText id="game-title" v-model="title" maxlength="80" class="w-full" />
                 </div>
                 <div>
                   <div class="mb-2 flex items-center justify-between">
@@ -316,7 +310,6 @@ onMounted(() => {
                     auto-resize
                     maxlength="500"
                     class="w-full text-[13px] leading-6"
-                    placeholder="Например: аркада про змейку, которая растёт от съеденных кристаллов"
                   />
                 </div>
               </div>
@@ -340,7 +333,6 @@ onMounted(() => {
                 auto-resize
                 maxlength="2000"
                 class="mt-2.5 text-[15px] leading-6"
-                placeholder="Например: неоновая змейка в киберпанк-городе, темп растёт с длиной хвоста, есть бонусы и таблица рекордов…"
                 @update:model-value="error = ''"
               />
 
@@ -371,7 +363,6 @@ onMounted(() => {
                     v-model="customGenre"
                     maxlength="32"
                     class="mt-2 w-full"
-                    placeholder="Например: ритм-игра, tower defense"
                   />
                 </div>
                 <div>
@@ -389,7 +380,6 @@ onMounted(() => {
                     auto-resize
                     maxlength="160"
                     class="mt-2 w-full text-[13px] leading-6"
-                    placeholder="Например: аниме-нуар с бумажным коллажем, приглушённые цвета и мягкие тени"
                   />
                   <p
                     v-if="style === 'custom'"

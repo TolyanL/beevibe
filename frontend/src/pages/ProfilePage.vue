@@ -331,12 +331,7 @@ onMounted(() => {
             </p>
           </div>
           <div class="flex w-full gap-2 sm:w-auto">
-            <InputText
-              v-model="displayName"
-              maxlength="40"
-              class="w-full sm:w-64"
-              placeholder="Например: Мастер кристаллов"
-            />
+            <InputText v-model="displayName" maxlength="40" class="w-full sm:w-64" />
             <Button class="bee-button" :loading="savingProfile" @click="saveDisplayName"
               >Сохранить</Button
             >
