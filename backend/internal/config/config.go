@@ -137,7 +137,7 @@ func Defaults() Config {
 	return Config{
 		App: App{
 			Name:    "beevibe",
-			Version: "1.4.0",
+			Version: "1.4.1",
 		},
 		Auth: auth.Config{
 			BcryptCost: 10,
