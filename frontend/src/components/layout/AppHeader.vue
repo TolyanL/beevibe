@@ -16,6 +16,7 @@ const loggingOut = ref(false)
 const userMenu = ref<HTMLElement | null>(null)
 
 const nav = [
+  { name: 'home', label: 'Главная', icon: 'home' as const },
   { name: 'create', label: 'Создать', icon: 'wand' as const },
   { name: 'catalog', label: 'Каталог', icon: 'grid' as const },
 ]
@@ -70,7 +71,7 @@ onBeforeUnmount(() => {
       </RouterLink>
 
       <nav
-        class="hidden items-center gap-1 rounded-full border border-line bg-surface/60 p-1 md:flex"
+        class="hidden items-center gap-1 rounded-full border border-line bg-surface/60 p-1 lg:flex"
       >
         <RouterLink
           v-for="item in nav"
@@ -101,7 +102,7 @@ onBeforeUnmount(() => {
         <RouterLink
           v-if="auth.isAuthenticated"
           :to="{ name: 'profile' }"
-          class="hidden items-center gap-2 rounded-full border border-line bg-surface/75 py-1.5 pl-2.5 pr-3 text-xs font-bold text-ink transition hover:border-bee-deep sm:flex"
+          class="hidden items-center gap-2 rounded-full border border-line bg-surface/75 py-1.5 pl-2.5 pr-3 text-xs font-bold text-ink transition hover:border-bee-deep xl:flex"
           title="Баланс токенов"
         >
           <span class="grid size-6 place-items-center rounded-full bg-bee text-graphite">
@@ -174,7 +175,7 @@ onBeforeUnmount(() => {
 
         <button
           type="button"
-          class="grid size-10 place-items-center rounded-full border border-line bg-surface/70 md:hidden"
+          class="grid size-10 place-items-center rounded-full border border-line bg-surface/70 lg:hidden"
           aria-label="Меню"
           :aria-expanded="mobileOpen"
           @click="mobileOpen = !mobileOpen"
@@ -185,7 +186,7 @@ onBeforeUnmount(() => {
     </div>
 
     <Transition name="menu">
-      <div v-if="mobileOpen" class="border-t border-line bg-canvas/95 px-4 pb-5 pt-3 md:hidden">
+      <div v-if="mobileOpen" class="border-t border-line bg-canvas/95 px-4 pb-5 pt-3 lg:hidden">
         <div class="grid gap-1.5">
           <RouterLink
             v-for="item in nav"

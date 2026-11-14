@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Button from 'openvue/button'
 import Textarea from 'openvue/textarea'
 import Select from 'openvue/select'
@@ -14,12 +14,16 @@ import { useAuthStore } from '@/stores/auth'
 import { useGameStore } from '@/stores/game'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
+const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const auth = useAuthStore()
 const game = useGameStore()
 
-const prompt = ref('')
+const maxPrompt = 2000
+const prompt = ref(
+  typeof route.query.idea === 'string' ? route.query.idea.slice(0, maxPrompt).trim() : '',
+)
 const genre = ref<Genre>('arcade')
 const style = ref<GameStyle>('neon')
 const customGenre = ref('')
@@ -32,8 +36,6 @@ const speed = ref<GameSpeed>('normal')
 const advanced = ref(false)
 const submitting = ref(false)
 const error = ref('')
-
-const maxPrompt = 2000
 
 const speedOptions = computed(() => [
   {

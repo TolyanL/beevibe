@@ -36,6 +36,9 @@ async function logout(): Promise<void> {
           <div>
             <p class="mono-label">Сервис</p>
             <div class="mt-3 grid gap-2.5 text-muted">
+              <RouterLink :to="{ name: 'home' }" class="transition hover:text-ink"
+                >Главная</RouterLink
+              >
               <RouterLink :to="{ name: 'create' }" class="transition hover:text-ink"
                 >Создать игру</RouterLink
               >
@@ -71,7 +74,21 @@ async function logout(): Promise<void> {
       <div
         class="mt-10 flex flex-col gap-2 border-t border-line/60 pt-5 text-[11px] text-faint sm:flex-row sm:items-center sm:justify-between"
       >
-        <p>© {{ year }} BeeVibe</p>
+        <p class="flex flex-wrap items-center gap-1.5">
+          <span>© {{ year }} BeeVibe</span>
+          <span aria-hidden="true">·</span>
+          <span>
+            Эмодзи:
+            <a
+              href="https://github.com/jdecked/twemoji"
+              target="_blank"
+              rel="noreferrer"
+              class="transition hover:text-hover-accent"
+              >Twemoji</a
+            >
+            (CC-BY 4.0)
+          </span>
+        </p>
       </div>
     </div>
   </footer>

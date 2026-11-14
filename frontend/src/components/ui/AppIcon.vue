@@ -53,6 +53,7 @@ type IconName =
   | 'book'
   | 'trophy'
   | 'heart'
+  | 'home'
 
 const paths: Record<IconName, string[]> = {
   'arrow-right': ['M4 12h15', 'm13 6 6 6-6 6'],
@@ -163,6 +164,7 @@ const paths: Record<IconName, string[]> = {
   heart: [
     'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.3l7.8-7.8 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z',
   ],
+  home: ['M4 10.7 12 4l8 6.7V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1V10.7Z'],
 }
 
 const iconPaths = computed(() => paths[props.name])

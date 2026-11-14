@@ -4,10 +4,14 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import GeneratorPage from '@/pages/GeneratorPage.vue'
 
-const push = vi.fn()
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  routeQuery: {} as Record<string, string>,
+}))
 
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push }),
+  useRoute: () => ({ query: mocks.routeQuery }),
+  useRouter: () => ({ push: mocks.push }),
   RouterLink: { name: 'RouterLink', template: '<a><slot /></a>' },
 }))
 
@@ -25,6 +29,7 @@ function buttonByText(wrapper: ReturnType<typeof mount>, text: string) {
 describe('GeneratorPage speed switch', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mocks.routeQuery = {}
   })
 
   it('offers both modes with their own price', () => {
@@ -45,5 +50,13 @@ describe('GeneratorPage speed switch', () => {
 
     expect(wrapper.text()).toContain('Стоимость: 240K')
     expect(wrapper.text()).toContain('Генерация · 240K')
+  })
+
+  it('prefills the prompt from the landing idea query', () => {
+    mocks.routeQuery = { idea: 'Киберпанк-кликер про кота-хакера' }
+
+    const wrapper = mount(GeneratorPage, { shallow: true })
+
+    expect(wrapper.text()).toContain('32 / 2000')
   })
 })
