@@ -1,0 +1,4 @@
+build/.venv/
+build/fonts-src/
+assets/shots/_fit_*.jpg
+build/pdf/pages/
