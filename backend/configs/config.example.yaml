@@ -61,17 +61,16 @@ fast:
 
 # Reasoning effort per request: default | none | minimal | low | medium | high | xhigh | max
 # default does not send the field, the provider default applies.
-# On commandcode any explicit effort backfires: the model thinks until max_tokens and returns
-# empty content, so those stages must stay on default.
 llm_reasoning:
-  analyzer: default
-  planner: default
-  coder: default
-  assets: default
-  reviewer: default
-  assembler: default
-  patch: default
-  repair: default
+  analyzer: high
+  planner: high
+  coder: medium
+  assets: low
+  reviewer: medium
+  assembler: low
+  patch: medium
+  repair: low
+  meta: minimal
 
 tokens:
   grant_signup: 1000000
