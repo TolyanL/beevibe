@@ -28,6 +28,12 @@ func TestCanonicalConfigBlock(t *testing.T) {
 			},
 		},
 		{
+			name:    "custom style never becomes a canonical value",
+			params:  domain.GameParams{Tempo: 7, MapSize: domain.MapSizeMedium, Style: domain.StyleCustom},
+			want:    []string{"- tempo: 7", `- mapSize: "medium"`},
+			notWant: []string{"style:"},
+		},
+		{
 			name:   "empty params produce no block",
 			params: domain.GameParams{},
 		},
@@ -92,6 +98,37 @@ func TestCodeAndAssemblePromptsOmitCanonicalConfigWhenEmpty(t *testing.T) {
 	} {
 		if strings.Contains(prompt, "Canonical CONFIG values") {
 			t.Errorf("%s prompt must not invent canonical CONFIG values for empty params", name)
+		}
+	}
+}
+
+func TestPromptsAskForAConfigStyleOnCustomStyle(t *testing.T) {
+	t.Parallel()
+
+	p := &pipeline{
+		game: domain.Game{
+			ID:     uuid.New(),
+			Prompt: "змейка",
+			Params: domain.GameParams{
+				Tempo:       7,
+				MapSize:     domain.MapSizeMedium,
+				Style:       domain.StyleCustom,
+				CustomStyle: "акварельные мазки",
+			},
+		},
+	}
+
+	for name, prompt := range map[string]string{
+		"code":     buildCodePrompt(p),
+		"assemble": buildAssemblePrompt(p),
+		"one shot": buildOneShotPrompt(p),
+	} {
+		if strings.Contains(prompt, `- style: "custom"`) {
+			t.Errorf("%s prompt must never hand the author's custom style as a CONFIG value, got:\n%s", name, prompt)
+		}
+
+		if !strings.Contains(prompt, `exactly one of "pixel", "cartoon", "neon", "minimal"`) {
+			t.Errorf("%s prompt must name the CONFIG style enum, got:\n%s", name, prompt)
 		}
 	}
 }

@@ -402,6 +402,56 @@ func (u *UseCase) stepAssemble(ctx context.Context, p *pipeline) error {
 	return u.emitStageEvent(ctx, p.game.ID, domain.StatusAssembling, "done", time.Since(start).Milliseconds(), 0)
 }
 
+// NOTE: an invalid CONFIG is repaired instead of failing the run: the coder copies canonical
+// values, so a value the CONFIG enum rejects is a repairable defect, and a retry resumes at
+// this stage with that html saved.
+func (u *UseCase) checkUntilClean(ctx context.Context, p *pipeline, html string) (domain.GameConfig, error) {
+	attempts := u.maxFixAttemptsFor(p)
+
+	for attempt := range attempts {
+		issues, err := u.validator.Check(ctx, html)
+		if err != nil {
+			return domain.GameConfig{}, fmt.Errorf("validator.Check: %w", err)
+		}
+
+		cfg, configErr := u.validator.ExtractConfig(ctx, html)
+		if configErr == nil && len(issues) == 0 {
+			if html != p.html {
+				p.html = html
+
+				if err := u.store.SaveGameArtifact(ctx, p.game.ID, artifactHTML, html); err != nil {
+					return domain.GameConfig{}, fmt.Errorf("store.SaveGameArtifact: %w", err)
+				}
+			}
+
+			return cfg, nil
+		}
+
+		if configErr != nil && !errors.Is(configErr, domain.ErrValidationFailed) {
+			return domain.GameConfig{}, fmt.Errorf("validator.ExtractConfig: %w", configErr)
+		}
+
+		if attempt == attempts-1 {
+			if configErr != nil {
+				return domain.GameConfig{}, fmt.Errorf("validator.ExtractConfig: %w", configErr)
+			}
+
+			return domain.GameConfig{}, fmt.Errorf("%w: %s", domain.ErrValidationFailed, issues[0].Message)
+		}
+
+		if configErr != nil {
+			issues = append(issues, buildConfigIssue(configErr))
+		}
+
+		html, err = u.repair(ctx, p, html, issues)
+		if err != nil {
+			return domain.GameConfig{}, fmt.Errorf("u.repair: %w", err)
+		}
+	}
+
+	return domain.GameConfig{}, fmt.Errorf("%w: validation issues remain", domain.ErrValidationFailed)
+}
+
 func (u *UseCase) fixUntilClean(ctx context.Context, p *pipeline, html string) (string, error) {
 	attempts := u.maxFixAttemptsFor(p)
 
@@ -439,9 +489,9 @@ func (u *UseCase) stepCheck(ctx context.Context, p *pipeline) error {
 		return fmt.Errorf("u.emitStageEvent: %w", err)
 	}
 
-	cfg, err := u.validator.ExtractConfig(ctx, p.html)
+	cfg, err := u.checkUntilClean(ctx, p, p.html)
 	if err != nil {
-		return fmt.Errorf("validator.ExtractConfig: %w", err)
+		return fmt.Errorf("u.checkUntilClean: %w", err)
 	}
 
 	if err := p.game.ApplyConfig(cfg); err != nil {

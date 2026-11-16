@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"slices"
 )
 
 type GameConfig struct {
@@ -32,13 +33,19 @@ func (c GameConfig) Validate() error {
 		return fmt.Errorf("%w: unknown map size %q", ErrInvalidInput, c.MapSize)
 	}
 
-	switch c.Style {
-	case StylePixel, StyleCartoon, StyleNeon, StyleMinimal:
-	default:
+	if !c.Style.IsConfigStyle() {
 		return fmt.Errorf("%w: unknown style %q", ErrInvalidInput, c.Style)
 	}
 
 	return nil
+}
+
+func ConfigStyles() []Style {
+	return []Style{StylePixel, StyleCartoon, StyleNeon, StyleMinimal}
+}
+
+func (s Style) IsConfigStyle() bool {
+	return slices.Contains(ConfigStyles(), s)
 }
 
 func (c GameConfig) Apply(update GameConfigUpdate) (GameConfig, error) {

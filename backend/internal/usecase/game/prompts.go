@@ -108,13 +108,20 @@ func buildAssemblePrompt(p *pipeline) string {
 
 func writeCanonicalConfig(b *strings.Builder, p *pipeline) {
 	block := canonicalConfigBlock(p.game.Params)
-	if block == "" {
-		return
+
+	if block != "" {
+		b.WriteString("\n\nCanonical CONFIG values from the game request — copy them into the CONFIG block exactly as given:\n")
+		b.WriteString(block)
+		b.WriteString("The SPEC text describing the look is a human-readable description; never copy it into CONFIG fields.\n")
 	}
 
-	b.WriteString("\n\nCanonical CONFIG values from the game request — copy them into the CONFIG block exactly as given:\n")
-	b.WriteString(block)
-	b.WriteString("The SPEC text describing the look is a human-readable description; never copy it into CONFIG fields.\n")
+	if p.game.Params.Style != "" && !p.game.Params.Style.IsConfigStyle() {
+		fmt.Fprintf(
+			b,
+			"\nThe author's style is a free-form description, not a CONFIG value: set CONFIG.style to exactly one of %s — the one that fits that description best.\n",
+			quotedValues(domain.ConfigStyles()...),
+		)
+	}
 }
 
 func canonicalConfigBlock(params domain.GameParams) string {
@@ -128,8 +135,8 @@ func canonicalConfigBlock(params domain.GameParams) string {
 		fmt.Fprintf(&b, "- mapSize: %q (allowed: %s)\n", params.MapSize, quotedValues(domain.MapSizeSmall, domain.MapSizeMedium, domain.MapSizeLarge))
 	}
 
-	if params.Style != "" {
-		fmt.Fprintf(&b, "- style: %q (allowed: %s)\n", params.Style, quotedValues(domain.StylePixel, domain.StyleCartoon, domain.StyleNeon, domain.StyleMinimal))
+	if params.Style.IsConfigStyle() {
+		fmt.Fprintf(&b, "- style: %q (allowed: %s)\n", params.Style, quotedValues(domain.ConfigStyles()...))
 	}
 
 	return b.String()
@@ -142,6 +149,20 @@ func quotedValues[T ~string](values ...T) string {
 	}
 
 	return strings.Join(quoted, ", ")
+}
+
+func buildConfigIssue(err error) domain.Issue {
+	return domain.Issue{
+		Code: "invalid_config",
+		Message: fmt.Sprintf(
+			"%s — CONFIG must hold: tempo is an integer %d..%d, mapSize is one of %s, style is one of %s",
+			err.Error(),
+			domain.TempoSlow,
+			domain.TempoFast,
+			quotedValues(domain.MapSizeSmall, domain.MapSizeMedium, domain.MapSizeLarge),
+			quotedValues(domain.ConfigStyles()...),
+		),
+	}
 }
 
 func buildRepairPrompt(html string, issues []domain.Issue) string {

@@ -3,6 +3,8 @@ package game
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -248,6 +250,73 @@ func TestRunPipelineResumesFromFailedStage(t *testing.T) {
 
 	llmMock.AssertNotCalled(t, "Prompt", "analyzer")
 	llmMock.AssertNotCalled(t, "Prompt", "planner")
+}
+
+func TestCheckUntilCleanRepairsInvalidConfig(t *testing.T) {
+	t.Parallel()
+
+	uc, store, llmMock, validator, _ := newTestUseCase(t)
+
+	game := domain.Game{ID: uuid.New(), OwnerID: uuid.New(), Prompt: "змейка"}
+
+	customHTML := `<!DOCTYPE html><html><body><script>const CONFIG = {tempo: 7, style: "custom"};</script></body></html>`
+
+	p := &pipeline{game: game, html: customHTML}
+
+	validator.EXPECT().Check(mock.Anything, customHTML).Return(nil, nil).Once()
+	validator.EXPECT().ExtractConfig(mock.Anything, customHTML).Return(domain.GameConfig{}, fmt.Errorf(
+		"%w: invalid input: unknown style %q", domain.ErrValidationFailed, domain.StyleCustom,
+	)).Once()
+
+	llmMock.EXPECT().Prompt("repair").Return("system prompt", nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.MatchedBy(func(req llm.Request) bool {
+		return strings.Contains(req.Prompt, "invalid_config") && strings.Contains(req.Prompt, customHTML)
+	})).Return(llm.Response{Text: gameHTML}, nil).Once()
+
+	validator.EXPECT().Check(mock.Anything, gameHTML).Return(nil, nil).Once()
+	validator.EXPECT().ExtractConfig(mock.Anything, gameHTML).Return(domain.GameConfig{
+		Tempo:   5,
+		MapSize: domain.MapSizeMedium,
+		Style:   domain.StyleNeon,
+	}, nil).Once()
+
+	store.EXPECT().SaveGameArtifact(mock.Anything, game.ID, artifactHTML, gameHTML).Return(nil).Once()
+
+	cfg, err := uc.checkUntilClean(t.Context(), p, p.html)
+	if err != nil {
+		t.Fatalf("checkUntilClean() error = %v, want nil", err)
+	}
+
+	if cfg.Style != domain.StyleNeon {
+		t.Fatalf("checkUntilClean() style = %q, want %q", cfg.Style, domain.StyleNeon)
+	}
+
+	if p.html != gameHTML {
+		t.Fatalf("pipeline html = %q, want the repaired game", p.html)
+	}
+}
+
+func TestCheckUntilCleanStopsAfterRepairBudget(t *testing.T) {
+	t.Parallel()
+
+	uc, _, llmMock, validator, _ := newTestUseCase(t)
+
+	customHTML := `<!DOCTYPE html><html><body><script>const CONFIG = {tempo: 7, style: "custom"};</script></body></html>`
+
+	p := &pipeline{game: domain.Game{ID: uuid.New(), OwnerID: uuid.New()}, html: customHTML}
+
+	validator.EXPECT().Check(mock.Anything, mock.Anything).Return(nil, nil)
+	validator.EXPECT().ExtractConfig(mock.Anything, mock.Anything).Return(domain.GameConfig{}, fmt.Errorf(
+		"%w: invalid input: unknown style %q", domain.ErrValidationFailed, domain.StyleCustom,
+	))
+	llmMock.EXPECT().Prompt("repair").Return("system prompt", nil).Once()
+	llmMock.EXPECT().Complete(mock.Anything, mock.Anything).Return(llm.Response{Text: customHTML}, nil).Once()
+
+	if _, err := uc.checkUntilClean(t.Context(), p, p.html); !errors.Is(err, domain.ErrValidationFailed) {
+		t.Fatalf("checkUntilClean() error = %v, want ErrValidationFailed", err)
+	}
+
+	llmMock.AssertNumberOfCalls(t, "Complete", 1)
 }
 
 func TestStatusOrderHelpers(t *testing.T) {

@@ -7,6 +7,38 @@ import (
 	"github.com/google/uuid"
 )
 
+func TestConfigStyles(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		style Style
+		want  bool
+	}{
+		{name: "pixel", style: StylePixel, want: true},
+		{name: "cartoon", style: StyleCartoon, want: true},
+		{name: "neon", style: StyleNeon, want: true},
+		{name: "minimal", style: StyleMinimal, want: true},
+		{name: "custom is a request label, not a config value", style: StyleCustom},
+		{name: "empty", style: ""},
+		{name: "unknown", style: Style("retro")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tt.style.IsConfigStyle(); got != tt.want {
+				t.Fatalf("Style(%q).IsConfigStyle() = %v, want %v", tt.style, got, tt.want)
+			}
+		})
+	}
+
+	if len(ConfigStyles()) != 4 {
+		t.Fatalf("ConfigStyles() = %v, want the four CONFIG enum values", ConfigStyles())
+	}
+}
+
 func TestGameConfigApply(t *testing.T) {
 	t.Parallel()
 
