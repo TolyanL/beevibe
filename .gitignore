@@ -57,3 +57,5 @@ _dev/
 
 # Review stack secrets
 deploy/config.yaml
+
+/presentation/
