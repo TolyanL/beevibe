@@ -8,7 +8,7 @@ import Textarea from 'openvue/textarea'
 import { useConfirm } from 'openvue/useconfirm'
 import { useToast } from 'openvue/usetoast'
 import { messageFromError } from '@/api/client'
-import type { GameVersion } from '@/api/types'
+import type { ActiveOperation, GameVersion } from '@/api/types'
 import { formatDate, formatTokens, plural } from '@/lib/format'
 import {
   genreLabel,
@@ -97,8 +97,20 @@ const operationHint = computed(() => {
   }
 })
 
-const operationExpectedSeconds = computed(() => (game.operation?.kind === 'meta' ? 45 : 150))
-const generationExpectedSeconds = computed(() => (game.speed === 'fast' ? 300 : 900))
+const OPERATION_EXPECTED_SECONDS: Record<ActiveOperation['kind'], number> = {
+  meta: 45,
+  config: 40,
+  fix: 170,
+  patch: 180,
+}
+const GENERATION_EXPECTED_SECONDS = { fast: 300, normal: 780 }
+
+const operationExpectedSeconds = computed(() =>
+  game.operation ? OPERATION_EXPECTED_SECONDS[game.operation.kind] : 180,
+)
+const generationExpectedSeconds = computed(() =>
+  game.speed === 'fast' ? GENERATION_EXPECTED_SECONDS.fast : GENERATION_EXPECTED_SECONDS.normal,
+)
 const resumeFallback = computed(() => (game.speed === 'fast' ? 'checking' : 'assembling'))
 const isMetaOperation = computed(() => game.operation?.kind === 'meta')
 const reviewIssues = computed(() => game.game?.review_issues ?? [])

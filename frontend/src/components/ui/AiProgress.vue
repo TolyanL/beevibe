@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { estimatedPercent, estimatedStage } from '@/lib/progress'
 
 const props = withDefaults(
   defineProps<{
@@ -37,21 +38,9 @@ const elapsedLabel = computed(() => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 })
 
-// NOTE: an LLM call has no real progress, so the bar eases to 95% and waits there.
-const percent = computed(() => {
-  const expected = Math.max(10, props.expectedSeconds)
-  const ratio = elapsedSeconds.value / expected
+const percent = computed(() => estimatedPercent(elapsedSeconds.value, props.expectedSeconds))
 
-  return Math.min(95, Math.round((1 - Math.exp(-1.6 * ratio)) * 95))
-})
-
-const stage = computed(() => {
-  if (elapsedSeconds.value < 5) return 'Отправляем запрос модели'
-  if (elapsedSeconds.value < 25) return 'Модель обдумывает ответ'
-  if (elapsedSeconds.value < 70) return 'Собираем результат'
-
-  return 'Осталось чуть-чуть — ответ вот-вот придёт'
-})
+const stage = computed(() => estimatedStage(elapsedSeconds.value, props.expectedSeconds))
 </script>
 
 <template>
