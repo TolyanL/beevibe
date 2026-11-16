@@ -11,7 +11,7 @@ func TestConfigStyles(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+		name  string
 		style Style
 		want  bool
 	}{
