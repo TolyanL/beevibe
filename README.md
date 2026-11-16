@@ -175,7 +175,7 @@ generated games at `/g/<slug>`. Migrations run as a one-shot service before the 
 starts (`goose` is inside the image), and Kafka creates `game.events` on the first write
 (`KAFKA_NUM_PARTITIONS: 8`), so no topic-init container is needed. `APP_PORT=8081` moves
 the published port, `--build` builds from the working tree instead of pulling the image,
-`IMAGE=ghcr.io/tolyanl/beevibe:v1.4.3` pins a release, and `--wait` blocks until the
+`IMAGE=ghcr.io/tolyanl/beevibe:v1.4.4` pins a release, and `--wait` blocks until the
 app healthcheck passes.
 
 `deploy/config.yaml` is mounted read-only over `/app/configs/config.yaml` — the path the
@@ -197,9 +197,9 @@ migrate`, with `app` stopped, otherwise port 8080 is taken:
 ```sh
 docker run -d --name beevibe_app --network beevibe_default -p 8080:8080 \
   -v "$PWD/deploy/config.yaml:/app/configs/config.yaml:ro" \
-  ghcr.io/tolyanl/beevibe:v1.4.3
+  ghcr.io/tolyanl/beevibe:v1.4.4
 
-curl -s localhost:8080/api/health    # {"status":"ok","version":"1.4.3"}
+curl -s localhost:8080/api/health    # {"status":"ok","version":"1.4.4"}
 ```
 
 `$PWD` must be the repository root; use an absolute path otherwise, and add
@@ -300,10 +300,10 @@ same by hand):
 # 1. bump app.version everywhere (config.example.yaml, config.go Defaults, openapi,
 #    frontend/package.json) — the workflow refuses a tag that disagrees with it
 # 2. tag and push
-git tag v1.4.3 && git push origin v1.4.3
+git tag v1.4.4 && git push origin v1.4.4
 ```
 
-Published tags per release: `v1.4.3`, `1.4.3`, `1.4` and `latest`. The job logs into ghcr
+Published tags per release: `v1.4.4`, `1.4.4`, `1.4` and `latest`. The job logs into ghcr
 with `GITHUB_TOKEN` (`packages: write`), so no PAT or repository secret is needed — the
 package only has to be linked to the repository once (Settings → Packages). Nothing is
 pushed until the build succeeds, and the `app.version` ↔ tag check keeps the tag,

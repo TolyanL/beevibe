@@ -1,6 +1,6 @@
 app:
   name: beevibe
-  version: 1.4.3
+  version: 1.4.4
 
 http:
   port: "8080"
